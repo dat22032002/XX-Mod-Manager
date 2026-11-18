@@ -2,6 +2,22 @@
     <div class="main-container" ref="modCardState">
         <div class="head">
             <backbutton @click="handleBackButtomClick" />
+            <div class="window-controls">
+                <s-icon-button class="OO-icon-button window-control-btn" :title="$t('buttons.minimize')" @click="handleMinimizeClick">
+                    <s-icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                            <path d="M240-440v-80h480v80H240Z" />
+                        </svg>
+                    </s-icon>
+                </s-icon-button>
+                <s-icon-button class="OO-icon-button window-control-btn" :title="$t('buttons.fullscreen')" @click="handleFullscreenClick">
+                    <s-icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                            <path :d="isFullscreen ? fullscreenExitPath : fullscreenPath" />
+                        </svg>
+                    </s-icon>
+                </s-icon-button>
+            </div>
             <div id="drag-bar" style="flex: 1;height: 100%;app-region: drag;"></div>
             <sectionSelector :sections="sections" @update:currentSection="handleSectionChange"></sectionSelector>
         </div>
@@ -80,6 +96,22 @@ const closeApp = () => {
     window.close();
 };
 
+// 窗口控制按钮：最小化 / 全屏（主进程已有对应的 IPC 处理）
+const isFullscreen = ref(false);
+const fullscreenPath = 'M120-120v-200h80v120h120v80H120Zm520 0v-80h120V-320h80v200H640ZM120-640v-200h200v80H200v120h-80Zm640 0v-120H640v-80h200v200h-80Z';
+const fullscreenExitPath = 'M240-120v-120H120v-80h200v200h-80Zm360 0v-200h200v80H680v120h-80ZM120-640v-80h120V-840h80v200H120Zm520 0v-200h80v120h120v80H640Z';
+
+const handleMinimizeClick = () => {
+    const { ipcRenderer } = require('electron');
+    ipcRenderer.invoke('minimize-window');
+};
+
+const handleFullscreenClick = async () => {
+    const { ipcRenderer } = require('electron');
+    const result = await ipcRenderer.invoke('toggle-fullscreen');
+    isFullscreen.value = result === true;
+};
+
 const handleBackButtomClick = () => {
     closeApp();
 };
@@ -125,6 +157,19 @@ waitInitIManager().then((iManager) => {
     align-items: center;
     padding: 5px 20px;
     height: 50px;
+}
+
+.window-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+/* OO-icon-button mặc định có margin dọc 10px, sẽ tràn khỏi header 50px */
+.window-control-btn {
+    margin: 0;
 }
 
 .section-container {
