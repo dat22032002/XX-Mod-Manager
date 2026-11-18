@@ -439,7 +439,14 @@ class IManager {
         this.data.characterList = Array.from(this.data.characterList).sort();
 
         // 如果 currentCharacter 不为空，且 characterList 中不包含 currentCharacter，则将 currentCharacter 设置为 all
-        if (this.temp.currentCharacter !== null && !this.data.characterList.includes(this.temp.currentCharacter)) {
+        // 'all' 和 'selected' 是 tab giả (không phải tên nhân vật) nên không bao giờ
+        // có trong characterList — giữ nguyên tab, không ép về 'all' khi làm mới.
+        // Chỉ ép về 'all' khi đang đứng ở tên nhân vật thật mà nhân vật đó đã
+        // không còn mod nào trong kho nữa.
+        if (this.temp.currentCharacter !== null
+            && this.temp.currentCharacter !== 'all'
+            && this.temp.currentCharacter !== 'selected'
+            && !this.data.characterList.includes(this.temp.currentCharacter)) {
             this.setCurrentCharacter('all');
         }
     }
