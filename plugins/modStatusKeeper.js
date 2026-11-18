@@ -272,39 +272,62 @@ This plugin modifies the mod's INI files, so please ensure you !back up your mod
 
         /**
          * Helper function to check if backup files (.msk) exist in the workspace
-         * @returns {boolean} True if at least one .msk backup file exists
+         * HP9: async scan — the old synchronous recursive scan froze the UI
+         * thread for the whole mod library whenever no backup existed yet
+         * (the worst case: a full-library walk on every sync press /
+         * auto-sync enable). Each awaited readdir yields to the event loop,
+         * so the window stays responsive; the scan still stops at the first
+         * .msk found. Returns false (the safe direction: sync stays blocked)
+         * if the library cannot be read.
+         * @returns {Promise<boolean>} True if at least one .msk backup file exists
          */
-        const hasBackupFiles = () => {
-            let backupExists = false;
-
+        const hasBackupFiles = async () => {
             /**
              * Recursive function to search for .msk backup files
              * @param {string} dir - Directory path to search
+             * @returns {Promise<boolean>} True as soon as a backup file is found
              */
-            const searchForBackups = (dir) => {
-                if (!fs.existsSync(dir) || backupExists) return;
+            const searchForBackups = async (dir) => {
+                let entries;
+                try {
+                    entries = await fs.promises.readdir(dir, { withFileTypes: true });
+                } catch (e) {
+                    return false; // Missing/unreadable dir: no backups here
+                }
 
-                const items = fs.readdirSync(dir);
-
-                for (const item of items) {
-                    if (backupExists) break; // Early exit if backup found
-
-                    const itemPath = path.join(dir, item);
-                    const stat = fs.statSync(itemPath);
-
-                    if (stat.isDirectory()) {
-                        searchForBackups(itemPath);
-                    } else if (stat.isFile() && item.toLowerCase().endsWith('.msk')) {
-                        backupExists = true;
-                        log(`Found backup file: ${itemPath}`);
-                        break;
+                for (const entry of entries) {
+                    if (entry.isDirectory()) {
+                        if (await searchForBackups(path.join(dir, entry.name))) {
+                            return true; // Early exit if backup found
+                        }
+                    } else if (entry.name.toLowerCase().endsWith('.msk')) {
+                        // Same check as the old statSync version: only real files count
+                        let isFile = entry.isFile();
+                        if (!isFile && entry.isSymbolicLink()) {
+                            try {
+                                isFile = (await fs.promises.stat(path.join(dir, entry.name))).isFile();
+                            } catch (e) {
+                                isFile = false;
+                            }
+                        }
+                        if (isFile) {
+                            log(`Found backup file: ${path.join(dir, entry.name)}`);
+                            return true;
+                        }
                     }
                 }
+                return false;
             };
 
-            const modSourcePath = path.resolve(iManager.config.modSourcePath);
-            log(`Checking for backup files in: ${modSourcePath}`);
-            searchForBackups(modSourcePath);
+            let backupExists = false;
+            try {
+                const modSourcePath = path.resolve(iManager.config.modSourcePath);
+                log(`Checking for backup files in: ${modSourcePath}`);
+                backupExists = await searchForBackups(modSourcePath);
+            } catch (e) {
+                log(`Backup check failed: ${e.message}`, 'ERROR');
+                backupExists = false;
+            }
             log(`Backup files exist: ${backupExists}`);
             return backupExists;
         };
@@ -370,10 +393,10 @@ If you use XXMM as your mod manager, the program will try to automatically get t
              * Handle auto-updater toggle state changes
              * @param {boolean} value - New toggle state
              */
-            onChange: (value) => {
+            onChange: async (value) => {
                 if (value) {
                     // Check if backup files exist before enabling auto-sync (unless override is enabled)
-                    if (!backupOverride.data && !hasBackupFiles()) {
+                    if (!backupOverride.data && !(await hasBackupFiles())) {
                         autoUpdater.data = false; // Keep toggle disabled
                         iManager.t_snack({
                             en: "Cannot enable auto-sync: No backup files (.msk) found. Please create backups first or enable 'I DON'T CARE ABOUT BACKUPS'.",
@@ -455,7 +478,7 @@ If you use XXMM as your mod manager, the program will try to automatically get t
              */
             onChange: async () => {
                 // Check if backup files exist before allowing manual sync (unless override is enabled)
-                if (!backupOverride.data && !hasBackupFiles()) {
+                if (!backupOverride.data && !(await hasBackupFiles())) {
                     iManager.t_snack({
                         en: "Cannot sync: No backup files (.msk) found. Please create backups first or enable 'I DON'T CARE ABOUT BACKUPS'.",
                         vi: "Không thể đồng bộ: Không tìm thấy file sao lưu (.msk). Hãy tạo sao lưu trước hoặc bật 'TÔI KHÔNG QUAN TÂM ĐẾN SAO LƯU'."
@@ -1934,7 +1957,7 @@ The plugin is able to create log files to assist with debugging and recording op
          * Initialize auto-watcher if toggle is already enabled
          * This handles the case where the plugin loads with auto-updater already on
          */
-        iManager.on('pluginLoaded', () => {
+        iManager.on('pluginLoaded', async () => {
             log('Checking if auto-updater should start on plugin load...');
             if (autoUpdater.data === true) {
                 log('Auto-updater toggle is enabled, checking d3dx_user.ini path...');
@@ -1957,7 +1980,7 @@ The plugin is able to create log files to assist with debugging and recording op
                 log('Auto-updater toggle is enabled, starting file watcher...');
 
                 // Check backup requirements
-                if (!backupOverride.data && !hasBackupFiles()) {
+                if (!backupOverride.data && !(await hasBackupFiles())) {
                     log('Auto-updater enabled but no backups found and override disabled', 'WARN');
                     iManager.t_snack({
                         en: "Auto-updater was enabled but no backup files found. Please create backups or enable backup override.",

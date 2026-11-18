@@ -10,7 +10,8 @@ import firstLoadPage from './firstLoadPage.vue'
 const { ipcRenderer} = require('electron');
 
 import IManager from '../electron/IManager'
-const iManager = new IManager();
+// Cửa sổ cài đặt lần đầu chỉ cần cài đặt, không cần danh sách mod hay plugin.
+const iManager = new IManager({ light: true });
 import { g_config_vue } from '../electron/IManager'
 
 //-=================== 旧的导入 ===================-//
@@ -59,12 +60,6 @@ iManager.on("initDone", () => {
     console.log('languageChange:', iManager.config.language);
 }
 );
-
-// 每1s打印一次语言
-setInterval(() => {
-    console.log('language:', g_config_vue.language.value);
-}, 1000);
-
 
 //-=====================事件监听====================-//
 console.log('main.js');

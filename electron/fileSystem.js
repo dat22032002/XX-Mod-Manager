@@ -29,6 +29,35 @@ const disabledPluginsPath = () => {
     return (ifCustomConfig) ? path.join(customConfigFolder, 'disabledPlugins.json') : path.join(dataPath, 'disabledPlugins.json');
 }
 
+// HP11: read the window bounds the renderer saved on last close, so the main
+// window can be created at its saved size/position instead of 800x600 and
+// then visibly jumping when the renderer applies the bounds after init.
+// Returns null when there is no saved config or the bounds are unusable;
+// the caller then falls back to the 800x600 centered default.
+function getSavedWindowBounds() {
+    try {
+        const cfgPath = configPath();
+        if (!fs.existsSync(cfgPath)) {
+            return null;
+        }
+        const config = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+        const b = config && config.bounds;
+        if (!b || !Number.isFinite(b.width) || !Number.isFinite(b.height) || b.width <= 0 || b.height <= 0) {
+            return null;
+        }
+        return {
+            width: b.width,
+            height: b.height,
+            // x/y 为 -1 表示居中（与 set-bounds 的约定一致）
+            x: Number.isFinite(b.x) ? b.x : -1,
+            y: Number.isFinite(b.y) ? b.y : -1,
+        };
+    } catch (e) {
+        console.error('getSavedWindowBounds', e);
+        return null;
+    }
+}
+
 function snack(message, type = 'info') {
     const mainWindow = currentMainWindow;
     //console.log(mainWindow);
@@ -504,6 +533,26 @@ async function savePluginConfig(pluginName, config) {
     fs.writeFileSync(currentPluginConfigPath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
+// HP15: save every plugin's config with a single read + a single write,
+// instead of one read + one full write per plugin (SaveAllPluginConfigSync
+// used to call savePluginConfig once per plugin on every app close).
+async function saveAllPluginConfig(allConfigs) {
+    const currentPluginConfigPath = pluginConfigPath();
+
+    // 不存在文件则从空对象开始（旧逻辑是先写 '{}' 再读回，效果相同）
+    let data = {};
+    if (fs.existsSync(currentPluginConfigPath)) {
+        // 读取文件，插入新的配置
+        data = JSON.parse(fs.readFileSync(currentPluginConfigPath, 'utf-8'));
+    }
+    Object.assign(data, allConfigs);
+    //debug
+    console.log(`save-all-plugin-config:${currentPluginConfigPath}`, data);
+
+    // 保存文件
+    fs.writeFileSync(currentPluginConfigPath, JSON.stringify(data, null, 2), 'utf-8');
+}
+
 async function getPluginConfig(pluginName) {
     const currentPluginConfigPath = pluginConfigPath();
     if (fs.existsSync(currentPluginConfigPath)) {
@@ -528,6 +577,11 @@ async function getDisabledPlugins() {
 
 ipcMain.handle('save-plugin-config', async (event, pluginName, config) => {
     savePluginConfig(pluginName, config);
+});
+
+// HP15: one IPC call saves all plugins' configs with a single file write
+ipcMain.handle('save-all-plugin-config', async (event, allConfigs) => {
+    saveAllPluginConfig(allConfigs);
 });
 
 ipcMain.handle('get-plugin-config', async (event, pluginName) => {
@@ -817,5 +871,6 @@ ipcMain.handle('set-custom-config-folder', async (event, path) => {
 
 module.exports = {
     setMainWindow,
-    setCustomConfigFolder
+    setCustomConfigFolder,
+    getSavedWindowBounds
 }

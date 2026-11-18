@@ -54,10 +54,13 @@ enum EventType {
 class EventSystem {
     private static devMode = false; // 开发模式
     private static eventMap = new Map<EventType, Function[]>(); // 事件映射表
+    // HP19: Object.values() built a fresh ~20-item array on every trigger()/on()
+    // call; a prebuilt Set makes the validity check O(1) with no allocation.
+    private static validEvents = new Set<string>(Object.values(EventType));
 
     static async on(event: EventType, callback: Function) {
         // 因为会被js调用，所以说需要判断event是否为EventType之一
-        if (!Object.values(EventType).includes(event)) {
+        if (!EventSystem.validEvents.has(event)) {
             throw new Error(`EventSystem.on: event ${event} is not a valid EventType`);
         }
         // 防止 eventMap 不存在 
@@ -86,7 +89,7 @@ class EventSystem {
 
     static async trigger(event: EventType, ...args: any[]) {
         // 因为会被js调用，所以说需要判断event是否为EventType之一
-        if (!Object.values(EventType).includes(event)) {
+        if (!EventSystem.validEvents.has(event)) {
             throw new Error(`EventSystem.on: event ${event} is not a valid EventType`);
         }
         if (EventSystem.eventMap.has(event)) {

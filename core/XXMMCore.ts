@@ -199,6 +199,25 @@ class XXMMCore{
         console.log(`Plugin config file saved: ${pluginConfigPath}`);
     }
 
+    // HP15: save every plugin's config with a single read + a single write,
+    // instead of one read + one full write per plugin (SaveAllPluginConfig
+    // used to call savePluginConfig once per plugin).
+    public static saveAllPluginConfig(allPluginDataToSave){
+        const pluginConfigPath = XXMMCore.getPluginConfigPath();
+        if (!fs.existsSync(pluginConfigPath)){
+            fs.writeFileSync(pluginConfigPath, JSON.stringify({}, null, 4), 'utf8');
+            console.log(`Plugin config file not exist, create a new one: ${pluginConfigPath}`);
+        }
+        // 读取文件，插入新的数据，保存文件
+        const pluginConfig = XXMMCore.readJsonFileOrDefault(pluginConfigPath, {});
+        // 插入新的数据
+        Object.assign(pluginConfig, allPluginDataToSave);
+        // 保存文件
+        fs.writeFileSync(pluginConfigPath, JSON.stringify(pluginConfig, null, 4), 'utf8');
+        // debug
+        console.log(`Plugin config file saved: ${pluginConfigPath}`);
+    }
+
     //----------------- disabled plugins ------------------
     public static getDisabledPlugins(){
         const disabledPluginsPath = XXMMCore.getDisabledPluginsPath();

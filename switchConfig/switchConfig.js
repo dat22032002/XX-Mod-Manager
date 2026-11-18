@@ -10,7 +10,8 @@ import switchConfigPage from './src/switchConfigPage.vue'
 const { ipcRenderer} = require('electron');
 
 import IManager from '../electron/IManager'
-const iManager = new IManager();
+// Cửa sổ đổi cấu hình chỉ cần cài đặt, không cần danh sách mod hay plugin.
+const iManager = new IManager({ light: true });
 
 //-=================== 旧的导入 ===================-//
 const path = require('path');

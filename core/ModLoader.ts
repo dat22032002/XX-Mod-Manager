@@ -7,6 +7,16 @@ import type { ModCacheFile } from './ModCache';
 const fs = require('fs');
 const path = require('path');
 
+// How many mods to build before yielding to the UI thread, so a fresh
+// scan (first launch / Rescan) does not freeze the window. Same pattern
+// and chunk size as ApplyMods.ts.
+const LOAD_CHUNK_SIZE = 10;
+
+// Let the UI thread breathe between chunks.
+async function yieldToUI() {
+    await new Promise(resolve => setTimeout(resolve, 0));
+}
+
 class ModLoader {
     public static modSourceFolders: string[] = [];
     static addModSourceFolder(folder: string) {
@@ -33,6 +43,11 @@ class ModLoader {
     // 加载 Mod
     static modsRaw: ModInfo[] = [];
     static mods: ModData[] = [];
+    // id -> ModInfo lookup (HP8): getModByID used to be a linear .find()
+    // over the whole list, called once per mod on fresh load and on Apply.
+    // Updated wherever modsRaw changes (loadMods / loadMod); first mod
+    // wins for a duplicated id, same as the old .find() did.
+    private static modsById: Map<string, ModInfo> = new Map();
     private static afterLoadCallbacks: ((mods: ModData[]) => void)[] = [];
 
     static onAfterLoad(callback: (mods: ModData[]) => void) {
@@ -59,6 +74,7 @@ class ModLoader {
 
         this.modsRaw = [];
         this.mods = [];
+        this.modsById.clear();
 
         if (this.modSourceFolders.length === 0) {
             // throw new Error('ModLoader.loadMods: no mod source folder');
@@ -74,25 +90,46 @@ class ModLoader {
         let freshCount = 0;
 
         // 读取所有的 mod 文件夹
+        // HP1: build mods in small chunks that yield to the UI thread.
+        // The old code ran every mod's synchronous build (new ModInfo reads
+        // mod.json, calcPreviewPath scans the folder) back-to-back inside
+        // Promise.all callbacks, so a fresh scan froze the window as one
+        // long block. Now each chunk first checks cache validity for its
+        // mods concurrently (async stats), then does the synchronous builds
+        // for that chunk, then yields — the window stays responsive.
         await Promise.all(this.modSourceFolders.map(async folder => {
             let mods = await fs.promises.readdir(folder, { withFileTypes: true });
             const seenFolders = new Set<string>();
-            await Promise.all(mods.map(async mod => {
-                if (mod.isDirectory()) {
+            const modDirs = mods.filter(mod => mod.isDirectory());
+            for (let i = 0; i < modDirs.length; i += LOAD_CHUNK_SIZE) {
+                const chunk = modDirs.slice(i, i + LOAD_CHUNK_SIZE);
+                // Validity checks are async disk stats: run them together.
+                const validity = await Promise.all(chunk.map(async mod => {
+                    const entry = cache.sources[folder] ? cache.sources[folder][mod.name] : undefined;
+                    return {
+                        mod: mod,
+                        entry: entry,
+                        valid: entry ? await ModCache.isEntryValid(entry) : false,
+                    };
+                }));
+                for (const { mod, entry, valid } of validity) {
                     let modPath = path.join(folder, mod.name);
                     seenFolders.add(mod.name);
-                    const entry = cache.sources[folder] ? cache.sources[folder][mod.name] : undefined;
-                    if (entry && await ModCache.isEntryValid(entry)) {
+                    if (valid && entry) {
                         // 文件夹和 mod.json 都没动过：直接用缓存，不读盘。
                         let modInfo = ModInfo.fromCache(modPath, entry);
                         this.modsRaw.push(modInfo);
+                        this.addToIdIndex(modInfo);
                         this.mods.push(ModData.fromCache(modInfo, entry).setModSourcePath(folder));
                         cachedCount++;
-                        return;
+                        continue;
                     }
                     // 新 mod，或者改过：完整加载一次，然后记进缓存。
+                    // modInfo must be indexed before fromModInfo: handlePreview
+                    // looks the mod up by id (getModByID).
                     let modInfo = new ModInfo(modPath);
                     this.modsRaw.push(modInfo);
+                    this.addToIdIndex(modInfo);
                     let modData = ModData.fromModInfo(modInfo).setModSourcePath(folder);
                     this.mods.push(modData);
                     freshCount++;
@@ -100,8 +137,8 @@ class ModLoader {
                         cacheDirty = true;
                     }
                 }
+                await yieldToUI();
             }
-            ));
             // 缓存里有、盘上没了的文件夹：从缓存里删掉。
             const cachedFolders = cache.sources[folder];
             if (cachedFolders) {
@@ -168,11 +205,15 @@ class ModLoader {
         }
         let modInfo = new ModInfo(modPath);
         this.modsRaw.push(modInfo);
+        this.addToIdIndex(modInfo);
         const folder = path.dirname(modPath);
         let modData = ModData.fromModInfo(modInfo).setModSourcePath(folder);
         this.mods.push(modData);
         // 单个 mod 加载（比如刚导入的 mod）也要记进缓存，
         // 不然下次启动还得重新扫它。
+        // HP6: load() now returns the in-memory cache (no disk re-read)
+        // and save() only marks it dirty — importing many mods in a row
+        // no longer rewrites the whole cache file per mod.
         const cache = ModCache.load(ModInfo.ifKeepModNameAsModFolderName);
         if (this.updateCacheEntry(cache, folder, path.basename(modPath), modInfo, modData)) {
             ModCache.save(cache);
@@ -183,8 +224,16 @@ class ModLoader {
         };
     }
 
+    // Index one mod by id. First mod wins for a duplicated id, matching
+    // the old .find() behavior of getModByID.
+    private static addToIdIndex(modInfo: ModInfo): void {
+        if (modInfo.id && !this.modsById.has(modInfo.id)) {
+            this.modsById.set(modInfo.id, modInfo);
+        }
+    }
+
     public static getModByID(id: string): ModInfo | undefined {
-        return this.modsRaw.find(mod => mod.id === id);
+        return this.modsById.get(id);
     }
 }
 

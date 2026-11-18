@@ -136,14 +136,24 @@ const emit = defineEmits(['change']);
 const onChange = (value) => {
     emit('change', value, data.value.type, data.value);
     const result = data.value.onChange(value);
-    
+
     // 如果 result 不为 undefined 则说明， 显示的值需要更新
-    if (result !== undefined) {
-        //debug
-        console.log("☝️🤓",result);
-        data.value.data = result;
-        // 强制更新
-        refresh();
+    const applyResult = (r) => {
+        if (r !== undefined) {
+            //debug
+            console.log("☝️🤓",r);
+            data.value.data = r;
+            // 强制更新
+            refresh();
+        }
+    };
+    // HP9: an onChange may be async (e.g. modStatusKeeper awaits its backup
+    // scan) — apply its return value when the promise resolves. Sync
+    // handlers behave exactly as before.
+    if (result && typeof result.then === 'function') {
+        result.then(applyResult).catch((e) => console.error('onChange failed:', e));
+    } else {
+        applyResult(result);
     }
     // 如果是 select 类型的，需要 更新一下以应用 颜色
     if (data.value.type === 'select') {

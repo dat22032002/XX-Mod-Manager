@@ -393,27 +393,41 @@ async function loadPreset(presetName) {
     // handleFilterChange('已选择');
 };
 
+// Dồn các lần tải lại danh sách: đặt nhân vật hàng loạt / lúc mở app có nhiều
+// mod mới bắn N sự kiện liên tiếp — chờ 100ms sau sự kiện cuối rồi tải lại
+// 1 lần duy nhất, thay vì tải lại N lần. Nhân vật của sự kiện cuối được giữ
+// lại để chuyển bộ lọc về đúng nhân vật đó sau khi tải lại (như trước đây).
+let reloadDebounceTimer = null;
+let pendingCharacter = null;
+const scheduleReload = (character = null) => {
+    if (character) {
+        pendingCharacter = character;
+    }
+    if (reloadDebounceTimer) {
+        clearTimeout(reloadDebounceTimer);
+    }
+    reloadDebounceTimer = setTimeout(async () => {
+        reloadDebounceTimer = null;
+        mods.value = null;
+        await loadMods();
+        if (pendingCharacter) {
+            iManager.setCurrentCharacter(pendingCharacter);
+            pendingCharacter = null;
+        }
+        observeMods();
+    }, 100);
+};
+
 EventSystem.on('modInfoChanged', (modInfo) => {
     //debug
     console.log('get modInfoChanged, reload display mods');
-    mods.value = null;
-    setTimeout(async () => {
-        await loadMods();
-        if (modInfo) {
-            iManager.setCurrentCharacter(modInfo.character);
-        }
-        observeMods();
-    }, 1);
+    scheduleReload(modInfo ? modInfo.character : null);
 });
 
 EventSystem.on(EventType.modListChanged, () => {
     //debug
     console.log('get modListChanged, reload display mods');
-    mods.value = null;
-    setTimeout(() => {
-        loadMods();
-        observeMods();
-    }, 1);
+    scheduleReload();
 });
 
 // Làm mới không tải lại cửa sổ: cập nhật danh sách mà KHÔNG xóa mods.value,
@@ -421,8 +435,19 @@ EventSystem.on(EventType.modListChanged, () => {
 EventSystem.on(EventType.refreshModList, () => {
     //debug
     console.log('get refreshModList, reload display mods without resetting scroll');
-    setTimeout(() => {
-        loadMods();
+    // Làm mới đã tải lại danh sách rồi — hủy lần tải lại dồn đang chờ (nếu có)
+    // để nó không xóa danh sách + mất vị trí cuộn sau đó. (Quét lại kho mod
+    // luôn bắn modListChanged nên lần dồn nào cũng đang chờ ở đây.)
+    if (reloadDebounceTimer) {
+        clearTimeout(reloadDebounceTimer);
+        reloadDebounceTimer = null;
+    }
+    setTimeout(async () => {
+        await loadMods();
+        if (pendingCharacter) {
+            iManager.setCurrentCharacter(pendingCharacter);
+            pendingCharacter = null;
+        }
         observeMods();
     }, 1);
 });
@@ -430,11 +455,7 @@ EventSystem.on(EventType.refreshModList, () => {
 EventSystem.on(EventType.addMod, (mod) => {
     //debug
     console.log('get addMod, reload display mods', mods.value);
-    mods.value = null;
-    setTimeout(() => {
-        loadMods();
-        observeMods();
-    }, 1);
+    scheduleReload();
 });
 
 EventSystem.on('currentPresetChanged', (preset) => {

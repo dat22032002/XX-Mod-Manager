@@ -72,7 +72,7 @@ function handleSectionChange(newSection) {
 import TapeConfig from './js/configManager';
 import { g_allConfig_vue } from './js/configManager';
 import IManager from '../../electron/IManager';
-const iManager = new IManager();
+const iManager = new IManager({ light: true });
 const { ipcRenderer } = require('electron');
 const allConfig = g_allConfig_vue;
 const currentTape = ref(allConfig[0]);
