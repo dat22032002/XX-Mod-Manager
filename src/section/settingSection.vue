@@ -35,6 +35,7 @@
                     {{ $t('setting.showDetail') }} </s-button>
                 <s-divider></s-divider>
                 <settingBar :data="initAllDataButton"></settingBar>
+                <settingBar :data="rescanAllModsButton"></settingBar>
 
                 <div class="placeholder" style="flex: 1;min-height: 150px;"></div>
             </div>
@@ -188,6 +189,7 @@ const {
     modSourcePathData,
     presetPathData,
     initAllDataButton,
+    rescanAllModsButton,
     openFirstLoadButton
 } = getData();
 

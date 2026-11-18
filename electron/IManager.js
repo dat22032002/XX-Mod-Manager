@@ -371,7 +371,7 @@ class IManager {
         return loadMods;
     }
 
-    async newLoadMods() {
+    async newLoadMods(forceRescan = false) {
         //debug
         console.log(`newLoadMods from ${this.config.modSourcePath}`);
         if (this.config.modSourcePath === null) {
@@ -389,7 +389,17 @@ class IManager {
             return;
         }
         ModLoader.addModSourceFolder(this.config.modSourcePath);
-        const loadModData = await ModLoader.loadMods();
+        const loadModData = await ModLoader.loadMods(forceRescan);
+    }
+
+    // 清除 mod 缓存并重新扫描全部 mod（缓存损坏时的备用办法）。
+    async rescanAllMods() {
+        ModLoader.clearCache();
+        await this.newLoadMods(true);
+        t_snack({
+            zh_cn: `已重新扫描全部 mod`,
+            en: `Rescanned all mods`,
+        }, SnackType.info);
     }
 
     async afterModsLoad(){
