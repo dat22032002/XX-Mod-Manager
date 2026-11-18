@@ -142,7 +142,7 @@ function addDeleteButton(iManager){
             console.log('edit-mod-name:', targetElement);
             if (targetElement) {
                 firstDiv.insertBefore(deleteButton, targetElement);
-                iManager.snack('add delete button');
+                console.log('add delete button');
                 return;
             }
         }

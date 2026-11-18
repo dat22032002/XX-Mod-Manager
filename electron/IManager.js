@@ -1593,10 +1593,6 @@ class IManager {
 
     static triggerWakeUp() {
         console.log('🌞wakeUp');
-        t_snack({
-            zh_cn: '🌞程序正常启动~',
-            en: '🌞Program is waking up~',
-        })
         EventSystem.trigger('wakeUp', this.instance);
     }
 

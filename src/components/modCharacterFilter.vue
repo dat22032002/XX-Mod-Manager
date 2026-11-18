@@ -1,7 +1,8 @@
 <!-- 这个是原本的上面的横幅，但是现在我将其封装起来，只留下接口 -->
 <template>
-    <horizontalScrollBar class="chip-radio-bar" id="character-filter-bar" style="height: fit-content;">
-        <chipButton id="search-filter-chip" @click="updateSliderByEvent($event);" ref="searchChip">
+    <div class="filter-row">
+        <!-- 搜索框固定在过滤行左侧，不随横向滚动条滚动，始终可见 -->
+        <chipButton id="search-filter-chip" class="search-chip-fixed">
             <s-icon>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
                     <path
@@ -9,19 +10,21 @@
                     </path>
                 </svg>
             </s-icon>
-            <div id="search-input-container"  style="display: none;align-items: center;flex: 1; margin-left: 8px;">
+            <div id="search-input-container" style="display: flex;align-items: center;flex: 1; margin-left: 8px;">
                 <s-text-field id="search-input" class="OO-shade-box" style="min-height: 25px;flex: 1;background-color:var(--s-color-surface);border-radius: 5px;" @input="handleSearchInput" v-model="searchInput">
 
                 </s-text-field>
             </div>
         </chipButton>
-        <chipButton :text="$t('buttons.all')" id="all-filter-chip" @click="updateSliderByEvent($event)"></chipButton>
-        <chipButton :text="$t('buttons.selected')" id="selected-filter-chip" @click="updateSliderByEvent($event)"></chipButton>
-        <!-- 所有角色的filter -->
-        <chipButton v-for="(item, index) in characterList" :key="index" :text="item" :filterCharacter="item"
-            @click="updateSliderByEvent($event)"></chipButton>
-        <div class="slider OO-color-gradient" :style="sliderStyle"></div>
-    </horizontalScrollBar>
+        <horizontalScrollBar class="chip-radio-bar" id="character-filter-bar" style="height: fit-content;">
+            <chipButton :text="$t('buttons.all')" id="all-filter-chip" @click="updateSliderByEvent($event)"></chipButton>
+            <chipButton :text="$t('buttons.selected')" id="selected-filter-chip" @click="updateSliderByEvent($event)"></chipButton>
+            <!-- 所有角色的filter -->
+            <chipButton v-for="(item, index) in characterList" :key="index" :text="item" :filterCharacter="item"
+                @click="updateSliderByEvent($event)"></chipButton>
+            <div class="slider OO-color-gradient" :style="sliderStyle"></div>
+        </horizontalScrollBar>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -91,14 +94,6 @@ const updateSliderByEvent = (e) => {
             emit('filterChangeToAll');
         } else if (id === 'selected-filter-chip') {
             emit('filterChangeToSelected');
-        } else if (id === 'search-filter-chip') {
-            // 发送搜索请求
-            const searchText = searchInput.value;
-            //debug
-            console.log('searchText', searchText)
-            if (searchText) {
-                emit('filterChangeToSearch', searchText);
-            }
         } else {
             // 其他的元素
             const filterCharacter = elment.getAttribute('filterCharacter');
@@ -116,48 +111,6 @@ const updateSliderByEvent = (e) => {
             child.setAttribute('checked', 'false');
         } else {
             child.setAttribute('checked', 'true');
-        }
-    }
-
-    // 如果点击的不是搜索按钮，则将搜索按钮的宽度设置为fit-content
-    if (elment.id !== 'search-filter-chip') {
-        const searchChipElement = document.getElementById('search-filter-chip');
-        if (searchChipElement) {
-            searchChipElement.style.width = 'fit-content';
-            searchChipElement.style.transition = 'width 0.3s ease-in-out';
-            searchChipElement.style.overflow = 'hidden';
-            searchChipElement.style.color = 'var(--s-color-on-primary)';
-            // 改变其下的svg的颜色
-            const svgElement = searchChipElement.querySelector('svg');
-            if (svgElement) {
-                svgElement.style.fill = 'var(--s-color-on-surface)';
-            }
-            // 隐藏搜索框
-            const searchInputElement = document.getElementById('search-input-container');
-            if (searchInputElement) {
-                searchInputElement.style.display = 'none';
-            }
-        }
-    } else {
-        // 如果点击的是搜索按钮，则将搜索按钮的宽度设置为200px
-        console.log('search button clicked')
-        const searchChipElement = document.getElementById('search-filter-chip');
-        console.log('searchChipElement', searchChipElement)
-        if (searchChipElement) {
-            searchChipElement.style.width = '200px';
-            searchChipElement.style.transition = 'width 0.3s ease-in-out';
-            searchChipElement.style.overflow = 'hidden';
-            searchChipElement.style.color = 'var(--s-color-on-primary)';
-            // 改变其下的svg的颜色
-            const svgElement = searchChipElement.querySelector('svg');
-            if (svgElement) {
-                svgElement.style.fill = 'var(--s-color-surface)';
-            }
-            // 显示搜索框
-            const searchInputElement = document.getElementById('search-input-container');
-            if (searchInputElement) {
-                searchInputElement.style.display = 'flex';
-            }
         }
     }
 
@@ -197,12 +150,12 @@ const selectItemByName = (name) => {
     }
     const index = characterList.value.indexOf(name);
     if (index === -1) return;
-    // 那么 这个按钮应该是第 index + 3个按钮
-    // 因为前面有 search-filter-chip, all, selected三个按钮
+    // 那么 这个按钮应该是第 index + 2个按钮
+    // 因为前面有 all, selected两个按钮（搜索框已移到滚动条外面，不占位置）
     // 主要的目的是滑块同步，lastClickedElement.value = elment
     const characterFilterBar = document.getElementById("character-filter-bar");
     if (!characterFilterBar) return;
-    const elment = characterFilterBar.children[index + 3] as HTMLElement;
+    const elment = characterFilterBar.children[index + 2] as HTMLElement;
     if (!elment) return;
     // console.log(`selectItemByName: `, name, index, elment)
     lastClickedElement.value = elment;
@@ -244,6 +197,18 @@ defineExpose({
 </script>
 
 <style scoped>
+.filter-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 5px;
+}
+
+.search-chip-fixed {
+    width: 200px;
+    flex-shrink: 0;
+}
+
 .chip-radio-bar {
     display: flex;
     align-items: center;
@@ -252,7 +217,8 @@ defineExpose({
     position: relative;
     height: fit-content;
     padding: 3px 10px;
-    width: calc(100% - 20px);
+    flex: 1;
+    min-width: 0;
     min-height: 35px;
 
     >* {

@@ -162,9 +162,9 @@ class IPluginLoader {
             console.log(tt.get());
         }
 
-        // 检测是否有本地配置
+        // 检测是否有本地配置（插件可能没有注册配置，先判空再遍历）
         const localPluginData = XXMMCore.getPluginConfig(plugin.name);
-        if (localPluginData) {
+        if (localPluginData && IPluginLoader.pluginConfig[plugin.name]) {
             IPluginLoader.pluginConfig[plugin.name].forEach((data) => {
                 if (localPluginData[data.name] !== undefined) {
                     data.data = localPluginData[data.name];
@@ -233,8 +233,8 @@ class IPluginLoader {
                 catch (e) {
                     // 在 本应该 应该有 插件的位置 创建一个 lookAtMe 文件，以便我定位问题
                     fs.writeFileSync(`./plugins/lookAtMe`, 'lookAtMe');
-                    const tt = new TranslatedText(`❌plugin ${file} load failed`, `❌插件 ${file} 加载失败`);
-                    console.error(tt.get());
+                    const tt = new TranslatedText(`❌plugin ${file} load failed: ${e.message}`, `❌插件 ${file} 加载失败: ${e.message}`);
+                    console.error(tt.get(), e);
                     t_snack(tt, SnackType.error);
                 }
             }
@@ -261,7 +261,6 @@ class IPluginLoader {
         const endTime = new Date().getTime();
         const tt = new TranslatedText(`🚀plugin loaded in ${endTime - startTime}ms`, `🚀插件加载完成，耗时 ${endTime - startTime}ms`);
         console.log(tt.get(), `${IPluginLoader.plugins.length} plugins loaded, ${IPluginLoader.disabledPluginNames.length} disabled`);
-        t_snack(tt, SnackType.info);
     }
 
     //-===================== 插件配置 =====================

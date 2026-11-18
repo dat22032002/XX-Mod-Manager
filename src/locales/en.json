@@ -85,7 +85,8 @@
     "ignore": "Ignore",
     "changeNotSave": "Unsaved changes detected",
     "ifSaveChange": "Save changes?",
-    "batch-operation": "Batch operation"
+    "batch-operation": "Batch operation",
+    "batch-set-character": "Batch set character"
   },
   "buttons": {
     "addPreset": "Add preset",

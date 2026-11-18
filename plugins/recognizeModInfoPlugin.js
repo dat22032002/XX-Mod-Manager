@@ -452,7 +452,7 @@ module.exports = {
 
         iManager.on('pluginLoaded', async () => {
             if (iManager.getPluginData(pluginName, "ifAddKeySwap")) {
-                iManager.snack("添加mod时将会尝试获取切换键", "info");
+                console.log("添加mod时将会尝试获取切换键");
             }
         });
 

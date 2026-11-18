@@ -139,9 +139,32 @@ class XXMMCore{
         }
     }
 
+    // 读取 JSON 文件：文件不存在返回默认值；文件损坏时备份为 .bak 并返回默认值，不抛出异常
+    static readJsonFileOrDefault(filePath: string, defaultValue: any) {
+        if (!fs.existsSync(filePath)) {
+            return defaultValue;
+        }
+        try {
+            const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            // 内容不是对象（比如 null、数字）也当作损坏处理
+            if (parsed === null || typeof parsed !== 'object') {
+                throw new Error('JSON content is not an object');
+            }
+            return parsed;
+        } catch (e) {
+            console.error(`JSON file corrupt, backup as .bak and use default: ${filePath}`, e);
+            try {
+                fs.renameSync(filePath, filePath + '.bak');
+            } catch (bakErr) {
+                console.error(`Failed to backup corrupt JSON file: ${filePath}`, bakErr);
+            }
+            return defaultValue;
+        }
+    }
+
     //----------------- plugin config ------------------
     public static getAllPluginConfig(){
-        return JSON.parse(fs.readFileSync(XXMMCore.getPluginConfigPath(), 'utf8'));
+        return XXMMCore.readJsonFileOrDefault(XXMMCore.getPluginConfigPath(), {});
     }
 
     public static getPluginConfig(pluginName){
@@ -151,7 +174,7 @@ class XXMMCore{
             console.log(`Plugin config file not exist, create a new one: ${pluginConfigPath}`);
         }
         // 读取文件，找到对应的插件配置，返回
-        const pluginConfig = JSON.parse(fs.readFileSync(pluginConfigPath, 'utf8'));
+        const pluginConfig = XXMMCore.readJsonFileOrDefault(pluginConfigPath, {});
         // 如果没有这个插件的配置，则返回空对象
         if (pluginConfig[pluginName] === undefined){
             return {};
@@ -167,7 +190,7 @@ class XXMMCore{
             console.log(`Plugin config file not exist, create a new one: ${pluginConfigPath}`);
         }
         // 读取文件，插入新的数据，保存文件
-        const pluginConfig = JSON.parse(fs.readFileSync(pluginConfigPath, 'utf8'));
+        const pluginConfig = XXMMCore.readJsonFileOrDefault(pluginConfigPath, {});
         // 插入新的数据
         pluginConfig[pluginName] = pluginDataToSave;
         // 保存文件
@@ -184,7 +207,7 @@ class XXMMCore{
             console.log(`Disabled plugins file not exist, create a new one: ${disabledPluginsPath}`);
             return [];
         }
-        return JSON.parse(fs.readFileSync(disabledPluginsPath, 'utf8'));
+        return XXMMCore.readJsonFileOrDefault(disabledPluginsPath, []);
     }
 
     public static saveDisabledPlugins(disabledPlugins: string[]){
@@ -204,10 +227,10 @@ class XXMMCore{
 
         // 读取配置文件
         if (fs.existsSync(XXMMCore.getConfigFilePath())) {
-            const config = JSON.parse(fs.readFileSync(XXMMCore.getConfigFilePath(), 'utf8'));
-            XXMMCore.modSourceFolder = config.modSourceFolder;
-            XXMMCore.modTargetFolder = config.modTargetFolder;
-            XXMMCore.modArchiveFolder = config.modArchiveFolder;
+            const config = XXMMCore.readJsonFileOrDefault(XXMMCore.getConfigFilePath(), {});
+            XXMMCore.modSourceFolder = config.modSourceFolder || XXMMCore.modSourceFolder;
+            XXMMCore.modTargetFolder = config.modTargetFolder || XXMMCore.modTargetFolder;
+            XXMMCore.modArchiveFolder = config.modArchiveFolder || XXMMCore.modArchiveFolder;
         }
     }
 
