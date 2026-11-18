@@ -133,8 +133,8 @@ function handlePresetAddButtonClicked() {
 }
 
 function handleRefreshButtonClicked() {
-    const { ipcRenderer } = require('electron');
-    ipcRenderer.send('refresh-main-window');
+    // Làm mới danh sách mod mà không tải lại cả cửa sổ.
+    iManager.refreshModList();
 }
 
 const targetCharacter = ref('');
@@ -219,7 +219,11 @@ const selectedModNames = () => [...selectedModIdSet].map(id => iManager.data.mod
 
 
 function savePreset() {
-    if (currentPreset.value == 'default') return;
+    // Preset Mặc định không có file riêng: lựa chọn của nó lưu vào config.
+    if (currentPreset.value == 'default') {
+        iManager.saveDefaultPreset(selectedModIds());
+        return;
+    }
     //debug
     console.log('save preset', currentPreset.value, selectedModIds());
     iManager.savePresetByModIds(currentPreset.value, selectedModIds());

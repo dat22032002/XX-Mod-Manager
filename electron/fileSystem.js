@@ -653,24 +653,78 @@ ipcMain.handle('move-all-files', async (event, srcDir, destDir) => {
 });
 
 //-========================== 初始化所有数据 ==========================
-// init-all-data
-ipcMain.handle('init-all-data', async (event) => {
-    // 获取 配置路径
-    const dataPath = app.getPath('userData');
-    const configPath = path.join(dataPath, 'config.json');
-    // 获取 预设路径，在config.json中
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    const presetPath = config.presetPath;
+// init-all-data: xóa hết preset + config.json, làm lại từ đầu.
+// Nhận đường dẫn config + preset đang dùng (renderer gửi lên) để xóa đúng chỗ,
+// kể cả khi người dùng dùng thư mục cấu hình tùy chỉnh.
+// Trước khi xóa: sao lưu config.json + từng file preset (*.json) thành .bak
+// trong thư mục reset-backup-<thời gian> đặt cạnh config.json.
+// Chỉ xóa file *.json trong thư mục preset — file khác (ảnh, ghi chú...) giữ nguyên.
+// Trả về { ok, backupPath?, backedUpPresets?, error? }.
+ipcMain.handle('init-all-data', async (event, configFilePath, presetPathArg) => {
+    try {
+        const dataPath = app.getPath('userData');
+        const configPath = (configFilePath && typeof configFilePath === 'string' && configFilePath.length > 0)
+            ? configFilePath
+            : path.join(dataPath, 'config.json');
 
-    // 删除 presetPath 下的所有文件
-    if (fs.existsSync(presetPath)) {
-        fs.readdirSync(presetPath).forEach(file => {
-            fs.unlinkSync(path.join(presetPath, file));
-        });
+        // Đường dẫn preset: ưu tiên tham số renderer gửi; không có thì đọc từ config.
+        let targetPresetPath = (presetPathArg && typeof presetPathArg === 'string' && presetPathArg.length > 0)
+            ? presetPathArg
+            : null;
+        if (!targetPresetPath && fs.existsSync(configPath)) {
+            try {
+                const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+                targetPresetPath = config.presetPath || null;
+            } catch (e) {
+                console.error(`init-all-data: cannot read presetPath from config: ${e}`);
+            }
+        }
+
+        // Chỉ file *.json trong thư mục preset mới là preset (PresetHelper chỉ
+        // đọc file .json ở cấp cao nhất); thư mục con và file khác không động vào.
+        const listPresetFiles = (dir) => {
+            if (!dir || !fs.existsSync(dir)) return [];
+            return fs.readdirSync(dir)
+                .map((file) => path.join(dir, file))
+                .filter((full) => {
+                    try {
+                        return fs.statSync(full).isFile() && path.extname(full) === '.json';
+                    } catch (e) {
+                        return false;
+                    }
+                });
+        };
+        const presetFiles = listPresetFiles(targetPresetPath);
+
+        // Sao lưu trước khi xóa — đặt cạnh config.json, ngoài thư mục preset
+        // nên lần quét preset sau này không nhìn thấy.
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupDir = path.join(path.dirname(configPath), `reset-backup-${stamp}`);
+        fs.mkdirSync(backupDir, { recursive: true });
+        if (fs.existsSync(configPath)) {
+            fs.copyFileSync(configPath, path.join(backupDir, 'config.json.bak'));
+        }
+        let backedUpPresets = 0;
+        for (const file of presetFiles) {
+            fs.copyFileSync(file, path.join(backupDir, path.basename(file) + '.bak'));
+            backedUpPresets++;
+        }
+
+        // Xóa chỉ các file preset.
+        for (const file of presetFiles) {
+            fs.unlinkSync(file);
+        }
+
+        // Xóa file config đang dùng.
+        if (fs.existsSync(configPath)) {
+            fs.unlinkSync(configPath);
+        }
+
+        return { ok: true, backupPath: backupDir, backedUpPresets };
+    } catch (error) {
+        console.error(`init-all-data failed: ${error}`);
+        return { ok: false, error: String((error && error.message) || error) };
     }
-
-    // 删除 config.json
-    fs.unlinkSync(configPath);
 });
 
 //-========================== fsProxy ==========================

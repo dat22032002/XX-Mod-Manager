@@ -12,6 +12,7 @@ enum DialogID {
     saveChangeDialog = 'save-change-dialog',
     addPresetDialog = 'add-preset-dialog',
     dialogApplyResult = 'dialog-apply-result',
+    dialogConfirmReset = 'dialog-confirm-reset',
 }
 
 class DialogHelper {

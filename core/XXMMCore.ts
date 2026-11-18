@@ -1,4 +1,3 @@
-import ErrorHandler from "./ErrorHandler";
 import { SnackType, t_snack } from "../helper/SnackHelper";
 import { ModInfo, ModMetaData, ModMetaDataItem, ModMetaDataType } from "./ModInfo";
 import { TranslatedText } from "../helper/Language";
@@ -97,25 +96,19 @@ class XXMMCore{
         return (XXMMCore.ifCustomConfig) ? path.join(XXMMCore.customConfigFolder, 'config.json') : path.join(dataPath, 'config.json');
     }
     public static getCurrentConfig(){
-        //debug
         const configFilePath = XXMMCore.getConfigFilePath();
         if (!fs.existsSync(configFilePath)){
             fs.writeFileSync(configFilePath, JSON.stringify({}, null, 4), 'utf8');
             console.log(`Config file not exist, create a new one: ${configFilePath}`);
         }
-        //debug
-        console.log(`getConfigFilePath: ${XXMMCore.getConfigFilePath()}，content: ${fs.readFileSync(XXMMCore.getConfigFilePath(), 'utf8')}`);
-        // return JSON.parse(fs.readFileSync(XXMMCore.getConfigFilePath(), 'utf8'));
-        return ErrorHandler.create(() => {
-            if (!fs.existsSync(XXMMCore.getConfigFilePath())) {
-                // 如果配置文件不存在，则创建一个
-                fs.writeFileSync(XXMMCore.getConfigFilePath(), JSON.stringify({}, null, 4), 'utf8');
-            }
-            return JSON.parse(fs.readFileSync(XXMMCore.getConfigFilePath(), 'utf8'));
-        }).onErr((e) => {
-            console.error(`getCurrentConfig error: ${e}`);
-            return {};
-        }).exec();
+        // File hỏng (JSON sai) thì sao lưu thành .bak rồi trả về {} — loadConfig
+        // sẽ ghi lại file mặc định mới, dữ liệu cũ không bị ghi đè mất.
+        return XXMMCore.readJsonFileOrDefault(configFilePath, {}, () => {
+            t_snack(new TranslatedText(
+                `Config file is corrupt, backed up as config.json.bak`,
+                `File cài đặt bị hỏng, đã sao lưu thành config.json.bak`),
+                SnackType.error);
+        });
     }
 
     public static saveCurrentConfig(config: any) {
@@ -140,7 +133,7 @@ class XXMMCore{
     }
 
     // 读取 JSON 文件：文件不存在返回默认值；文件损坏时备份为 .bak 并返回默认值，不抛出异常
-    static readJsonFileOrDefault(filePath: string, defaultValue: any) {
+    static readJsonFileOrDefault(filePath: string, defaultValue: any, onCorrupt?: (filePath: string) => void) {
         if (!fs.existsSync(filePath)) {
             return defaultValue;
         }
@@ -157,6 +150,13 @@ class XXMMCore{
                 fs.renameSync(filePath, filePath + '.bak');
             } catch (bakErr) {
                 console.error(`Failed to backup corrupt JSON file: ${filePath}`, bakErr);
+            }
+            if (onCorrupt) {
+                try {
+                    onCorrupt(filePath);
+                } catch (cbErr) {
+                    console.error(`onCorrupt callback error: ${cbErr}`);
+                }
             }
             return defaultValue;
         }

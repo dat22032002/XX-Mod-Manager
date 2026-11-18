@@ -65,6 +65,25 @@ class PathHelper {
 
         return result === 1;
     }
+
+    /** @function
+     * @desc Check whether a resolved path stays inside a directory (zip-slip guard:
+     * an archive entry like "../../evil.txt" must never escape the destination).
+     * Both sides are resolved first; comparison is case-insensitive on Windows,
+     * where the filesystem is case-insensitive.
+     * @param {string} dir - the directory the path must stay inside
+     * @param {string} targetPath - the (already resolved) path to check
+     * @returns {boolean} true when targetPath is inside dir
+     */
+    static isPathInside(dir: string, targetPath: string) {
+        const path = require('path');
+        const resolvedDir = path.resolve(dir);
+        const resolvedTarget = path.resolve(targetPath);
+        if (process.platform === 'win32') {
+            return resolvedTarget.toLowerCase().startsWith(resolvedDir.toLowerCase() + path.sep);
+        }
+        return resolvedTarget.startsWith(resolvedDir + path.sep);
+    }
 }
 
 

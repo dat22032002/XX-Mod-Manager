@@ -1,4 +1,6 @@
 import ErrorHandler from "./ErrorHandler";
+import { SnackType, t_snack } from "../helper/SnackHelper";
+import { TranslatedText } from "../helper/Language";
 import type { CachedModEntry } from "./ModCache";
 const fs = require('fs');
 const path = require('path');
@@ -136,6 +138,17 @@ class ModInfo {
                 metaData = JSON.parse(rawData);
             } catch (e) {
                 console.error(`Không đọc được metadata của mod: ${metaDataPath}`, rawData);
+                // File hỏng: giữ lại bản gốc thành .bak rồi mới tạo metadata
+                // mặc định — không thì lần lưu sau (needSave) sẽ ghi đè mất dữ liệu cũ.
+                try {
+                    fs.renameSync(metaDataPath, metaDataPath + '.bak');
+                } catch (bakErr) {
+                    console.error(`Không sao lưu được file mod.json hỏng: ${metaDataPath}`, bakErr);
+                }
+                t_snack(new TranslatedText(
+                    `Mod info file is corrupt, backed up as mod.json.bak: ${path.basename(location)}`,
+                    `File thông tin của mod bị hỏng, đã sao lưu thành mod.json.bak: ${path.basename(location)}`),
+                    SnackType.error);
             }
 
             // id 为必须的字段，如果没有则生成一个

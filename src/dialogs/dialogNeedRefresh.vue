@@ -14,11 +14,14 @@
 
 <script setup>
 import dialogTemplate from './dialogTemplate.vue';
-const { ipcRenderer } = require('electron');
+import IManager from '../../electron/IManager';
+const iManager = new IManager();
 
 const refresh = () => {
     //debug
     console.log('refresh');
-    ipcRenderer.send('refresh-main-window');
+    // Làm mới danh sách mod mà không tải lại cả cửa sổ (giữ vị trí cuộn,
+    // bộ lọc, ô tìm kiếm, lựa chọn).
+    iManager.refreshModList();
 };
 </script>

@@ -168,6 +168,11 @@
     "requireName": "Hãy nhập tên preset",
     "success": "Thêm preset thành công"
   },
+  "resetDialog": {
+    "title": "Xóa hết dữ liệu, làm lại từ đầu?",
+    "warning": "Toàn bộ preset và toàn bộ cài đặt sẽ bị xóa hết. Không thể hoàn tác.",
+    "backupNote": "Trước khi xóa, app sẽ lưu một bản sao lưu ngay cạnh file cài đặt."
+  },
   "mod-image": "Ảnh mod",
   "no-mod-selected": "Chưa chọn mod nào",
   "dialogEnterPassword": {

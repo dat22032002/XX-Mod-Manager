@@ -206,7 +206,8 @@ function getData() {
             en: 'Init All Data'
         },
         onChange: () => {
-            iManager.initAllData();
+            // Xóa hết dữ liệu là việc không hoàn tác được: hỏi lại trước khi làm.
+            iManager.showDialog('dialog-confirm-reset');
         }
     }
 

@@ -33,6 +33,7 @@
     <DialogNeedRefresh />
     <dialogEnterPassword/>
     <dialogApplyResult />
+    <dialogConfirmReset />
 </template>
 
 <script setup>
@@ -49,6 +50,7 @@ import helpSection from '../section/helpSection.vue';
 import dialogLoading from '../dialogs/dialogLoading.vue';
 import dialogEnterPassword from '../dialogs/dialogEnterPassword.vue';
 import dialogApplyResult from '../dialogs/dialogApplyResult.vue';
+import dialogConfirmReset from '../dialogs/dialogConfirmReset.vue';
 
 import DialogNeedRefresh from '../dialogs/dialogNeedRefresh.vue';
 import { EventSystem } from '../../helper/EventSystem';
