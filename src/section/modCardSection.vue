@@ -107,6 +107,7 @@ const iManager = new IManager();
 import settingBar from '../components/settingBar.vue';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 import { SnackType, t_snack } from '../../helper/SnackHelper';
+import { selectedModIdSet } from '../../helper/SelectedMods';
 
 const displayModRef = g_temp_vue.currentMod;
 
@@ -204,8 +205,11 @@ function handlePresetChange(tab) {
     iManager.setCurrentPreset(tab);
 }
 
-const selectedModIds = () => Array.from(document.querySelectorAll('.mod-item')).filter(item => item.getAttribute('clicked') == 'true').map(item => item.id);
-const selectedModNames = () => Array.from(document.querySelectorAll('.mod-item')).filter(item => item.getAttribute('clicked') == 'true').map(item => item.name);
+// Selections live in the shared set (helper/SelectedMods): cards that are
+// scrolled out of view are not in the DOM, so reading .mod-item elements
+// would silently drop them from presets, Apply, and batch-set-character.
+const selectedModIds = () => [...selectedModIdSet];
+const selectedModNames = () => [...selectedModIdSet].map(id => iManager.data.modList.find(mod => mod.id === id)?.name).filter(Boolean);
 
 
 function savePreset() {

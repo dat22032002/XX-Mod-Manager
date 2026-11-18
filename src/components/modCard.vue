@@ -53,6 +53,7 @@ import horizontalScrollBar from './horizontalScrollBar.vue';
 import { EventSystem, EventType } from '../../helper/EventSystem';
 import { ModData } from '../../core/ModHelper';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
+import { selectedModIdSet } from '../../helper/SelectedMods';
 
 const displayHotKeysModes = {
     none: 0,
@@ -108,13 +109,24 @@ const enterWindow = async () => {
 
 
 //===================== 动画效果 =====================//
-const clicked = ref(false);
+// Cards unmount when scrolled out of view (windowing) and mount again on the
+// way back, so the clicked state is read from the shared selection set
+// instead of always starting unclicked.
+const clicked = ref(selectedModIdSet.has(props.modRef.id));
 const modItemRef = useTemplateRef('modItemRef');
 const emit = defineEmits(['click'])
 
 const click = (event) => {
     const clickedAttr = modItemRef.value.getAttribute('clicked');
     clicked.value = clickedAttr == 'true' ? false : true;
+    // Keep the shared selection set in sync, so the selection survives
+    // unmounting (scrolling away) and preset/Apply always see every
+    // selected mod, mounted or not.
+    if (clicked.value) {
+        selectedModIdSet.add(props.modRef.id);
+    } else {
+        selectedModIdSet.delete(props.modRef.id);
+    }
     modItemRef.value.setAttribute('clicked', clicked.value);
     if (event != null) {
         playClickAnim(modItemRef.value, event, modItemRef.value.getBoundingClientRect());
