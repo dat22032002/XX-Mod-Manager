@@ -103,7 +103,9 @@
     "confirm": "confirm",
     "refresh": "refresh",
     "all": "All",
-    "selected": "Selected"
+    "selected": "Selected",
+    "minimize": "Minimize",
+    "fullscreen": "Fullscreen"
   },
   "apply": {
     "progress": "Applying mod {done} of {total}...",
