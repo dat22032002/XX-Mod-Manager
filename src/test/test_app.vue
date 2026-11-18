@@ -32,6 +32,7 @@
     <dialogLoading />
     <DialogNeedRefresh />
     <dialogEnterPassword/>
+    <dialogApplyResult />
 </template>
 
 <script setup>
@@ -47,6 +48,7 @@ import dialogModInfo2 from '../dialogs/dialogModInfo2.vue';
 import helpSection from '../section/helpSection.vue';
 import dialogLoading from '../dialogs/dialogLoading.vue';
 import dialogEnterPassword from '../dialogs/dialogEnterPassword.vue';
+import dialogApplyResult from '../dialogs/dialogApplyResult.vue';
 
 import DialogNeedRefresh from '../dialogs/dialogNeedRefresh.vue';
 import { EventSystem } from '../../helper/EventSystem';

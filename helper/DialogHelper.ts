@@ -11,6 +11,7 @@ enum DialogID {
     dialogNeedRefresh = 'dialog-need-refresh',
     saveChangeDialog = 'save-change-dialog',
     addPresetDialog = 'add-preset-dialog',
+    dialogApplyResult = 'dialog-apply-result',
 }
 
 class DialogHelper {

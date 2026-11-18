@@ -51,6 +51,7 @@ let g_temp = {
     currentPreset: "default",
     wakeUped: false,
     ifDontSaveOnClose: false,
+    applyResult: null,
 };
 let g_config = {
     firstLoad: true,
@@ -87,6 +88,7 @@ const g_temp_vue = {
     currentPreset: ref('default'),
     wakeUped: ref(false),
     ifDontSaveOnClose: ref(false),
+    applyResult: ref(null),
 };
 
 const g_config_vue = {
@@ -210,6 +212,7 @@ class IManager {
         currentPreset: "default", // 当前预设
         wakeUped: false, // 是否 在唤醒状态
         ifDontSaveOnClose: false, // 是否在关闭时不保存配置
+        applyResult: null, // 最后一次应用的结果，用于显示结果汇总对话框
     };
 
     //-==================== 设置数据 ====================
@@ -1375,7 +1378,7 @@ class IManager {
         PresetHelper.savePresetById(presetName,modIds);
     }
 
-    async applyMods(modList) {
+    async applyMods(modList, onProgress) {
         const modTargetPath = this.config.modTargetPath;
         const modSourcePath = this.config.modSourcePath;
         if (modTargetPath === null || modTargetPath === '') {
@@ -1383,31 +1386,53 @@ class IManager {
                 zh_cn: '未设置目标路径',
                 en: 'Target path not set',
             }, 'error');
-            return;
+            return null;
         }
         if (modSourcePath === null || modSourcePath === '') {
             t_snack({
                 zh_cn: '未设置源路径',
                 en: 'Source path not set',
             }, 'error');
-            return;
+            return null;
         }
         //debug
         // await ipcRenderer.invoke('apply-mods', modList, modSourcePath, modTargetPath);
         // await applyMods(modList, modSourcePath, modTargetPath);
-        if (this.config.ifUseTraditionalApply){
-            await applyModsTranditional(modList);
+        let result;
+        try {
+            if (this.config.ifUseTraditionalApply){
+                result = await applyModsTranditional(modList, onProgress);
+            }
+            else {
+                result = await applyMods(modList, modSourcePath, modTargetPath, onProgress);
+            }
+        } catch (err) {
+            console.error('applyMods failed', err);
+            t_snack({
+                zh_cn: `应用失败：${err.message}`,
+                en: `Apply failed: ${err.message}`,
+            }, 'error');
+            return null;
         }
-        else {
-            await applyMods(modList, modSourcePath, modTargetPath);
+        if (result === null) {
+            // Pre-flight check failed; a message was already shown.
+            return null;
         }
         
         this.trigger('modsApplied', modList);
-        // ipcRenderer.send('snack', '应用成功');
-        t_snack({
-            zh_cn: '应用成功',
-            en: 'Applied successfully',
-        });
+        if (result.failures.length > 0) {
+            // Show one summary with every failure instead of a success message,
+            // so a failed link never looks like success.
+            this.temp.applyResult = result;
+            this.showDialog('dialog-apply-result');
+        } else {
+            // ipcRenderer.send('snack', '应用成功');
+            t_snack({
+                zh_cn: '应用成功',
+                en: 'Applied successfully',
+            });
+        }
+        return result;
     }
 
     async addPreset(presetName) {

@@ -104,6 +104,17 @@
     "all": "All",
     "selected": "Selected"
   },
+  "apply": {
+    "progress": "Applying mod {done} of {total}...",
+    "titleSuccess": "Mods applied",
+    "titlePartial": "Mods applied with failures",
+    "applied": "Applied",
+    "removed": "Removed",
+    "skipped": "Already applied",
+    "failed": "Failed",
+    "failedMods": "Failed mods",
+    "close": "Close"
+  },
   "author": "author",
   "caimogu": "Caimogu",
   "firstLoad": {
