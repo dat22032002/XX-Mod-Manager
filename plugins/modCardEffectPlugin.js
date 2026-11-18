@@ -106,7 +106,7 @@ function removeHoverEffect(document, iManager) {
 module.exports = {
     name: pluginName,
     t_displayName: {
-        zh_cn: '卡片效果',
+        vi: 'Hiệu ứng thẻ mod',
         en: 'Mod Card Effect'
     },
     init(iManager) {
@@ -146,11 +146,11 @@ module.exports = {
             displayName: 'Use Mod Card Fade In Out',
             description: 'If true, the mod card will fade in and out',
             t_displayName: {
-                zh_cn: '使用卡片淡入淡出',
+                vi: 'Dùng hiệu ứng mờ dần cho thẻ mod',
                 en: 'Use Mod Card Fade In Out'
             },
             t_description: {
-                zh_cn: '开启后,mod卡片在显示和隐藏时会有淡入淡出效果，但是会有一定的性能消耗',
+                vi: 'Nếu bật, thẻ mod sẽ mờ dần khi hiện và ẩn, nhưng sẽ tốn một chút hiệu năng',
                 en: 'If true, the mod card will fade in and out, but it will consume some performance'
             },
             onChange: (value) => {
@@ -180,11 +180,11 @@ module.exports = {
             displayName: 'Fade In Speed',
             description: 'The speed of the fade in animation',
             t_displayName: {
-                zh_cn: '淡入速度',
+                vi: 'Tốc độ hiện dần',
                 en: 'Fade In Speed'
             },
             t_description: {
-                zh_cn: '淡入动画的速度,单位为秒',
+                vi: 'Tốc độ của hiệu ứng hiện dần, tính bằng giây',
                 en: 'The speed of the fade in animation, in seconds'
             },
             onChange: (value) => {
@@ -211,11 +211,11 @@ module.exports = {
             displayName: 'Fade Out Speed',
             description: 'The speed of the fade out animation',
             t_displayName: {
-                zh_cn: '淡出速度',
+                vi: 'Tốc độ mờ dần',
                 en: 'Fade Out Speed'
             },
             t_description: {
-                zh_cn: '淡出动画的速度,单位为秒',
+                vi: 'Tốc độ của hiệu ứng mờ dần, tính bằng giây',
                 en: 'The speed of the fade out animation, in seconds'
             },
             onChange: (value) => {
@@ -243,11 +243,11 @@ module.exports = {
             displayName: 'markdown divider',
             description: 'markdown divider',
             t_displayName: {
-                zh_cn: 'markdown divider',
+                vi: 'markdown divider',
                 en: 'markdown divider'
             },
             t_description: {
-                zh_cn: '---',
+                vi: '---',
                 en: '---'
             },
             onChange: (value) => {
@@ -264,11 +264,11 @@ module.exports = {
             displayName: 'Hover Switch Current Card',
             description: 'If true, the current card will be switched when hover on the mod card',
             t_displayName: {
-                zh_cn: '鼠标悬停切换当前卡片',
+                vi: 'Đổi thẻ hiện tại khi rê chuột',
                 en: 'Hover Switch Current Card'
             },
             t_description: {
-                zh_cn: '当鼠标悬停在mod卡片上时，右侧的卡片详情会切换到当前卡片',
+                vi: 'Nếu bật, chi tiết của thẻ hiện tại sẽ đổi khi rê chuột lên thẻ mod',
                 en: 'If true, the details of the current card will be switched when hover on the mod card'
             },
             onChange: (value) => {
@@ -293,11 +293,11 @@ module.exports = {
             displayName: 'Hide Mod Card Swap Key',
             description: 'If true, the swap key of the mod card will be hidden',
             t_displayName: {
-                zh_cn: '隐藏卡片切换快捷键',
+                vi: 'Ẩn phím chuyển đổi trên thẻ mod',
                 en: 'Hide Mod Card Swap Key'
             },
             t_description: {
-                zh_cn: '隐藏卡片下的快捷键提示',
+                vi: 'Nếu bật, phím chuyển đổi trên thẻ mod sẽ bị ẩn',
                 en: 'If true, the swap key of the mod card will be hidden'
             },
             onChange: (value) => {

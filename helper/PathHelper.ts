@@ -43,16 +43,16 @@ class PathHelper {
 
         if (result < 0) {
             // snack 错误提示
-            let tt: TranslatedText = new TranslatedText("Unknown Error", "未知错误");
+            let tt: TranslatedText = new TranslatedText("Unknown Error", "Lỗi không xác định");
             switch (result) {
                 case 0:
-                    tt = new TranslatedText(`❌[${dirName.get() || ""}] dir is invalid: ${dir}`, `❌[${dirName.get() || ""}] 目录无效: ${dir}`);
+                    tt = new TranslatedText(`❌[${dirName.get() || ""}] dir is invalid: ${dir}`, `❌[${dirName.get() || ""}] thư mục không hợp lệ: ${dir}`);
                     break;
                 case -1:
-                    tt = new TranslatedText(`❌[${dirName.get() || ""}] dir not found: ${dir}`, `❌[${dirName.get() || ""}] 目录不存在: ${dir}`);
+                    tt = new TranslatedText(`❌[${dirName.get() || ""}] dir not found: ${dir}`, `❌[${dirName.get() || ""}] không tìm thấy thư mục: ${dir}`);
                     break;
                 case -2:
-                    tt = new TranslatedText(`❌[${dirName.get() || ""}] dir is not a directory: ${dir}`, `❌[${dirName.get() || ""}] 不是一个目录: ${dir}`);
+                    tt = new TranslatedText(`❌[${dirName.get() || ""}] dir is not a directory: ${dir}`, `❌[${dirName.get() || ""}] không phải là thư mục: ${dir}`);
                     break;
                 default:
                     break;

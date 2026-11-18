@@ -254,7 +254,7 @@ const handleModNameChange = (event) => {
   // 检查 mod 名称是否为空，如果为空则设置为默认值
   if (tempModInfo.value.name === '') {
     tempModInfo.value.name = props.mod.name;
-    const tt = new TranslatedText(`Cannot set mod name to empty`, `无法将 mod 名称设置为空`);
+    const tt = new TranslatedText(`Cannot set mod name to empty`, `Không đặt tên mod thành trống được`);
     iManager.t_snack(tt, `error`);
   }
 
@@ -264,7 +264,7 @@ const handleModNameChange = (event) => {
     const modNameList = modList.map(mod => mod.name);
     if (modNameList.includes(tempModInfo.value.name)) {
       tempModInfo.value.name = props.mod.name;
-      const tt = new TranslatedText(`Mod name already exists`, `mod 名称已存在`);
+      const tt = new TranslatedText(`Mod name already exists`, `Tên mod đã tồn tại`);
       iManager.t_snack(tt, `error`);
     }
   }

@@ -50,7 +50,7 @@ class XManager {
         Archive = (window as any).Archive;
         if (!Archive) {
             console.error('Archive is not defined');
-            t_snack(new TranslatedText('Archive is not defined', 'Archive 解压缩模块未找到'), SnackType.error);
+            t_snack(new TranslatedText('Archive is not defined', 'Không tìm thấy mô-đun giải nén Archive'), SnackType.error);
         }
 
         XManager.instance = this;
@@ -71,7 +71,7 @@ class XManager {
     // 从本地加载的配置项
     public config = {
         firstLoad: true, // 是否第一次加载
-        language: 'zh_cn' as Language, // 语言
+        language: 'en' as Language, // 语言
         theme: 'dark', // 主题
         modSourcePath: null, // mod的源路径
         modTargetPath: null, // mod的目标路径
@@ -287,7 +287,7 @@ class XManager {
         //如果为空，则使用默认配置
         if (currentConfig == null || Object.keys(currentConfig).length === 0) {
             // snack('配置文件不存在');
-            t_snack(new TranslatedText('Config file not found', '配置文件不存在'), SnackType.error);
+            t_snack(new TranslatedText('Config file not found', 'Không tìm thấy file cấu hình'), SnackType.error);
             // 保存默认配置
             this.saveConfig();
             return;
@@ -304,10 +304,10 @@ class XManager {
     async loadMods() {
         const modSourcePath = this.config.modSourcePath || '';
         //debug
-        console.log(new TranslatedText(`loadMods from ${modSourcePath}`, `从 ${modSourcePath} 加载mod`));
+        console.log(new TranslatedText(`loadMods from ${modSourcePath}`, `Đang tải mod từ ${modSourcePath}`));
 
         // 增加 鲁棒性
-        if (!PathHelper.CheckDir(modSourcePath, false, true, new TranslatedText('Mod Source Path', 'Mod 源路径'))) {
+        if (!PathHelper.CheckDir(modSourcePath, false, true, new TranslatedText('Mod Source Path', 'Đường dẫn nguồn mod'))) {
             return;
         }
 
@@ -315,7 +315,7 @@ class XManager {
 
         if (loadMods.length === 0) {
             // snack('modlist is empty');
-            t_snack(new TranslatedText('Mod list is empty', 'mod列表为空'), SnackType.error);
+            t_snack(new TranslatedText('Mod list is empty', 'Danh sách mod trống'), SnackType.error);
             return;
         }
 
@@ -348,7 +348,7 @@ class XManager {
             return JSON.parse(fs.readFileSync(presetFilePath, 'utf-8'));
         }
         // snack(`Preset ${presetName} not found`);
-        t_snack(new TranslatedText(`Preset ${presetName} not found`, `预设 ${presetName} 未找到`), SnackType.error);
+        t_snack(new TranslatedText(`Preset ${presetName} not found`, `Không tìm thấy preset ${presetName}`), SnackType.error);
         return null;
     }
 

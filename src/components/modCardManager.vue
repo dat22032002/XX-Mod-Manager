@@ -73,8 +73,8 @@ const characters = computed(() => {
 });
 
 const translateCharacters = computed(() => {
-    if (g_config_vue.language.value == 'zh_cn') {
-        return ['全部', '已选择'];
+    if (g_config_vue.language.value == 'vi') {
+        return ['Tất cả', 'Đã chọn'];
     } else {
         return ['All', 'Selected'];
     }

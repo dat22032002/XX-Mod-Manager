@@ -3,7 +3,7 @@
  */
 enum Language {
     en = 'en',
-    zh_cn = 'zh_cn',
+    vi = 'vi',
 }
 
 // 保存一个全局的语言环境
@@ -15,22 +15,22 @@ function setCurrentLanguage(language: Language) {
 /** @class
  * @classdesc TranslatedText 用于简化多语言文本的获取
  * @param {string} enText - 英文文本
- * @param {string} cnText - 中文文本
+ * @param {string} viText - Vietnamese text
  */
 class TranslatedText {
     public en : string;
-    public zh_cn : string;
+    public vi : string;
 
-    constructor(enText: string, cnText: string) {
+    constructor(enText: string, viText: string) {
         this.en = enText;
-        this.zh_cn = cnText;
+        this.vi = viText;
     }
 
     public getText(language: Language) {
         if (language === 'en') {
             return this.en;
-        } else if (language === 'zh_cn') {
-            return this.zh_cn;
+        } else if (language === 'vi') {
+            return this.vi;
         }
 
         return this.en;
@@ -45,8 +45,8 @@ class TranslatedText {
     }
 
     public static fromObject(obj: any) {
-        if (obj.en && obj.zh_cn) {
-            return new TranslatedText(obj.en, obj.zh_cn);
+        if (obj.en && obj.vi) {
+            return new TranslatedText(obj.en, obj.vi);
         } else {
             console.error('TranslatedText.fromObject error: obj is invalid', obj);
             return new TranslatedText('', '');

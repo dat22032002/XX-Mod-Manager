@@ -153,7 +153,7 @@ module.exports = {
     name: pluginName,
     // [REQUIRED] - Internationalized display names for the plugin
     t_displayName: {
-        zh_cn: 'Mod状态保持器',
+        vi: 'Trình giữ trạng thái mod',
         en: 'Mod Status Keeper'
     },
     /**
@@ -169,12 +169,12 @@ module.exports = {
             type: 'markdown',
             description: 'Info',
             t_description: {
-                zh_cn: `感谢 [Jank8](https://github.com/Jank8) 对该插件的贡献
-# Mod状态保持器
-# 它如何工作？
-通过监控 d3dx_user.ini 文件的变化并将持久变量自动同步到所有模组 INI 文件。我们可以将Mod的状态永远保存在模组中，这样即使是禁用模组后，模组的状态也不会丢失。
-# !注意、限制!
-该插件会修改模组的 INI 文件，因此请确保在使用前 !备份您的模组文件! 。
+                vi: `Cảm ơn [Jank8](https://github.com/Jank8) đã đóng góp cho plugin này
+# Trình giữ trạng thái mod
+# Nó hoạt động thế nào?
+Bằng cách theo dõi thay đổi của file d3dx_user.ini và tự động đồng bộ các biến bền vững sang tất cả file INI của mod, chúng ta có thể giữ trạng thái của mod được lưu vĩnh viễn trong chính mod đó, để dù mod bị tắt, trạng thái của nó cũng không bị mất.
+# Lưu ý & giới hạn
+Plugin này sửa đổi file INI của mod, vì vậy hãy đảm bảo bạn !sao lưu file mod của mình! trước khi dùng.
 ---`,
                 en: `Thanks to [Jank8](https://github.com/Jank8) for contributing to this plugin
 # Mod Status Keeper
@@ -198,7 +198,7 @@ This plugin modifies the mod's INI files, so please ensure you !back up your mod
             data: true, // Enabled by default
             displayName: 'Enable Log File Creation',
             t_displayName: {
-                zh_cn: '启用日志文件创建',
+                vi: 'Bật tạo file nhật ký',
                 en: 'Enable Log File Creation'
             },
             onChange: (value) => {
@@ -208,14 +208,14 @@ This plugin modifies the mod's INI files, so please ensure you !back up your mod
                     log('File logging enabled');
                     iManager.t_snack({
                         en: "Log file creation enabled",
-                        zh_cn: "日志文件创建已启用"
+                        vi: "Đã bật tạo file nhật ký"
                     }, 'success');
                 } else {
                     logFile = null;
                     console.log('File logging disabled - console only');
                     iManager.t_snack({
                         en: "Log file creation disabled - console logging only",
-                        zh_cn: "日志文件创建已禁用 - 仅控制台日志"
+                        vi: "Đã tắt tạo file nhật ký - chỉ ghi nhật ký ra console"
                     }, 'info');
                 }
             }
@@ -314,9 +314,9 @@ This plugin modifies the mod's INI files, so please ensure you !back up your mod
             type: 'markdown',
             description: 'Info',
             t_description: {
-                zh_cn: `# 将状态同步到模组 INI 文件
-你需要选择 d3dx_user.ini 的位置，之后程序能够将持久变量从 d3dx_user.ini 文件同步到所有模组 INI 文件。
-如果你使用 XXMM 作为模组管理器，程序会尝试自动获取 d3dx_user.ini 的位置。`,
+                vi: `# Đồng bộ trạng thái mod sang file INI của mod
+Bạn cần chọn vị trí của d3dx_user.ini, sau đó chương trình có thể đồng bộ các biến bền vững từ file d3dx_user.ini sang tất cả file INI của mod.
+Nếu bạn dùng XXMM làm trình quản lý mod, chương trình sẽ cố tự lấy vị trí của d3dx_user.ini.`,
                 en: `# Sync Mod Status to Mod INI Files
 You need to select the location of d3dx_user.ini, after which the program can sync persistent variables from the d3dx_user.ini file to all mod INI files.
 If you use XXMM as your mod manager, the program will try to automatically get the location of d3dx_user.ini.`
@@ -333,7 +333,7 @@ If you use XXMM as your mod manager, the program will try to automatically get t
             data: "", // Default to empty string
             displayName: 'D3DX User INI Path',
             t_displayName: {
-                zh_cn: 'd3dx_user.ini 路径',
+                vi: 'Đường dẫn d3dx_user.ini',
                 en: 'd3dx_user.ini Path'
             },
             onChange: (value) => {
@@ -342,7 +342,7 @@ If you use XXMM as your mod manager, the program will try to automatically get t
                 if (!isValidPath) {
                     iManager.t_snack({
                         en: "Invalid D3DX User INI Path.",
-                        zh_cn: "无效的 D3DX 用户 INI 路径。"
+                        vi: "Đường dẫn INI người dùng D3DX không hợp lệ."
                     }, 'error');
                 }
                 d3dxUserIniPath.data = value; // Update the path
@@ -363,7 +363,7 @@ If you use XXMM as your mod manager, the program will try to automatically get t
             displayName: 'Auto-Update Mod Settings',
             // Internationalized labels
             t_displayName: {
-                zh_cn: '自动同步',
+                vi: 'Tự động đồng bộ',
                 en: 'Auto-Sync'
             },
             /**
@@ -377,7 +377,7 @@ If you use XXMM as your mod manager, the program will try to automatically get t
                         autoUpdater.data = false; // Keep toggle disabled
                         iManager.t_snack({
                             en: "Cannot enable auto-sync: No backup files (.msk) found. Please create backups first or enable 'I DON'T CARE ABOUT BACKUPS'.",
-                            zh_cn: "无法启用自动同步：未找到备份文件(.msk)。请先创建备份或启用'我不在乎备份'。"
+                            vi: "Không thể bật tự động đồng bộ: Không tìm thấy file sao lưu (.msk). Hãy tạo sao lưu trước hoặc bật 'TÔI KHÔNG QUAN TÂM ĐẾN SAO LƯU'."
                         }, 'warning');
                         return false; // Prevent enabling auto-sync
                     }
@@ -387,7 +387,7 @@ If you use XXMM as your mod manager, the program will try to automatically get t
                     if (!d3dxUserPath) {
                         iManager.t_snack({
                             en: "d3dx_user.ini path is not set",
-                            zh_cn: "d3dx_user.ini路径未设置"
+                            vi: "Chưa đặt đường dẫn d3dx_user.ini"
                         }, 'error');
                         return false; // Prevent enabling auto-sync
                     }
@@ -399,12 +399,12 @@ If you use XXMM as your mod manager, the program will try to automatically get t
                     if (backupOverride.data) {
                         iManager.t_snack({
                             en: "⚠️ Auto-updater enabled WITHOUT backup protection. File monitoring active ONLY while manager is running (stops when manager is closed/sleeping).",
-                            zh_cn: "⚠️ 已启用自动更新器且无备份保护。管理器运行时文件监控处于活动状态。"
+                            vi: "⚠️ Đã bật tự động cập nhật KHÔNG có bảo vệ sao lưu. Giám sát file chỉ hoạt động khi trình quản lý đang chạy (dừng khi trình quản lý đóng/ngủ)."
                         }, 'warning');
                     } else {
                         iManager.t_snack({
                             en: "Auto-updater enabled. File monitoring active ONLY while manager is running (stops when manager is closed/sleeping).",
-                            zh_cn: "自动更新器已启用。管理器运行时文件监控处于活动状态。"
+                            vi: "Đã bật tự động cập nhật. Giám sát file chỉ hoạt động khi trình quản lý đang chạy (dừng khi trình quản lý đóng/ngủ)."
                         });
                     }
                 } else {
@@ -413,7 +413,7 @@ If you use XXMM as your mod manager, the program will try to automatically get t
                     stopPeriodicSync();
                     iManager.t_snack({
                         en: "Auto-updater disabled. Background monitoring stopped.",
-                        zh_cn: "自动更新器已禁用。后台监控已停止。"
+                        vi: "Đã tắt tự động cập nhật. Giám sát nền đã dừng."
                     });
                 }
             }
@@ -429,8 +429,8 @@ If you use XXMM as your mod manager, the program will try to automatically get t
             t_description: {
                 en: `Monitors **d3dx_user.ini** for changes and automatically syncs to ALL mod INI files.
 !**⚠️ LIMITATION:** Only works while XX Mod Manager is running. Stops when closed/minimized/sleeping.! `,
-                zh_cn: `监控 **d3dx_user.ini** 文件变化并自动同步到所有模组INI文件。
-!**⚠️ 限制：** 仅在XX模组管理器运行时生效，关闭/最小化/休眠时停止监控。! `
+                vi: `Theo dõi file **d3dx_user.ini** để phát hiện thay đổi và tự động đồng bộ sang TẤT CẢ file INI của mod.
+!**⚠️ GIỚI HẠN:** Chỉ hoạt động khi XX Mod Manager đang chạy. Dừng khi đóng/thu nhỏ/ngủ.! `
             },
             displayName: ''
         });
@@ -442,12 +442,12 @@ If you use XXMM as your mod manager, the program will try to automatically get t
             type: 'iconbutton',
             displayName: 'Sync Now',
             t_displayName: {
-                zh_cn: '立即同步',
+                vi: 'Đồng bộ ngay',
                 en: 'Sync Now'
             },
             buttonName: 'sync',
             t_buttonName: {
-                zh_cn: '同步',
+                vi: 'Đồng bộ',
                 en: 'Sync'
             },
             /**
@@ -458,7 +458,7 @@ If you use XXMM as your mod manager, the program will try to automatically get t
                 if (!backupOverride.data && !hasBackupFiles()) {
                     iManager.t_snack({
                         en: "Cannot sync: No backup files (.msk) found. Please create backups first or enable 'I DON'T CARE ABOUT BACKUPS'.",
-                        zh_cn: "无法同步：未找到备份文件(.msk)。请先创建备份或启用'我不在乎备份'。"
+                        vi: "Không thể đồng bộ: Không tìm thấy file sao lưu (.msk). Hãy tạo sao lưu trước hoặc bật 'TÔI KHÔNG QUAN TÂM ĐẾN SAO LƯU'."
                     }, 'warning');
                     return;
                 }
@@ -469,35 +469,35 @@ If you use XXMM as your mod manager, the program will try to automatically get t
                     if (backupOverride.data) {
                         iManager.t_snack({
                             en: "⚠️ Syncing persistent variables WITHOUT backup protection...",
-                            zh_cn: "⚠️ 正在同步持久变量且无备份保护..."
+                            vi: "⚠️ Đang đồng bộ biến bền vững KHÔNG có bảo vệ sao lưu..."
                         }, 'warning');
                     } else {
                         iManager.t_snack({
                             en: "Syncing persistent variables...",
-                            zh_cn: "正在同步持久变量..."
+                            vi: "Đang đồng bộ biến bền vững..."
                         });
                     }
 
                     const result = await syncPersistentVariables();
 
                     let message = `Sync complete! Updated ${result.updateCount} variables in ${result.fileCount} files`;
-                    let message_cn = `同步完成！在${result.fileCount}个文件中更新了${result.updateCount}个变量`;
+                    let message_vi = `Đồng bộ xong! Đã cập nhật ${result.updateCount} biến trong ${result.fileCount} file`;
 
                     if (result.lodSyncCount > 0) {
                         message += ` and synced [Constants] to ${result.lodSyncCount} LOD files`;
-                        message_cn += `，并同步[Constants]到${result.lodSyncCount}个LOD文件`;
+                        message_vi += ` và đã đồng bộ [Constants] sang ${result.lodSyncCount} file LOD`;
                     }
 
                     iManager.t_snack({
                         en: message,
-                        zh_cn: message_cn
+                        vi: message_vi
                     }, 'success');
 
                 } catch (error) {
                     log('Sync failed: ' + error.message, 'ERROR');
                     iManager.t_snack({
                         en: "Sync failed: " + error.message,
-                        zh_cn: "同步失败：" + error.message
+                        vi: "Đồng bộ thất bại: " + error.message
                     }, 'error');
                 } finally {
                     iManager.dismissDialog('loading-dialog');
@@ -514,8 +514,8 @@ If you use XXMM as your mod manager, the program will try to automatically get t
             t_description: {
                 en: `Manually trigger sync of ALL persistent variables from **d3dx_user.ini** to mod INI files. 
 Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
-                zh_cn: `手动触发从 **d3dx_user.ini** 到模组INI文件的所有持久变量同步。
-需要备份文件，除非启用 '我不在乎备份'。`
+                vi: `Kích hoạt thủ công việc đồng bộ TẤT CẢ biến bền vững từ **d3dx_user.ini** sang file INI của mod. 
+Cần có file sao lưu trừ khi đã bật 'TÔI KHÔNG QUAN TÂM ĐẾN SAO LƯU'.`
             },
             displayName: ''
         });
@@ -528,7 +528,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
             displayName: 'I DON\'T CARE ABOUT BACKUPS!!!',
             // Internationalized labels
             t_displayName: {
-                zh_cn: '我不在乎备份',
+                vi: 'TÔI KHÔNG QUAN TÂM ĐẾN SAO LƯU',
                 en: 'I DON\'T CARE ABOUT BACKUPS'
             },
             /**
@@ -540,12 +540,12 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                 if (value) {
                     iManager.t_snack({
                         en: "⚠️ WARNING: Backup protection disabled! Sync operations can now overwrite files without backups.",
-                        zh_cn: "⚠️ 警告：已禁用备份保护！同步操作现在可以在没有备份的情况下覆盖文件。"
+                        vi: "⚠️ CẢNH BÁO: Đã tắt bảo vệ sao lưu! Các thao tác đồng bộ giờ có thể ghi đè file mà không có sao lưu."
                     }, 'warning');
                 } else {
                     iManager.t_snack({
                         en: "Backup protection re-enabled. Sync operations now require backup files.",
-                        zh_cn: "已重新启用备份保护。同步操作现在需要备份文件。"
+                        vi: "Đã bật lại bảo vệ sao lưu. Các thao tác đồng bộ giờ cần có file sao lưu."
                     });
                 }
             }
@@ -560,7 +560,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
             description: '**I Don\'t Care About Backups** - DANGEROUS: Disables all backup checks. **⚠️ WARNING:** Without backups, you cannot recover from mistakes.',
             t_description: {
                 en: '**I Don\'t Care About Backups** - DANGEROUS: Disables all backup checks. **⚠️ WARNING:** Without backups, you cannot recover from mistakes.',
-                zh_cn: '**我不在乎备份** - 危险：禁用所有备份检查。**⚠️ 警告：** 没有备份，您无法从错误中恢复。'
+                vi: '**TÔI KHÔNG QUAN TÂM ĐẾN SAO LƯU** - NGUY HIỂM: Tắt mọi kiểm tra sao lưu. **⚠️ CẢNH BÁO:** Không có sao lưu, bạn không thể khôi phục khi có lỗi.'
             },
             displayName: ''
         });
@@ -666,12 +666,12 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
             displayName: 'Create Backup',
             // Internationalized button labels
             t_displayName: {
-                zh_cn: '创建备份',
+                vi: 'Tạo sao lưu',
                 en: 'Create Backup'
             },
             buttonName: 'save', // Icon identifier
             t_buttonName: {
-                zh_cn: '备份',
+                vi: 'Sao lưu',
                 en: 'Backup'
             },
             /**
@@ -686,7 +686,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                     // Notify user that backup is starting
                     iManager.t_snack({
                         en: "Creating backup of INI files...",
-                        zh_cn: "正在创建INI文件备份..."
+                        vi: "Đang tạo sao lưu file INI..."
                     });
 
                     // Counters for operation tracking
@@ -750,7 +750,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                     // Show success notification with statistics
                     iManager.t_snack({
                         en: `Backup complete! Created ${backupCount} .msk files, skipped ${skipCount} existing/disabled files`,
-                        zh_cn: `备份完成！创建了${backupCount}个.msk文件，跳过了${skipCount}个已存在/已禁用文件`
+                        vi: `Sao lưu xong! Đã tạo ${backupCount} file .msk, đã bỏ qua ${skipCount} file đã tồn tại/đã tắt`
                     }, 'success');
 
                 } catch (error) {
@@ -758,7 +758,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                     log('Backup failed: ' + error.message, 'ERROR');
                     iManager.t_snack({
                         en: "Backup failed: " + error.message,
-                        zh_cn: "备份失败：" + error.message
+                        vi: "Sao lưu thất bại: " + error.message
                     }, 'error');
                 } finally {
                     // Always dismiss loading dialog, even if errors occur
@@ -775,7 +775,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
             description: '**Create Backup** - Creates .msk backup copies of all mod INI files for safety. Always create backups before syncing!',
             t_description: {
                 en: '**Create Backup** - Creates .msk backup copies of all mod INI files for safety. Always create backups before syncing!',
-                zh_cn: '**创建备份** - 为安全起见，创建所有模组INI文件的.msk备份副本。同步前请务必创建备份！'
+                vi: '**Tạo sao lưu** - Tạo bản sao lưu .msk của tất cả file INI của mod để an toàn. Luôn tạo sao lưu trước khi đồng bộ!'
             },
             displayName: ''
         });
@@ -792,7 +792,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
             displayName: 'Safety Lock',
             // Internationalized labels
             t_displayName: {
-                zh_cn: '安全锁',
+                vi: 'Khóa an toàn',
                 en: 'Safety Lock'
             },
             /**
@@ -805,7 +805,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                 if (value) {
                     iManager.t_snack({
                         en: "Safety lock enabled. You can now use restore/delete functions.",
-                        zh_cn: "安全锁已启用。现在可以使用恢复/删除功能。"
+                        vi: "Đã bật khóa an toàn. Giờ bạn có thể dùng chức năng khôi phục/xóa."
                     });
                 }
             }
@@ -820,7 +820,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
             description: '**Safety Lock** - Prevents accidental use of destructive operations. Must be ON to use restore/delete buttons.',
             t_description: {
                 en: '**Safety Lock** - Prevents accidental use of destructive operations. Must be ON to use restore/delete buttons.',
-                zh_cn: '**安全锁** - 防止意外使用破坏性操作。必须开启才能使用恢复/删除按钮。'
+                vi: '**Khóa an toàn** - Ngăn dùng nhầm các thao tác phá hủy. Phải BẬT mới dùng được nút khôi phục/xóa.'
             },
             displayName: ''
         });
@@ -880,12 +880,12 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
             displayName: 'Restore from Backup',
             // Internationalized labels
             t_displayName: {
-                zh_cn: '从备份恢复',
+                vi: 'Khôi phục từ sao lưu',
                 en: 'Restore from Backup'
             },
             buttonName: 'restore', // Icon identifier
             t_buttonName: {
-                zh_cn: '恢复',
+                vi: 'Khôi phục',
                 en: 'Restore'
             },
             /**
@@ -897,7 +897,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                 if (!safetyToggle.data) {
                     iManager.t_snack({
                         en: "Please enable the safety lock first",
-                        zh_cn: "请先启用安全锁"
+                        vi: "Hãy bật khóa an toàn trước"
                     }, 'warning');
                     return;
                 }
@@ -909,7 +909,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                     // Notify user that restore is starting
                     iManager.t_snack({
                         en: "Restoring INI files from backups...",
-                        zh_cn: "正在从备份恢复INI文件..."
+                        vi: "Đang khôi phục file INI từ sao lưu..."
                     });
 
                     // Counters for operation tracking
@@ -965,7 +965,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                     // Show success notification with statistics
                     iManager.t_snack({
                         en: `Restore complete! Restored ${restoreCount} files, failed ${skipCount} files`,
-                        zh_cn: `恢复完成！恢复了${restoreCount}个文件，失败${skipCount}个文件`
+                        vi: `Khôi phục xong! Đã khôi phục ${restoreCount} file, thất bại ${skipCount} file`
                     }, 'success');
 
                 } catch (error) {
@@ -973,7 +973,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                     console.error('Restore failed:', error);
                     iManager.t_snack({
                         en: "Restore failed: " + error.message,
-                        zh_cn: "恢复失败：" + error.message
+                        vi: "Khôi phục thất bại: " + error.message
                     }, 'error');
                 } finally {
                     // Always dismiss loading dialog, even if errors occur
@@ -990,7 +990,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
             description: '**Restore from Backup** - Overwrites current mod settings with backup data from .msk files. **⚠️ WARNING:** This will replace your current mod settings!',
             t_description: {
                 en: '**Restore from Backup** - Overwrites current mod settings with backup data from .msk files. **⚠️ WARNING:** This will replace your current mod settings!',
-                zh_cn: '**从备份恢复** - 用.msk文件中的备份数据覆盖当前模组设置。**⚠️ 警告：** 这将替换您当前的模组设置！'
+                vi: '**Khôi phục từ sao lưu** - Ghi đè cài đặt mod hiện tại bằng dữ liệu sao lưu từ file .msk. **⚠️ CẢNH BÁO:** Việc này sẽ thay thế cài đặt mod hiện tại của bạn!'
             },
             displayName: ''
         });
@@ -1007,12 +1007,12 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
             displayName: 'Delete All Backups',
             // Internationalized labels
             t_displayName: {
-                zh_cn: '删除所有备份',
+                vi: 'Xóa tất cả sao lưu',
                 en: 'Delete All Backups'
             },
             buttonName: 'delete', // Icon identifier
             t_buttonName: {
-                zh_cn: '删除',
+                vi: 'Xóa',
                 en: 'Delete'
             },
             /**
@@ -1024,7 +1024,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                 if (!safetyToggle.data) {
                     iManager.t_snack({
                         en: "Please enable the safety lock first",
-                        zh_cn: "请先启用安全锁"
+                        vi: "Hãy bật khóa an toàn trước"
                     }, 'warning');
                     return;
                 }
@@ -1036,7 +1036,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                     // Notify user that deletion is starting
                     iManager.t_snack({
                         en: "Deleting backup files...",
-                        zh_cn: "正在删除备份文件..."
+                        vi: "Đang xóa file sao lưu..."
                     });
 
                     // Counter for operation tracking
@@ -1085,7 +1085,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                     // Show success notification with statistics
                     iManager.t_snack({
                         en: `Deletion complete! Deleted ${deleteCount} backup files`,
-                        zh_cn: `删除完成！删除了${deleteCount}个备份文件`
+                        vi: `Xóa xong! Đã xóa ${deleteCount} file sao lưu`
                     }, 'success');
 
                 } catch (error) {
@@ -1093,7 +1093,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
                     console.error('Delete failed:', error);
                     iManager.t_snack({
                         en: "Delete failed: " + error.message,
-                        zh_cn: "删除失败：" + error.message
+                        vi: "Xóa thất bại: " + error.message
                     }, 'error');
                 } finally {
                     // Always dismiss loading dialog, even if errors occur
@@ -1110,7 +1110,7 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
             description: '**Delete All Backups** - Permanently deletes all .msk backup files to free disk space. **⚠️ WARNING:** Cannot be undone!',
             t_description: {
                 en: '**Delete All Backups** - Permanently deletes all .msk backup files to free disk space. **⚠️ WARNING:** Cannot be undone!',
-                zh_cn: '**删除所有备份** - 永久删除所有.msk备份文件以释放磁盘空间。**⚠️ 警告：** 无法撤销！'
+                vi: '**Xóa tất cả sao lưu** - Xóa vĩnh viễn tất cả file sao lưu .msk để giải phóng dung lượng. **⚠️ CẢNH BÁO:** Không thể hoàn tác!'
             },
             displayName: ''
         });
@@ -1134,10 +1134,10 @@ Requires backup files unless enabled 'I DON'T CARE ABOUT BACKUPS'.`,
             data: '',
             type: 'markdown',
             displayName: 'Separator',
-            description: `# 插件日志`,
+            description: `# Plugin Log`,
             t_description: {
-                zh_cn: `# 插件日志
-插件能够创建日志文件以帮助调试和记录操作。日志文件存储在模组源目录的上一级目录中，名为 **modStatusKeeper.log**。`,
+                vi: `# Nhật ký plugin
+Plugin có thể tạo file nhật ký để hỗ trợ gỡ lỗi và ghi lại các thao tác. File nhật ký được lưu trong thư mục cha của thư mục nguồn mod, tên là **modStatusKeeper.log**.`,
                 en: `# Plugin Log
 The plugin is able to create log files to assist with debugging and recording operations. Log files are stored in the parent directory of the mod source directory, named **modStatusKeeper.log**.`
             }
@@ -1153,12 +1153,12 @@ The plugin is able to create log files to assist with debugging and recording op
             type: 'iconbutton',
             displayName: 'Open Log File',
             t_displayName: {
-                zh_cn: '打开日志文件',
+                vi: 'Mở file nhật ký',
                 en: 'Open Log File'
             },
             buttonName: 'open', // Icon identifier
             t_buttonName: {
-                zh_cn: '打开',
+                vi: 'Mở',
                 en: 'Open'
             },
             /**
@@ -1180,26 +1180,26 @@ The plugin is able to create log files to assist with debugging and recording op
                                 console.error('Failed to open log file:', error);
                                 iManager.t_snack({
                                     en: "Failed to open log file: " + error.message,
-                                    zh_cn: "打开日志文件失败：" + error.message
+                                    vi: "Mở file nhật ký thất bại: " + error.message
                                 }, 'error');
                             } else {
                                 iManager.t_snack({
                                     en: "Log file opened in default text editor",
-                                    zh_cn: "日志文件已在默认文本编辑器中打开"
+                                    vi: "File nhật ký đã mở trong trình soạn thảo mặc định"
                                 }, 'success');
                             }
                         });
                     } else {
                         iManager.t_snack({
                             en: "No log file found to open. Enable logging first.",
-                            zh_cn: "未找到要打开的日志文件。请先启用日志记录。"
+                            vi: "Không tìm thấy file nhật ký để mở. Hãy bật ghi nhật ký trước."
                         }, 'info');
                     }
                 } catch (error) {
                     console.error('Failed to open log file:', error);
                     iManager.t_snack({
                         en: "Failed to open log file: " + error.message,
-                        zh_cn: "打开日志文件失败：" + error.message
+                        vi: "Mở file nhật ký thất bại: " + error.message
                     }, 'error');
                 }
             }
@@ -1218,12 +1218,12 @@ The plugin is able to create log files to assist with debugging and recording op
             type: 'iconbutton',
             displayName: 'Clear Log File',
             t_displayName: {
-                zh_cn: '清除日志文件',
+                vi: 'Xóa file nhật ký',
                 en: 'Clear Log File'
             },
             buttonName: 'clear', // Icon identifier
             t_buttonName: {
-                zh_cn: '清除',
+                vi: 'Xóa',
                 en: 'Clear'
             },
             /**
@@ -1249,19 +1249,19 @@ The plugin is able to create log files to assist with debugging and recording op
 
                         iManager.t_snack({
                             en: "Log file cleared successfully",
-                            zh_cn: "日志文件已成功清除"
+                            vi: "Đã xóa file nhật ký thành công"
                         }, 'success');
                     } else {
                         iManager.t_snack({
                             en: "No log file found to clear",
-                            zh_cn: "未找到要清除的日志文件"
+                            vi: "Không tìm thấy file nhật ký để xóa"
                         }, 'info');
                     }
                 } catch (error) {
                     console.error('Failed to clear log file:', error);
                     iManager.t_snack({
                         en: "Failed to clear log file: " + error.message,
-                        zh_cn: "清除日志文件失败：" + error.message
+                        vi: "Xóa file nhật ký thất bại: " + error.message
                     }, 'error');
                 }
             }
@@ -1309,7 +1309,7 @@ The plugin is able to create log files to assist with debugging and recording op
             log(`d3dx_user.ini not found at any expected location: ${tryPaths.join(', ')}`, 'ERROR');
             iManager.t_snack({
                 en: "d3dx_user.ini not found at any expected location, please set the path manually",
-                zh_cn: "在任何预期位置未找到d3dx_user.ini，请手动设置路径"
+                vi: "Không tìm thấy d3dx_user.ini ở vị trí nào đã biết, hãy đặt đường dẫn thủ công"
             }, 'error');
             return null;
         }
@@ -1330,7 +1330,7 @@ The plugin is able to create log files to assist with debugging and recording op
                 log(`d3dx_user.ini not found for watcher at: ${d3dxUserPath}`, 'ERROR');
                 iManager.t_snack({
                     en: "d3dx_user.ini not found at expected location",
-                    zh_cn: "在预期位置未找到d3dx_user.ini文件"
+                    vi: "Không tìm thấy file d3dx_user.ini ở vị trí đã biết"
                 }, 'warning');
                 return;
             }
@@ -1361,7 +1361,7 @@ The plugin is able to create log files to assist with debugging and recording op
                 log('Failed to start file watcher: ' + error.message, 'ERROR');
                 iManager.t_snack({
                     en: "Failed to start file monitoring",
-                    zh_cn: "启动文件监控失败"
+                    vi: "Khởi động giám sát file thất bại"
                 }, 'error');
             }
         };
@@ -1946,7 +1946,7 @@ The plugin is able to create log files to assist with debugging and recording op
                         log('Failed to resolve d3dx_user.ini path, cannot start auto-updater', 'ERROR');
                         iManager.t_snack({
                             en: "Auto-updater failed to start: d3dx_user.ini path could not be resolved.",
-                            zh_cn: "自动更新器启动失败：无法解析 d3dx_user.ini 路径。"
+                            vi: "Tự động cập nhật khởi động thất bại: không xác định được đường dẫn d3dx_user.ini."
                         }, 'error');
 
                         // 关闭开启状态
@@ -1961,7 +1961,7 @@ The plugin is able to create log files to assist with debugging and recording op
                     log('Auto-updater enabled but no backups found and override disabled', 'WARN');
                     iManager.t_snack({
                         en: "Auto-updater was enabled but no backup files found. Please create backups or enable backup override.",
-                        zh_cn: "自动更新器已启用但未找到备份文件。请创建备份或启用备份覆盖。"
+                        vi: "Tự động cập nhật đã bật nhưng không tìm thấy file sao lưu. Hãy tạo sao lưu hoặc bật ghi đè sao lưu."
                     }, 'warning');
                 } else {
                     // Start the watcher and periodic sync
@@ -1972,13 +1972,13 @@ The plugin is able to create log files to assist with debugging and recording op
                         log('Auto-updater started on plugin load WITHOUT backup protection');
                         iManager.t_snack({
                             en: "⚠️ Auto-updater started WITHOUT backup protection. File monitoring active ONLY while manager is running (stops when closed/sleeping)...",
-                            zh_cn: "⚠️ 自动更新器已启动且无备份保护。管理器运行时文件监控处于活动状态..."
+                            vi: "⚠️ Tự động cập nhật đã khởi động KHÔNG có bảo vệ sao lưu. Giám sát file chỉ hoạt động khi trình quản lý đang chạy (dừng khi đóng/ngủ)..."
                         }, 'warning');
                     } else {
                         log('Auto-updater started on plugin load with backup protection');
                         iManager.t_snack({
                             en: "Auto-updater started. File monitoring active ONLY while manager is running (stops when closed/sleeping)...",
-                            zh_cn: "自动更新器已启动。管理器运行时文件监控处于活动状态..."
+                            vi: "Tự động cập nhật đã khởi động. Giám sát file chỉ hoạt động khi trình quản lý đang chạy (dừng khi đóng/ngủ)..."
                         });
                     }
                 }

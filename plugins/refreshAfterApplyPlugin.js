@@ -84,7 +84,7 @@ const refreshInGame = async (iManager) => {
 module.exports = {
     name: pluginName,
     t_displayName: {
-        zh_cn: '游戏内刷新',
+        vi: 'Làm mới sau khi áp dụng',
         en: 'Refresh After Apply'
     },
     init(iManager) {
@@ -100,8 +100,8 @@ module.exports = {
                 // 3: Cannot find the zenless zone zero window
                 // 4: Cannot find the mod manager window
                 // Only availabe in windows
-                const snackMessage = iManager.config.language === 'zh_cn' ?
-                    ['刷新失败', '刷新成功', '找不到进程', '找不到窗口', '找不到mod管理器'][result] :
+                const snackMessage = iManager.config.language === 'vi' ?
+                    ['Làm mới thất bại', 'Làm mới thành công', 'Không tìm thấy tiến trình', 'Không tìm thấy cửa sổ', 'Không tìm thấy trình quản lý mod'][result] :
                     ['Refresh Failed', 'Refresh Success', 'Cannot find the process', 'Cannot find the window', 'Cannot find the mod manager'][result];
                 iManager.snack(ifRefreshAfterApply.t_displayName[iManager.config.language] + " : " +
                     snackMessage, result === 1 ? "success" : "error");
@@ -119,11 +119,11 @@ module.exports = {
             displayName: 'Refresh After Apply',
             description: 'Refresh the game after applying the mod',
             t_displayName: {
-                zh_cn: '应用后刷新',
+                vi: 'Làm mới sau khi áp dụng',
                 en: 'Refresh After Apply'
             },
             t_description: {
-                zh_cn: '# 在应用mod之后自动在游戏中应用mod\n通常在变更mod之后，需要手动按F10或者别的快捷键来使得Mod生效\n这个插件可以自动帮你刷新游戏\n_\n点击应用时，程序会自动刷新游戏',
+                vi: '# Làm mới game sau khi áp dụng mod\nThường sau khi đổi mod, bạn cần bấm tay phím F10 hoặc phím tắt khác để mod có hiệu lực\nPlugin này có thể tự động làm mới game giúp bạn\n\nKhi bạn bấm Áp dụng, chương trình sẽ tự động làm mới game',
                 en: '# Refresh the game after applying the mod\nUsually after changing the mod, you need to manually press F10 or other shortcut keys to make the Mod take effect\nThis plugin can automatically help you refresh the game\n\nWhen you click Apply, the program will automatically refresh the game'
             },
             onChange: (value) => {
@@ -140,7 +140,7 @@ module.exports = {
             type: 'boolean',
             displayName: 'Refresh After Apply',
             t_displayName: {
-                zh_cn: '启用 应用后刷新',
+                vi: 'Làm mới sau khi áp dụng',
                 en: 'Refresh After Apply'
             },
             onChange: (value) => {
@@ -159,11 +159,11 @@ module.exports = {
             displayName: 'Process Name',
             description: 'The process name of the game',
             t_displayName: {
-                zh_cn: '进程名',
+                vi: 'Tên tiến trình',
                 en: 'Process Name'
             },
             t_description: {
-                zh_cn: '游戏的进程名',
+                vi: 'Tên tiến trình của game',
                 en: 'The process name of the game'
             },
             onChange: (value) => {
@@ -181,11 +181,11 @@ module.exports = {
             displayName: 'VisualKey',
             description: 'The virtual key code for F10',
             t_displayName: {
-                zh_cn: '虚拟键值',
+                vi: 'VisualKey',
                 en: 'VisualKey'
             },
             t_description: {
-                zh_cn: '刷新的虚拟键值(3dmiggoto中默认为F10,也就是121)',
+                vi: 'Mã phím ảo để làm mới (mặc định trong 3dmiggoto là F10, tức là 121)',
                 en: 'The virtual key code for refresh(3dmiggoto default is F10, which is 121)'
             },
             onChange: (value) => {

@@ -5,28 +5,28 @@
     </leftMenu>
     <div class="help-content OO-box">
       <!--  中文帮助页面 -->
-      <div id="help-dialog-cn" v-if="language === 'zh_cn'" class="OO-scorll-box"
+      <div id="help-dialog-vi" v-if="language === 'vi'" class="OO-scorll-box"
         style="display: flex;flex-direction: column;width: 100%;height: 100%;overflow-y: auto;overflow-x: hidden;">
         <!-- 根据选择的设置选项展示不同的设置内容 -->
         <!-- -名词解释 -->
-        <Markdown :content="explainContentCn" v-if="currentTab === 'help-explain'"></Markdown>
+        <Markdown :content="explainContentVi" v-if="currentTab === 'help-explain'"></Markdown>
         <!-- -导入mod -->
-        <Markdown :content="importContentCn" v-if="currentTab === 'help-import'"></Markdown>
+        <Markdown :content="importContentVi" v-if="currentTab === 'help-import'"></Markdown>
         <!-- -加载mod -->
-        <Markdown :content="loadContentCn" v-if="currentTab === 'help-load'"></Markdown>
+        <Markdown :content="loadContentVi" v-if="currentTab === 'help-load'"></Markdown>
         <!-- -配置mod -->
-        <Markdown :content="configContentCn" v-if="currentTab === 'help-config'"></Markdown>
+        <Markdown :content="configContentVi" v-if="currentTab === 'help-config'"></Markdown>
         <!-- -预设 -->
-        <Markdown :content="presetContentCn" v-if="currentTab === 'help-preset'"></Markdown>
+        <Markdown :content="presetContentVi" v-if="currentTab === 'help-preset'"></Markdown>
         <!-- -自动化 -->
-        <Markdown :content="autoContentCn" v-if="currentTab === 'help-auto'"></Markdown>
+        <Markdown :content="autoContentVi" v-if="currentTab === 'help-auto'"></Markdown>
         <!-- -多个游戏 -->
-        <Markdown :content="multipleGamesContentCn" v-if="currentTab === 'help-multiple-games'"></Markdown>
+        <Markdown :content="multipleGamesContentVi" v-if="currentTab === 'help-multiple-games'"></Markdown>
         <!-- -故障排除 -->
         <div v-if="currentTab === 'help-trouble'">
-          <Markdown :content="troubleContentCn">
+          <Markdown :content="troubleContentVi">
             <div class="OO-setting-bar" style="height: 50px !important;">
-              <h3> QQ群 </h3>
+              <h3> Nhóm QQ </h3>
               <p> 877012859 </p>
             </div>
             <div class="OO-setting-bar">
@@ -38,7 +38,7 @@
           </Markdown>
         </div>
         <!-- -配置mod加载器 -->
-        <Markdown :content="configModLoaderContentCn" v-if="currentTab === 'help-config-mod-loader'"></Markdown>
+        <Markdown :content="configModLoaderContentVi" v-if="currentTab === 'help-config-mod-loader'"></Markdown>
 
         <div class="placeholder" style="flex: 1;min-height: 150px;"></div>
       </div>
@@ -97,225 +97,223 @@ import img_description1 from '../assets/description1.png';
 import img_description2 from '../assets/description2.png';
 import img_description3 from '../assets/description3.png';
 
-const explainContentCn =
-  `# 先决条件
-请确保你已经安装了3dmigoto 或者其他的mod加载器，并且已经成功运行过。如果你还没有安装3dmigoto，请先安装3dmigoto。如果你不明白3dmigoto是什么，请自行搜索。
-请注意，本程序只是mod管理器，不是mod加载器，它需要依赖3dmigoto或者其他的mod加载器来加载mod
+const explainContentVi =
+  `# Điều kiện tiên quyết
+Hãy đảm bảo bạn đã cài đặt 3dmigoto hoặc trình tải mod khác và chạy thành công. Nếu chưa cài đặt 3dmigoto, hãy cài đặt 3dmigoto trước. Nếu bạn không hiểu 3dmigoto là gì, hãy tự tìm hiểu.
+Lưu ý rằng chương trình này chỉ là trình quản lý mod, không phải trình tải mod. Nó cần dựa vào 3dmigoto hoặc trình tải mod khác để tải mod.
 
-首先你需要理清楚这个程序是如何实现mod管理的：
-它将你存放在 【mod 源文件夹】 的 mod 创建虚拟链接 到 【mod 目标文件夹】 中。
-【mod加载器】 会读取 【mod 目标文件夹】 中的mod，然后加载到游戏中。
+Trước tiên, bạn cần hiểu chương trình này quản lý mod như thế nào:
+Nó tạo liên kết ảo từ các mod lưu trong 【thư mục nguồn mod】 tới 【thư mục đích mod】.
+【Trình tải mod】 sẽ đọc các mod trong 【thư mục đích mod】 rồi tải chúng vào game.
 ---
-# 在使用之前，让我们进行一些名词解释
-请注意，下述三个文件夹不能相同，否则会导致程序无法正常运行:
-- MOD目标文件夹
-- MOD来源文件夹
-- 预设文件夹
-如果你在阅读之后还是无法理解，可以先将其设置为空的文件夹，观察程序的运行效果，然后再进行设置。
+# Trước khi sử dụng, hãy giải thích một số thuật ngữ
+Lưu ý rằng ba thư mục sau không được trùng nhau, nếu không chương trình sẽ không chạy bình thường:
+- Thư mục đích mod
+- Thư mục nguồn mod
+- Thư mục preset
+Nếu vẫn chưa hiểu, bạn có thể đặt trước thành một thư mục trống, quan sát chương trình hoạt động, rồi mới cài đặt.
 
-我会用图片来表示以便于你更好的理解：<br>
+Tôi sẽ dùng hình ảnh để giúp bạn hiểu rõ hơn:<br>
   <img src="../src/assets/description1.png" alt="description" style="width: 80%;height: auto;">
-因此，Mod文件的推导逻辑其实是这样的。
+Vì vậy, logic suy ra file mod thực ra là như thế này.
   <img src="../src/assets/description3.png" alt="description" style="width: 80%;height: auto;">
-如果你不能够理解上面的图示，下面是一个更直观的：
-假设我们现在要给小可琳穿一件“皇帝的新衣”，那么：
+Nếu bạn không hiểu sơ đồ trên, đây là một ví dụ trực quan hơn:
+Giả sử chúng ta muốn mặc cho Klee bộ "Quần áo mới của Hoàng đế", thì:
   <img src="../src/assets/description2.png" alt="description" style="width: 80%;height: auto;">
-“mod目标文件夹”用于存放现在正在使用的Mod
-“mod来源文件夹”用于存放所有的Mod
+"Thư mục đích mod" dùng để lưu các mod đang sử dụng.
+"Thư mục nguồn mod" dùng để lưu tất cả các mod.
 ---
-# mod 目标文件夹
-这是你的 模组加载器 实际加载的文件夹：
-- 对于ZZMI来说，就是ZZMI的Mods文件夹；
-- 对于XXMI来说，就是XXMI内部文件夹/zzz/Mods
-本程序通过代理Mods文件夹的方式来实现mod的加载，通过动态调整mod文件夹内部的文件来实现mod的加载， 所以请不要在mod目标文件夹内添加任何文件！将你的mod添加到mod源文件夹中即可。
-# mod 源文件夹
-这是 本程序 读取mod的文件夹，也是你应当用来存放mod的文件夹。它应该被设置为任意位置的一个空文件夹，之后你需要将你的mod添加到这个文件夹中
-# 预设文件夹
-这是 本程序 用于存放mod预设的文件夹，程序将在这里存放一组mod的配置，在配置之后，你将通过预设功能快速切换不同的mod组合。它应该被设置为任意位置的一个空文件夹
-# 关于本程序
-# 运行原理
-本程序通过代理Mods文件夹的方式来实现mod的加载，通过动态调整mod文件夹内部的文件来实现mod的加载。
+# Thư mục đích mod
+Đây là thư mục mà trình tải mod của bạn thực sự tải:
+- Với ZZMI, đó là thư mục Mods của ZZMI;
+- Với XXMI, đó là thư mục nội bộ của XXMI /zzz/Mods
+Chương trình này tải mod bằng cách thay thế thư mục Mods, và điều chỉnh động các file bên trong thư mục mod để tải mod, vì vậy đừng thêm bất kỳ file nào vào thư mục đích mod! Chỉ cần thêm mod của bạn vào thư mục nguồn mod.
+# Thư mục nguồn mod
+Đây là thư mục mà chương trình này đọc mod, và cũng là thư mục bạn nên dùng để lưu mod. Nó nên được đặt thành một thư mục trống ở bất kỳ đâu, sau đó bạn cần thêm mod của mình vào thư mục này
+# Thư mục preset
+Đây là thư mục mà chương trình này dùng để lưu preset mod. Chương trình sẽ lưu một nhóm cấu hình mod tại đây. Sau khi cấu hình, bạn sẽ nhanh chóng chuyển đổi giữa các tổ hợp mod khác nhau qua chức năng preset. Nó nên được đặt thành một thư mục trống ở bất kỳ đâu
+# Về chương trình này
+# Nguyên lý hoạt động
+Chương trình này tải mod bằng cách thay thế thư mục Mods, và điều chỉnh động các file bên trong thư mục mod để tải mod.
   <img src="../src/assets/description.png" alt="description" style="width: 50%;height: auto;">
 `;
 
-const importContentCn =
-  `# 导入mod
-程序有三种方式导入mod：
-1. 将mod文件夹添加到 mod源文件夹 中，程序会从源文件夹中读取mod文件夹。
-2. 将解压了的mod文件夹 拖拽到程序中，程序会自动将mod文件夹添加到 mod源文件夹 中。
-3. 将 压缩文件 拖拽到程序中，程序会自动解压并将mod文件夹添加到 mod源文件夹 中,如果压缩文件有密码，程序会弹出输入密码的窗口，请输入密码，之后程序会自动解压并将mod文件夹添加到 mod源文件夹 中。
+const importContentVi =
+  `# Nhập mod
+Có ba cách để nhập mod:
+1. Thêm thư mục mod vào thư mục nguồn mod, chương trình sẽ đọc thư mục mod từ thư mục nguồn.
+2. Kéo thư mục mod đã giải nén vào chương trình, chương trình sẽ tự động thêm thư mục mod vào thư mục nguồn mod.
+3. Kéo file nén vào chương trình, chương trình sẽ tự động giải nén và thêm thư mục mod vào thư mục nguồn mod. Nếu file nén có mật khẩu, chương trình sẽ yêu cầu bạn nhập mật khẩu, rồi tự động giải nén và thêm thư mục mod vào thư mục nguồn mod.
 
-所有的方式本质上都是将mod文件夹添加到 mod源文件夹 中，你需要先配置好 mod源文件夹 的路径。
-# 导入后的现象
-1. 通过直接将mod添加到 mod源文件夹 中，需要刷新程序之后才能看到新的mod以卡片的形式展示在mod列表中。
-2. 通过拖拽解压后的mod文件夹或者压缩包文件，程序会自动刷新，并且会打开mod编辑页面，你可以在这里对mod的信息进行编辑，更多信息请查看【配置mod】。
+Tất cả các cách về bản chất đều là thêm thư mục mod vào thư mục nguồn mod, vì vậy bạn cần cấu hình đường dẫn của thư mục nguồn mod trước.
+# Sau khi nhập
+1. Khi thêm mod trực tiếp vào thư mục nguồn mod, bạn cần làm mới chương trình để thấy các mod mới hiển thị dưới dạng thẻ trong danh sách mod.
+2. Khi kéo thư mục mod đã giải nén hoặc file nén, chương trình sẽ tự động làm mới và mở trang chỉnh sửa mod, nơi bạn có thể chỉnh sửa thông tin mod. Để biết thêm thông tin, hãy xem 【Cấu hình mod】.
 ---
-# 可能遇到的问题
-# 将mod文件夹添加到mod源文件夹中，但是mod列表中没有显示
-1. 请检查mod源文件夹的路径是否正确。
-2. 请检查mod源文件夹中是否有mod文件夹。
-3. 请尝试重新打开程序
-如果以上方法都无法解决问题，请转到【故障排除】。
-# 拖拽压缩包后，程序弹出警告
-1. 请检查压缩包是否完整，程序不支持分片压缩包。
-2. 请检查压缩包是否有密码，密码是否输入正确。
-
+# Các vấn đề có thể gặp
+# Thêm thư mục mod vào thư mục nguồn mod nhưng không hiển thị trong danh sách mod
+1. Kiểm tra đường dẫn của thư mục nguồn mod có đúng không.
+2. Kiểm tra trong thư mục nguồn mod có thư mục mod không.
+3. Thử mở lại chương trình.
+Nếu các cách trên không giải quyết được vấn đề, hãy xem 【Khắc phục sự cố】.
+# Cảnh báo sau khi kéo file nén
+1. Kiểm tra file nén có đầy đủ không, chương trình không hỗ trợ file nén chia nhỏ.
+2. Kiểm tra file nén có mật khẩu không, và mật khẩu đã nhập đúng chưa.
 `;
-const configModLoaderContentCn =
-  `# 加载mod
-本程序只是一个mod管理器，你需要另外下载一个游戏加载器来加载mod。它可以是3dmigoto、zzmi、xxmi等，下面我会介绍如何将本程序和常见加载器配合使用。
-# 3dmigoto类
-这些是未经封装的mod加载器，是我最推荐使用的mod加载器。它们的优点是：最基本也最不会出问题、响应迅速且无任何额外的功能。
+const configModLoaderContentVi =
+  `# Tải mod
+Chương trình này chỉ là trình quản lý mod, bạn cần tải thêm một trình tải game để tải mod. Nó có thể là 3dmigoto, zzmi, xxmi, v.v. Dưới đây tôi sẽ giới thiệu cách dùng chương trình này với các trình tải phổ biến.
+# Loại 3dmigoto
+Đây là các trình tải mod chưa đóng gói, mà tôi rất khuyên dùng. Ưu điểm của chúng là: cơ bản, ít lỗi nhất, phản hồi nhanh và không có tính năng thừa.
 
-你也可以寻找已经为各个游戏定制好的3dmigoto mod加载器，比如说：
+Bạn cũng có thể tìm các trình tải mod 3dmigoto đã tùy chỉnh cho từng game, ví dụ:
 -
 [ZZMI - Zenless Zone Zero Model Importer GitHub](https://github.com/leotorrez/ZZ-Model-Importer)
 [SRMI - Honkai: Star Rail Model Importer GitHub](https://github.com/SilentNightSound/SR-Model-Importer)
 [GIMI - Genshin Impact Model Importer GitHub](https://github.com/SilentNightSound/GI-Model-Importer)
 [WWMI - Wuthering Waves Model Importer GitHub](https://github.com/SpectrumQT/WWMI)
-等等
+v.v.
 -
 
-使用本程序配合这些mod加载器，你只需要将 mod来源文件夹 设置为 mod加载器的 Mods 文件夹即可。
-如果你还想要使用 【自动打开游戏和mod加载器】 功能，你需要将mod加载器的exe文件路径设置为mod加载器路径。
+Để dùng chương trình này với các trình tải mod này, bạn chỉ cần đặt thư mục nguồn mod thành thư mục Mods của trình tải mod.
+Nếu bạn muốn dùng tính năng 【Tự động mở game và trình tải mod】, bạn cần đặt đường dẫn file exe của trình tải mod thành đường dẫn trình tải mod.
 ---
 # XXMI
-XXMI 本质上是一个拥有用户界面的 经过封装的 3dmigoto mod加载器。它的优点是：拥有用户界面，可以在多个游戏之间切换。
-因为本程序实际上只是代理了Mods文件夹，通过动态调整mod文件夹内部的文件来实现mod的加载，所以说，你只需要将 mod目标文件夹 设置为 mod加载器的Mods文件夹即可。而mod源文件夹则是你实际用来存放mod的文件夹，它可以在任意位置。
+XXMI về bản chất là một trình tải mod 3dmigoto có giao diện người dùng. Ưu điểm của nó là: có giao diện người dùng và có thể chuyển đổi giữa nhiều game.
+Vì chương trình này thực ra chỉ thay thế thư mục Mods và điều chỉnh động các file bên trong thư mục mod để tải mod, nên bạn chỉ cần đặt thư mục đích mod thành thư mục Mods của trình tải mod. Thư mục nguồn mod là thư mục bạn thực sự dùng để lưu mod, và nó có thể ở bất kỳ đâu.
 
-为了得到更好的体验，我们可以 在 xxmi 中配置 启动游戏时，也一并启动 本程序，这有两种方式：
-# 用 XXMI 拉起 XXMM
-1. 打开 XXMI Launcher
-2. 选择游戏
-3. 点击设置（齿轮图标）
-4. 在 高级设置（advanced） 中，开启 run pre-launch , 并设置 pre-launch path 为 本程序的路径, 注意要加上英文双引号，并且取消勾选等待（wait）选项
-5. 一定要 取消勾选等待（wait）选项
+Để có trải nghiệm tốt hơn, chúng ta có thể cấu hình XXMI để khởi động chương trình này khi mở game, có hai cách:
+# Dùng XXMI để mở XXMM
+1. Mở XXMI Launcher
+2. Chọn game
+3. Bấm vào cài đặt (biểu tượng bánh răng)
+4. Trong cài đặt nâng cao, bật run pre-launch, và đặt pre-launch path thành đường dẫn của chương trình này, nhớ thêm dấu ngoặc kép và bỏ tích tùy chọn wait
+5. Nhớ bỏ tích tùy chọn wait
 
-这样，当你在XXMI中点击开始游戏时，XXMI会启动、mod加载器、游戏以及本程序
-# 用 本程序 拉起 XXMI
-1. 打开 本程序
-2. 打开 设置 页面
-3. 找到 自动启动插件 的配置项
-4. 设置 mod加载器 为 XXMI 的exe文件路径
-5. 点击 启动mod加载器 的按钮，测试能否正常启动mod加载器
+Như vậy, khi bạn bấm bắt đầu game trong XXMI, XXMI sẽ khởi động trình tải mod, game và chương trình này
+# Dùng chương trình này để mở XXMI
+1. Mở chương trình này
+2. Mở trang cài đặt
+3. Tìm mục cấu hình của plugin tự động khởi động
+4. Đặt trình tải mod thành đường dẫn file exe của XXMI
+5. Bấm nút khởi động trình tải mod và kiểm tra xem có khởi động được trình tải mod bình thường không
 
-这样，当你每次打开本程序时，程序会自动启动mod加载器，然后你可以通过XXMI来启动游戏。
+Như vậy, mỗi lần bạn mở chương trình này, nó sẽ tự động khởi động trình tải mod, rồi bạn có thể dùng XXMI để khởi động game.
 `;
 
-const loadContentCn =
-  `# 在配置mod加载器之后
-首先你需要确保你正确指定了【mod源文件夹】以及【mod目标文件夹】的路径。
-如果你不确定这两个文件夹的作用，请查看【名词解释】。
-请注意，建议备份你的mod，以防你的误操作导致mod丢失。
-# 一步步来，不要问为什么
-1. 确保你已经正确配置了【mod源文件夹】以及【mod目标文件夹】的路径。
-2. 你的【mod源文件夹】中有你添加的几个mod，它们以文件夹的形式存在。
-3. 你的【mod目标文件夹】中没有任何文件，它应该是一个空文件夹。
-4. 你能够在【mod列表】中看到你的mod卡片。
-如果你发现以上步骤中有任何问题，请查看【故障排除】。
-# 如果上面没有问题，那么
-1. 左键点击【mod列表】中的任意一个mod卡片，你会发现伴随着动画，卡片会拥有一个高亮的边框。这意味该mod被设定为选中状态。
-2. 你可以多点击几个mod卡片，它们会被添加到选中状态。
-3. 点击 【模组】页面下的【应用】按钮，程序会将选中的mod创建虚拟链接到【mod目标文件夹】中。
-4. 打开【mod目标文件夹】，你会发现该文件夹中出现了你选中的mod的虚拟链接。
+const loadContentVi =
+  `# Sau khi cấu hình trình tải mod
+Trước tiên, bạn cần đảm bảo đã chỉ định đúng đường dẫn của 【thư mục nguồn mod】 và 【thư mục đích mod】.
+Nếu bạn không chắc về chức năng của hai thư mục này, hãy xem 【Tổng quan】.
+Lưu ý rằng bạn nên sao lưu mod của mình để tránh mất mát do thao tác nhầm.
+# Từng bước một, đừng hỏi vì sao
+1. Đảm bảo bạn đã cấu hình đúng đường dẫn của 【thư mục nguồn mod】 và 【thư mục đích mod】.
+2. Trong 【thư mục nguồn mod】 của bạn có vài mod, tồn tại dưới dạng thư mục.
+3. Trong 【thư mục đích mod】 của bạn không có file nào, nó phải là một thư mục trống.
+4. Bạn có thể thấy các thẻ mod của mình trong 【danh sách mod】.
+Nếu bạn thấy có vấn đề ở các bước trên, hãy xem 【Khắc phục sự cố】.
+# Nếu các bước trên không có vấn đề, thì
+1. Bấm chuột trái vào bất kỳ thẻ mod nào trong 【danh sách mod】, bạn sẽ thấy thẻ có viền sáng kèm hiệu ứng. Điều đó nghĩa là mod đã được đặt thành trạng thái đã chọn.
+2. Bạn có thể bấm thêm vài thẻ mod, chúng sẽ được thêm vào trạng thái đã chọn.
+3. Bấm nút 【Áp dụng】 dưới trang 【Mod】, chương trình sẽ tạo liên kết ảo cho các mod đã chọn tới 【thư mục đích mod】.
+4. Mở 【thư mục đích mod】, bạn sẽ thấy thư mục chứa các liên kết ảo tới các mod đã chọn.
 
-如果你成功完成了以上步骤，那么恭喜你，你已经成功加载了mod。
-之后 mod加载器 会读取【mod目标文件夹】中的mod，然后加载到游戏中。
+Nếu bạn hoàn thành thành công các bước trên, chúc mừng, bạn đã tải mod thành công.
+Sau đó trình tải mod sẽ đọc các mod trong 【thư mục đích mod】 và tải chúng vào game.
 `;
-const configContentCn =
-  `# mod的信息
-mod 在【mod列表】中以卡片的形式展示，我们希望能够为其添加更多的信息，以便于我们更好的管理mod。
-程序为每个mod添加了以下信息：
-1. 角色（程序用于筛选mod的标签，它不一定是角色，也可以是其他的标签）
-2. 快捷键
-3. 说明
-4. 预览图
-# 编辑mod信息
-1. 左键点击【mod列表】中的mod卡片后，在右侧的详细信息栏的下方，你会看到一个【编辑】按钮。点击它，会弹出mod的信息编辑窗口。
-2. 右键点击【mod列表】中的mod卡片后，将会直接弹出mod的信息编辑窗口。
-# 更改mod的预览图
-除了在mod信息编辑窗口中可以点击【mod预览图】右侧的 + 号来更改mod的预览图外，你还可以直接将图片拖拽到mod卡片上来更改mod的预览图。
-1. 将本地图片拖拽到【mod列表】中的mod卡片上，即可更改mod的预览图。
-2. 将浏览器页面中的图片拖拽到【mod列表】中的mod卡片上，即可更改mod的预览图。
+const configContentVi =
+  `# Thông tin mod
+Mod được hiển thị dưới dạng thẻ trong 【danh sách mod】, và chúng ta muốn thêm nhiều thông tin hơn cho chúng để quản lý tốt hơn.
+Chương trình thêm các thông tin sau cho mỗi mod:
+1. Nhân vật (một thẻ mà chương trình dùng để lọc mod, nó không nhất thiết phải là nhân vật, có thể là thẻ khác)
+2. Phím tắt
+3. Mô tả
+4. Ảnh xem trước
+# Chỉnh sửa thông tin mod
+1. Sau khi bấm chuột trái vào thẻ mod trong 【danh sách mod】, bạn sẽ thấy nút 【Chỉnh sửa】 ở phía dưới thanh thông tin chi tiết bên phải. Bấm vào đó để mở cửa sổ chỉnh sửa thông tin mod.
+2. Bấm chuột phải vào thẻ mod trong 【danh sách mod】 sẽ mở trực tiếp cửa sổ chỉnh sửa thông tin mod.
+# Đổi ảnh xem trước của mod
+Ngoài việc bấm dấu + ở bên phải 【ảnh xem trước của mod】 trong cửa sổ chỉnh sửa thông tin mod để đổi ảnh xem trước, bạn cũng có thể kéo trực tiếp hình ảnh vào thẻ mod để đổi ảnh xem trước.
+1. Kéo một hình ảnh trên máy vào thẻ mod trong 【danh sách mod】 để đổi ảnh xem trước của mod.
+2. Kéo một hình ảnh từ trang trình duyệt vào thẻ mod trong 【danh sách mod】 để đổi ảnh xem trước của mod.
 
-我非常推荐使用从浏览器中拖拽图片的方式来更改mod的预览图，因为这样可以直接使用 mod 网站上提供的预览图。
+Tôi rất khuyên dùng cách kéo hình ảnh từ trình duyệt để đổi ảnh xem trước của mod, vì như vậy bạn có thể dùng trực tiếp các ảnh xem trước có trên trang web mod.
 `;
-const presetContentCn =
-  `# 预设的功能
-程序提供了预设的功能，你可以通过预设来快速的切换一组mod的启用/禁用状态。
+const presetContentVi =
+  `# Chức năng preset
+Chương trình cung cấp chức năng preset, cho phép bạn nhanh chóng chuyển đổi trạng thái bật/tắt của một nhóm mod.
 
-在【模组】页面的左侧，你可以看到预设选择列表。你可以通过点击预设选择列表中的预设来切换预设。
-一开始，程序应该会拥有一个default预设。
-# 添加预设
-1. 点击【模组】页面的左侧预设列表右下方的 “+” 添加预设按钮，会弹出一个新建预设的窗口。
-2. 在新建预设的窗口中，输入预设的名称，然后点击【确定】。
-3. 你会发现预设列表中多了一个新的预设。
-# 删除预设
-1. 点击【模组】页面的左侧预设列表右下方的 “三” 管理预设按钮，会弹出预设存放的文件夹。
-2. 之后你可以删除预设文件夹中的预设文件来删除预设。
+Ở phía trái của trang 【Mod】, bạn có thể thấy danh sách chọn preset. Bạn có thể chuyển đổi preset bằng cách bấm vào các preset trong danh sách chọn preset.
+Lúc đầu, chương trình sẽ có một preset mặc định.
+# Thêm preset
+1. Bấm nút "+" thêm preset ở phía dưới bên phải của danh sách preset ở phía trái trang 【Mod】, một cửa sổ preset mới sẽ hiện ra.
+2. Trong cửa sổ preset mới, nhập tên của preset, rồi bấm 【OK】.
+3. Bạn sẽ thấy một preset mới trong danh sách preset.
+# Xóa preset
+1. Bấm nút "ba gạch" quản lý preset ở phía dưới bên phải của danh sách preset ở phía trái trang 【Mod】, thư mục lưu preset sẽ hiện ra.
+2. Sau đó bạn có thể xóa các file preset trong thư mục preset để xóa preset.
 ---
-# default预设
-default预设是程序自带的预设，你不能删除它，它也不会记录任何mod的启用/禁用状态。
-切换到default预设时，程序会将所有mod切换至禁用状态。
-如果你希望保存当前的mod启用/禁用状态，请新建一个预设。
+# Preset mặc định
+Preset mặc định là preset đi kèm với chương trình, bạn không thể xóa nó, và nó sẽ không ghi lại trạng thái bật/tắt của bất kỳ mod nào.
+Khi chuyển sang preset mặc định, chương trình sẽ chuyển tất cả các mod sang trạng thái tắt.
+Nếu bạn muốn lưu trạng thái bật/tắt mod hiện tại, hãy tạo một preset mới.
 
-当你想要测试单个mod，或者排除某个mod对游戏的影响时，它将会是你的好帮手。
+Khi bạn muốn kiểm tra một mod riêng lẻ hoặc loại trừ ảnh hưởng của một mod lên game, nó sẽ là trợ thủ đắc lực của bạn.
 `;
-const autoContentCn =
-  `# 自动化
-“每次启动游戏都要打开mod加载器和本程序，然后再启动游戏，这样太麻烦了！”
-“更改mod后还需要手动刷新mod加载器，这也太麻烦了！”
-“我希望能够一键启动游戏和mod加载器！”
-“我希望能够在游戏内刷新mod！”
+const autoContentVi =
+  `# Tự động hóa
+"Mỗi lần mở game tôi phải mở trình tải mod và chương trình này, rồi mới mở game. Thật phiền phức!"
+"Sau khi đổi mod, tôi vẫn phải làm mới trình tải mod bằng tay. Thật phiền phức!"
+"Tôi muốn mở game và trình tải mod chỉ với một cú bấm!"
+"Tôi muốn làm mới mod trong game!"
 
-如果你有以上的烦恼，那么你可以尝试使用程序的自动化功能。它目前作为插件的形式存在，你可以在【设置】页面中找到它。
+Nếu bạn gặp các phiền toái trên, bạn có thể thử dùng chức năng tự động hóa của chương trình. Hiện tại nó tồn tại dưới dạng plugin, và bạn có thể tìm thấy nó trên trang 【Cài đặt】.
 ---
 ---
-# 配置自动启动
-1. 打开【设置】页面。
-2. 找到【自动启动插件】的配置项。
-3. 按照提示设置插件的路径。
-4. 点击【启动mod加载器】和【启动游戏】的按钮，测试能否正常启动mod加载器和游戏。
+# Cấu hình tự động khởi động
+1. Mở trang 【Cài đặt】.
+2. Tìm mục cấu hình của 【Plugin tự động khởi động】.
+3. Đặt đường dẫn của plugin theo hướng dẫn.
+4. Bấm các nút 【Khởi động trình tải mod】 và 【Khởi động game】 để kiểm tra xem trình tải mod và game có khởi động bình thường không.
 
-如果配置正确，那么在你每次打开本程序时，程序会自动启动mod加载器和游戏。
-# 配置自动刷新
-1. 打开【设置】页面。
-2. 找到【游戏内刷新】的配置项。
-3. 打开【应用后刷新】的开关。
-4. 按照提示配置【进程名】和【刷新的虚拟键值】。
+Nếu cấu hình đúng, chương trình sẽ tự động khởi động trình tải mod và game mỗi lần bạn mở chương trình này.
+# Cấu hình tự động làm mới
+1. Mở trang 【Cài đặt】.
+2. Tìm mục cấu hình của 【Làm mới trong game】.
+3. Bật công tắc 【Làm mới sau khi áp dụng】.
+4. Cấu hình 【Tên tiến trình】 và 【Mã phím ảo để làm mới】 theo hướng dẫn.
 
-1. 进程名是你的游戏的进程名，你可以通过任务管理器来查看。对于Zenless Zone Zero来说，进程名是“ZenlessZoneZero.exe”。
-2. 刷新的虚拟键值是你的 mod加载器用于刷新mod的按键的 快捷键 的虚拟键值。你可以通过上网搜索“虚拟键值对照表”来查找你的mod加载器的刷新快捷键的虚拟键值。一般来说，刷新的快捷键是F10，对应的虚拟键值是121。
-
+1. Tên tiến trình là tên tiến trình của game của bạn, bạn có thể xem qua trình quản lý tác vụ. Với Zenless Zone Zero, tên tiến trình là "ZenlessZoneZero.exe".
+2. Mã phím ảo để làm mới là mã phím ảo của phím tắt mà trình tải mod của bạn dùng để làm mới mod. Bạn có thể tìm trên mạng "bảng mã phím ảo" để tìm mã phím ảo của phím tắt làm mới của trình tải mod của bạn. Thông thường, phím tắt làm mới là F10, và mã phím ảo tương ứng là 121.
 `;
-const multipleGamesContentCn =
-  `# 适配多个游戏
-通过使用 本地配置 而非 全局配置的方式，允许你创建多组配置，分别为不同的游戏设置mod加载器、mod源文件夹、mod目标文件夹等。
+const multipleGamesContentVi =
+  `# Hỗ trợ nhiều game
+Bằng cách dùng cấu hình cục bộ thay vì cấu hình toàn cục, bạn có thể tạo nhiều cấu hình cho các game khác nhau để đặt trình tải mod, thư mục nguồn mod, thư mục đích mod, v.v.
 
-# 创建本地配置
-1. 打开【设置】页面。
-2. 找到【切换配置】的分页。
-3. 选择【配置另存为】的路径，它应该是一个空的文件夹，之后点击创建快捷方式。
+# Tạo cấu hình cục bộ
+1. Mở trang 【Cài đặt】.
+2. Tìm trang 【Chuyển đổi cấu hình】.
+3. Chọn đường dẫn của 【Lưu thành】, nó phải là một thư mục trống, rồi bấm Tạo lối tắt.
 
-之后，当你通过创建在桌面的快捷方式打开程序时，程序会加载你选择的本地配置，而不是全局配置。
+Sau đó, khi bạn mở chương trình bằng lối tắt tạo trên màn hình nền, chương trình sẽ tải cấu hình cục bộ bạn đã chọn, thay vì cấu hình toàn cục.
 
-# 进阶用法
-如果你知道基础的命令行知识，使用本地配置实际上是在XXMM启动时提供了启动参数：
+# Cách dùng nâng cao
+Nếu bạn biết kiến thức dòng lệnh cơ bản, việc dùng cấu hình cục bộ thực ra là cung cấp tham số khởi động khi XXMM khởi động:
 
-'xx mod manager.exe' --customConfig '你的本地配置文件夹路径'
+'xx mod manager.exe' --customConfig 'đường dẫn tới thư mục cấu hình cục bộ của bạn'
 
-你可以尝试使用bat或者其他程序通过设置启动参数来启动程序，从而在别的应用中实现自动化。
+Bạn có thể thử dùng bat hoặc chương trình khác để khởi động chương trình bằng cách đặt tham số khởi động, để thực hiện tự động hóa trong các ứng dụng khác.
 `;
 
-const troubleContentCn =
-  `# 故障排除
-当你遇到问题时，你可以尝试以下方法来解决问题：
-1. 重新打开程序
-2. 查阅【帮助】页面
-3. 检查是否是mod加载器的问题，尝试单独启动mod加载器并复制mod到mod加载器的Mods文件夹中
+const troubleContentVi =
+  `# Khắc phục sự cố
+Khi bạn gặp vấn đề, bạn có thể thử các cách sau để giải quyết:
+1. Mở lại chương trình
+2. Xem trang 【Trợ giúp】
+3. Kiểm tra xem có phải là vấn đề của trình tải mod không, thử khởi động trình tải mod riêng và sao chép mod vào thư mục Mods của trình tải mod
 
-如果你了解一些前端开发，你可以尝试按下Ctrl+Shift+I来打开开发者工具，查看是否有报错信息。
-如果你无法解决问题，请联系我。
+Nếu bạn biết một chút về phát triển front-end, bạn có thể thử bấm Ctrl+Shift+I để mở công cụ dành cho nhà phát triển và kiểm tra thông báo lỗi.
+Nếu bạn không giải quyết được vấn đề, hãy liên hệ với tôi.
 `;
 ;
 
@@ -568,8 +566,8 @@ const handleTabChange = (tab) => {
 
 const translatedTabs = ref(['Overview', 'Importing Mods', 'Loader Config', 'Load Mods', 'Mods Config', 'Presets', 'Automation', 'Multi-Game Support', 'Troubleshooting']);
 const setTranslatedTabs = (language) =>{
-  if (language === 'zh_cn') {
-    translatedTabs.value = ['名词解释', '导入mod', '配置mod加载器', '加载mod', '配置mod', '预设', '自动化', '适配多个游戏', '故障排除'];
+  if (language === 'vi') {
+    translatedTabs.value = ['Tổng quan', 'Nhập mod', 'Cấu hình trình tải', 'Tải mod', 'Cấu hình mod', 'Preset', 'Tự động hóa', 'Hỗ trợ nhiều game', 'Khắc phục sự cố'];
   } else {
     translatedTabs.value = ['Overview', 'Importing Mods', 'Loader Config', 'Load Mods', 'Mods Config', 'Presets', 'Automation', 'Multi-Game Support', 'Troubleshooting'];
   }

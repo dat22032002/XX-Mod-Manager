@@ -147,7 +147,7 @@ class IPluginLoader {
 
         if (IPluginLoader.disabledPluginNames.includes(plugin.name)) {
             // debug
-            const tt = new TranslatedText(`⛔plugin ${plugin.name} disabled`, `⛔插件 ${plugin.name} 已禁用`);
+            const tt = new TranslatedText(`⛔plugin ${plugin.name} disabled`, `⛔Plugin ${plugin.name} đã tắt`);
             console.log(tt.get());
             // t_snack(tt, SnackType.info);
             return false;
@@ -158,7 +158,7 @@ class IPluginLoader {
                 return false;
             }
             // debug
-            const tt = new TranslatedText(`🚀plugin ${plugin.name} initialized`, `🚀插件 ${plugin.name} 初始化完成`);
+            const tt = new TranslatedText(`🚀plugin ${plugin.name} initialized`, `🚀Plugin ${plugin.name} đã khởi tạo xong`);
             console.log(tt.get());
         }
 
@@ -171,7 +171,7 @@ class IPluginLoader {
                 }
             });
             // debug
-            const tt = new TranslatedText(`🔧plugin ${plugin.name} loaded with local data`, `🔧插件 ${plugin.name} 使用本地数据启动`);
+            const tt = new TranslatedText(`🔧plugin ${plugin.name} loaded with local data`, `🔧Plugin ${plugin.name} chạy với dữ liệu cục bộ`);
             console.log(tt.get(), IPluginLoader.pluginConfig[plugin.name]);
         }
         return true;
@@ -188,7 +188,7 @@ class IPluginLoader {
         try {
             plugin.init(enviroment);
         } catch (error) {
-            const tt = new TranslatedText(`❌plugin ${plugin.name} initialization failed: ${error.message}`, `❌插件 ${plugin.name} 初始化失败: ${error.message}`);
+            const tt = new TranslatedText(`❌plugin ${plugin.name} initialization failed: ${error.message}`, `❌Plugin ${plugin.name} khởi tạo thất bại: ${error.message}`);
             console.error(tt.get(), error);
             t_snack(tt, SnackType.error);
             return false;
@@ -206,7 +206,7 @@ class IPluginLoader {
         }
 
         // debug
-        const tt = new TranslatedText(`👻plugin ${pluginName} config registered`, `👻插件 ${pluginName} 配置已注册`);
+        const tt = new TranslatedText(`👻plugin ${pluginName} config registered`, `👻Plugin ${pluginName} đã đăng ký cấu hình`);
         console.log(tt.get(), IPluginLoader.pluginConfig[pluginName]);
     }
 
@@ -217,10 +217,10 @@ class IPluginLoader {
      * @returns {Promise<void>}
      */
     static async LoadPluginsFromFolder(enviroment: any, folder: string) {
-        if (!PathHelper.CheckDir(folder, false, true, new TranslatedText('plugin folder', '插件文件夹'))) {
+        if (!PathHelper.CheckDir(folder, false, true, new TranslatedText('plugin folder', 'Thư mục plugin'))) {
             // 不存在就创建
             fs.mkdirSync(folder, { recursive: true });
-            t_snack(new TranslatedText('create plugin folder', '创建插件文件夹'), SnackType.info);
+            t_snack(new TranslatedText('create plugin folder', 'Tạo thư mục plugin'), SnackType.info);
             return;
         }
         const files = fs.readdirSync(folder);
@@ -233,7 +233,7 @@ class IPluginLoader {
                 catch (e) {
                     // 在 本应该 应该有 插件的位置 创建一个 lookAtMe 文件，以便我定位问题
                     fs.writeFileSync(`./plugins/lookAtMe`, 'lookAtMe');
-                    const tt = new TranslatedText(`❌plugin ${file} load failed: ${e.message}`, `❌插件 ${file} 加载失败: ${e.message}`);
+                    const tt = new TranslatedText(`❌plugin ${file} load failed: ${e.message}`, `❌Plugin ${file} tải thất bại: ${e.message}`);
                     console.error(tt.get(), e);
                     t_snack(tt, SnackType.error);
                 }
@@ -259,7 +259,7 @@ class IPluginLoader {
             ));
 
         const endTime = new Date().getTime();
-        const tt = new TranslatedText(`🚀plugin loaded in ${endTime - startTime}ms`, `🚀插件加载完成，耗时 ${endTime - startTime}ms`);
+        const tt = new TranslatedText(`🚀plugin loaded in ${endTime - startTime}ms`, `🚀Đã tải plugin trong ${endTime - startTime}ms`);
         console.log(tt.get(), `${IPluginLoader.plugins.length} plugins loaded, ${IPluginLoader.disabledPluginNames.length} disabled`);
     }
 
@@ -291,7 +291,7 @@ class IPluginLoader {
         const pluginDataToSave = IPluginLoader.transformPluginConfigToSave(pluginData);
 
         // debug
-        const tt = new TranslatedText(`🔧plugin ${pluginName} config saved`, `🔧插件 ${pluginName} 配置已保存`
+        const tt = new TranslatedText(`🔧plugin ${pluginName} config saved`, `🔧Đã lưu cấu hình plugin ${pluginName}`
         );
         console.log(tt.get(), pluginName, pluginDataToSave);
         // ipcRenderer.invoke('save-plugin-config', pluginName, pluginDataToSave);

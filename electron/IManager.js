@@ -55,7 +55,7 @@ let g_temp = {
 };
 let g_config = {
     firstLoad: true,
-    language: 'zh_cn',
+    language: 'en',
     theme: 'dark',
     modSourcePath: null,
     modTargetPath: null,
@@ -93,7 +93,7 @@ const g_temp_vue = {
 
 const g_config_vue = {
     firstLoad: ref(true),
-    language: ref('zh_cn'),
+    language: ref('en'),
     theme: ref('dark'),
     modSourcePath: ref(null),
     modTargetPath: ref(null),
@@ -178,7 +178,7 @@ class IManager {
     // 从本地加载的配置项
     _config = {
         firstLoad: true, // 是否第一次加载
-        language: 'zh_cn', // 语言
+        language: 'en', // 语言
         theme: 'dark', // 主题
         modSourcePath: null, // mod的源路径
         modTargetPath: null, // mod的目标路径
@@ -307,7 +307,7 @@ class IManager {
         if (currentConfig == {} || currentConfig == null) {
             // snack('配置文件不存在');
             t_snack({
-                zh_cn: `配置文件不存在`,
+                vi: `Không tìm thấy file cấu hình`,
                 en: `Config file not found`,
             }, SnackType.error);
 
@@ -348,7 +348,7 @@ class IManager {
         const loadMods = await ipcRenderer.invoke('get-mods', modSourcePath);
 
         if (loadMods == []) {
-            snack('mod路径不存在');
+            t_snack({ vi: 'Đường dẫn mod không tồn tại', en: 'Mod path does not exist' });
             return;
         }
 
@@ -370,7 +370,7 @@ class IManager {
         // console.log(this.data.characterList);
 
         // debug,成功加载 n 个 mod，总共 m 个 角色
-        console.log(`成功加载 ${loadMods.length} 个 mod，总共 ${this.data.characterList.length} 个 角色`);
+        console.log(`Đã tải ${loadMods.length} mod, tổng cộng ${this.data.characterList.length} nhân vật`);
         return loadMods;
     }
 
@@ -379,14 +379,14 @@ class IManager {
         console.log(`newLoadMods from ${this.config.modSourcePath}`);
         if (this.config.modSourcePath === null) {
             t_snack({
-                zh_cn: `mod路径未定义, 请在设置>高级设置中设置mod路径`,
+                vi: `Chưa đặt đường dẫn mod, hãy đặt đường dẫn mod trong Cài đặt>Cài đặt nâng cao`,
                 en: `Mod path not defined, please set mod path in Settings>Advanced Settings`,
             }, SnackType.error);
             return;
         }
         if (!fs.existsSync(this.config.modSourcePath)) {
             t_snack({
-                zh_cn: `mod路径不存在,请检查路径是否正确`,
+                vi: `Đường dẫn mod không tồn tại, hãy kiểm tra lại đường dẫn`,
                 en: `Mod path not exists, please check if the path is correct`,
             }, SnackType.error);
             return;
@@ -400,7 +400,7 @@ class IManager {
         ModLoader.clearCache();
         await this.newLoadMods(true);
         t_snack({
-            zh_cn: `已重新扫描全部 mod`,
+            vi: `Đã quét lại toàn bộ mod`,
             en: `Rescanned all mods`,
         }, SnackType.info);
     }
@@ -422,7 +422,7 @@ class IManager {
         await this.refreshCharacterList();
 
         //debug
-        console.log(`成功加载 ${loadModData.length} 个 mod，总共 ${this.data.characterList.length} 个 角色,有 ${this.newMods.length} 个新mod`);
+        console.log(`Đã tải ${loadModData.length} mod, tổng cộng ${this.data.characterList.length} nhân vật, có ${this.newMods.length} mod mới`);
         return loadRawMods;
     }
 
@@ -481,8 +481,8 @@ class IManager {
             await this.newLoadMods();
             data = this.data.modList.find((mod) => mod.id === modId);
             if (data == null) {
-                const tt = new TranslatedText({
-                    zh_cn: `无法找到id为${modId}的mod`,
+                const tt = TranslatedText.fromObject({
+                    vi: `Không tìm thấy mod có id ${modId}`,
                     en: `Cannot find mod with id ${modId}`,
                 });
                 t_snack(tt, SnackType.error);
@@ -497,8 +497,8 @@ class IManager {
         const { modInfo, modData } = await ModLoader.loadMod(path.join(this.config.modSourcePath, modName));
 
         if (modInfo == null) {
-            const tt = new TranslatedText({
-                zh_cn: `加载mod信息失败`,
+            const tt = TranslatedText.fromObject({
+                vi: `Tải thông tin mod thất bại`,
                 en: `Failed to load mod info`,
             });
             t_snack(tt, SnackType.error);
@@ -538,8 +538,8 @@ class IManager {
 
 
         if (data == null) {
-            const tt = new TranslatedText({
-                zh_cn: `加载mod信息失败`,
+            const tt = TranslatedText.fromObject({
+                vi: `Tải thông tin mod thất bại`,
                 en: `Failed to load mod info`,
             });
             t_snack(tt, SnackType.error);
@@ -766,7 +766,7 @@ class IManager {
     async startExe(exePath) {
         // 纠错
         if (!fs.existsSync(exePath)) {
-            snack('文件不存在');
+            t_snack({ vi: 'Không tìm thấy file', en: 'File not found' });
             return;
         }
         this.HMC.openApp(exePath);
@@ -795,7 +795,7 @@ class IManager {
         //debug
         console.log('open url:', url);
         if (url === '') {
-            snack('链接为空');
+            t_snack({ vi: 'Liên kết trống', en: 'Link is empty' });
             return;
         }
         ipcRenderer.invoke('open-url', url);
@@ -1007,7 +1007,7 @@ class IManager {
             if (password === null) {
                 // snack(`密码不能为空`);
                 const t_message = {
-                    zh_cn: `密码不能为空`,
+                    vi: `Mật khẩu không được để trống`,
                     en: `Password cannot be empty`,
                 }
                 t_snack(t_message, 'error');
@@ -1019,7 +1019,7 @@ class IManager {
             catch (error) {
                 // snack(`密码错误`);
                 const t_message = {
-                    zh_cn: `密码错误`,
+                    vi: `Sai mật khẩu`,
                     en: `Incorrect password`,
                 }
                 t_snack(t_message, 'error');
@@ -1106,7 +1106,7 @@ class IManager {
             if (ifEncrypted) {
                 // snack(`密码错误`);
                 const t_message = {
-                    zh_cn: `密码错误`,
+                    vi: `Sai mật khẩu`,
                     en: `Incorrect password`,
                 }
                 t_snack(t_message, 'error');
@@ -1116,7 +1116,7 @@ class IManager {
                 // 没有密码可能是压缩包损坏，提示用户尝试手动解压
                 // snack(`压缩包可能损坏，尝试手动解压`);
                 const t_message = {
-                    zh_cn: `压缩包可能损坏，尝试手动解压`,
+                    vi: `File nén có thể đã hỏng, hãy thử giải nén tay`,
                     en: `The archive may be damaged, try to extract it manually`,
                 }
                 t_snack(t_message, 'error');
@@ -1134,7 +1134,7 @@ class IManager {
             if (new Date().getTime() - startTime > maxWaitTime && !startCallback) {
                 console.error(`Error: Extract can't start.The archive may be damaged or is empty`);
                 t_snack({
-                    zh_cn: `无法开始解压，压缩包可能损坏或为空`,
+                    vi: `Không bắt đầu giải nén được, file nén có thể đã hỏng hoặc rỗng`,
                     en: `Unable to start extraction, the archive may be damaged or empty`,
                 }, 'error');
                 // snack(`解压失败,请手动解压`);
@@ -1148,7 +1148,7 @@ class IManager {
         if (ifContainChinese) {
             // snack(`文件夹名不能包含中文`);
             const t_message = {
-                zh_cn: `解压后包含特殊字符，如中文，已替换为 _`,
+                vi: `Tên thư mục sau khi giải nén có ký tự đặc biệt, đã thay bằng _`,
                 en: `Folder name cannot contain special characters, and has been replaced with _`,
             }
             t_snack(t_message, 'error');
@@ -1158,7 +1158,7 @@ class IManager {
         if (!ifSuccess) {
             // snack(`解压失败`);
             const t_message = {
-                zh_cn: `解压失败,请手动解压`,
+                vi: `Giải nén thất bại, hãy giải nén tay`,
                 en: `Extraction failed, please extract manually`,
             }
             t_snack(t_message, 'error');
@@ -1175,7 +1175,7 @@ class IManager {
             // 提示用户
             // snack(`解压成功`);
             const t_message = {
-                zh_cn: `模组 ${path.basename(destinationPath)} 解压成功`,
+                vi: `Mod ${path.basename(destinationPath)} đã giải nén xong`,
                 en: `Mod ${path.basename(destinationPath)} extracted successfully`,
             }
             t_snack(t_message);
@@ -1195,7 +1195,7 @@ class IManager {
         // 创建mod文件夹
         if (fs.existsSync(modPath)) {
             const t_message = {
-                zh_cn: `模组 ${modName} 已经存在`,
+                vi: `Mod ${modName} đã tồn tại`,
                 en: `Mod ${modName} already exists`,
             }
             t_snack(t_message, 'error');
@@ -1383,14 +1383,14 @@ class IManager {
         const modSourcePath = this.config.modSourcePath;
         if (modTargetPath === null || modTargetPath === '') {
             t_snack({
-                zh_cn: '未设置目标路径',
+                vi: 'Chưa đặt đường dẫn đích',
                 en: 'Target path not set',
             }, 'error');
             return null;
         }
         if (modSourcePath === null || modSourcePath === '') {
             t_snack({
-                zh_cn: '未设置源路径',
+                vi: 'Chưa đặt đường dẫn nguồn',
                 en: 'Source path not set',
             }, 'error');
             return null;
@@ -1409,7 +1409,7 @@ class IManager {
         } catch (err) {
             console.error('applyMods failed', err);
             t_snack({
-                zh_cn: `应用失败：${err.message}`,
+                vi: `Áp dụng thất bại: ${err.message}`,
                 en: `Apply failed: ${err.message}`,
             }, 'error');
             return null;
@@ -1428,7 +1428,7 @@ class IManager {
         } else {
             // ipcRenderer.send('snack', '应用成功');
             t_snack({
-                zh_cn: '应用成功',
+                vi: 'Áp dụng thành công',
                 en: 'Applied successfully',
             });
         }
@@ -1493,7 +1493,7 @@ class IManager {
             return filePath;
         }
         else {
-            snack('文件不存在');
+            t_snack({ vi: 'Không tìm thấy file', en: 'File not found' });
             return '';
         }
     }
@@ -1501,8 +1501,8 @@ class IManager {
     async setConfig(key, value) {
         if (this.config[key] === undefined) {
             //debug
-            console.log('未知属性，请检查', key, this.config);
-            snack('未知属性，请检查');
+            console.log('Thuộc tính không xác định, hãy kiểm tra', key, this.config);
+            t_snack({ vi: 'Thuộc tính không xác định, hãy kiểm tra', en: 'Unknown property, please check' });
             return;
         }
         this.config[key] = value;
@@ -1515,8 +1515,8 @@ class IManager {
         const filePath = await this.getFilePath(key, fileType);
         if (this.config[key] === undefined) {
             //debug
-            console.log('未知属性，请检查', key, this.config);
-            snack('未知属性，请检查');
+            console.log('Thuộc tính không xác định, hãy kiểm tra', key, this.config);
+            t_snack({ vi: 'Thuộc tính không xác định, hãy kiểm tra', en: 'Unknown property, please check' });
             return '';
         }
         if (filePath && filePath.length > 0) {
@@ -1525,7 +1525,7 @@ class IManager {
             return filePath;
         }
         else {
-            snack('未选择文件');
+            t_snack({ vi: 'Chưa chọn file', en: 'No file selected' });
             return '';
         }
     }
@@ -1533,8 +1533,8 @@ class IManager {
     async setLanguage(language) {
         //debug
         console.log(`iManager current language: ${this.config.language}, set language: ${language}`);
-        if (language !== 'zh_cn' && language !== 'en') {
-            snack('不支持的语言');
+        if (language !== 'vi' && language !== 'en') {
+            t_snack({ vi: 'Ngôn ngữ không được hỗ trợ', en: 'Unsupported language' });
             return;
         }
         if (this.config.language === language) {
@@ -1551,7 +1551,7 @@ class IManager {
 
     async setTheme(theme) {
         if (theme !== 'auto' && theme !== 'dark' && theme !== 'light') {
-            snack('不支持的主题');
+            t_snack({ vi: 'Giao diện không được hỗ trợ', en: 'Unsupported theme' });
             return;
         }
         if (this.config.theme === theme) {
@@ -1673,7 +1673,7 @@ let isSleeping = false;
 const sleepTimeOutTime = 10000;
 
 ipcRenderer.on('windowBlur', () => {
-    const tt = new TranslatedText("☁️windowBlur", "☁️窗口失去焦点");
+    const tt = new TranslatedText("☁️windowBlur", "☁️Cửa sổ mất tiêu điểm");
     console.log(tt.get());
     t_snack(tt);
     EventSystem.trigger('windowBlur');
@@ -1682,14 +1682,14 @@ ipcRenderer.on('windowBlur', () => {
         // EventSystem.trigger("windowSleep");
         EventSystem.trigger('windowSleep');
         isSleeping = true;
-        const tt2 = new TranslatedText("💤windowSleep", "💤窗口休眠");
+        const tt2 = new TranslatedText("💤windowSleep", "💤Cửa sổ nghỉ");
         console.log(tt2.get());
         t_snack(tt2);
     }, sleepTimeOutTime);
 });
 
 ipcRenderer.on('windowFocus', () => {
-    const tt = new TranslatedText("👀windowFocus", "👀窗口获得焦点");
+    const tt = new TranslatedText("👀windowFocus", "👀Cửa sổ được chọn");
     console.log(tt.get());
     if (isSleeping) {
         t_snack(tt);

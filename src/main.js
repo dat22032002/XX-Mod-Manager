@@ -20,16 +20,16 @@ import { createI18n } from 'vue-i18n';
 
 // 导入语言包
 import en from './locales/en.json';
-import zh_cn from './locales/zh-cn.json';
+import vi from './locales/vi.json';
 
 // 创建i18n实例
 const i18n = createI18n({
   locale: 'en', // 设置默认语言
-  fallbackLocale: 'zh_cn', // 设置回退语言
+  fallbackLocale: 'en', // 设置回退语言
   legacy: false,
   messages: {
     en,
-    zh_cn,
+    vi,
   },
 });
 
@@ -41,7 +41,7 @@ iManager.i18n = i18n;
 vue_app.mount('#app');
 
 // ------------------ 语言切换 ------------------ //
-vue_app.config.globalProperties.$i18n.locale = `zh_cn`;
+vue_app.config.globalProperties.$i18n.locale = `en`;
 const language = g_config_vue.language;
 watch(language, (newVal) => {
     vue_app.config.globalProperties.$i18n.locale = newVal;

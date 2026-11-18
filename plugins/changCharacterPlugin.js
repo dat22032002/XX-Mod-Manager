@@ -35,7 +35,7 @@ const pluginName = 'changeCharacterPlugin';
 module.exports = {
     name: pluginName,
     t_displayName: {
-        zh_cn: '修改角色插件',
+        vi: 'Plugin đổi nhân vật',
         en: 'Change Character Plugin'
     },
     init(iManager) {
@@ -125,8 +125,8 @@ module.exports = {
         // }
         // pluginData.push(clearAllModHotkeys);
         //- markdown
-        const markdown_cn = `# 批量修改mod的角色
-        将角色为 源角色 的mod的角色修改为 目标角色`;
+        const markdown_vi = `# Thay đổi nhân vật của mod hàng loạt
+        Thay đổi nhân vật của các mod có nhân vật nguồn thành nhân vật đích`;
         const markdown_en = `# Change character of mods in batch
         Change the character of mods with source character to target character`;
         let markdown = {
@@ -136,11 +136,11 @@ module.exports = {
             displayName: 'markdown',
             description: 'markdown',
             t_displayName: {
-                zh_cn: 'markdown',
+                vi: 'markdown',
                 en: 'markdown'
             },
             t_description: {
-                zh_cn: markdown_cn,
+                vi: markdown_vi,
                 en: markdown_en
             },
             onChange: (value) => {
@@ -157,11 +157,11 @@ module.exports = {
             displayName: 'Source Character',
             description: 'The character you want to change',
             t_displayName: {
-                zh_cn: '源角色',
+                vi: 'Nhân vật nguồn',
                 en: 'Source Character'
             },
             t_description: {
-                zh_cn: '你想要修改的角色',
+                vi: 'Nhân vật bạn muốn đổi',
                 en: 'The character you want to change'
             },
             options: iManager.data.characterList.map((character) => {
@@ -185,11 +185,11 @@ module.exports = {
             displayName: 'Target Character',
             description: 'The character you want to change to',
             t_displayName: {
-                zh_cn: '目标角色',
+                vi: 'Nhân vật đích',
                 en: 'Target Character'
             },
             t_description: {
-                zh_cn: '你想要修改为的角色',
+                vi: 'Nhân vật bạn muốn đổi thành',
                 en: 'The character you want to change to'
             },
             onChange: (value) => {
@@ -207,11 +207,11 @@ module.exports = {
             displayName: 'If Change Character',
             description: 'If true, change character',
             t_displayName: {
-                zh_cn: '确认修改',
+                vi: 'Xác nhận đổi',
                 en: 'Confirm Change'
             },
             t_description: {
-                zh_cn: '如果为真，修改角色',
+                vi: 'Nếu bật, đổi nhân vật',
                 en: 'If true, change character'
             },
             onChange: (value) => {
@@ -219,7 +219,7 @@ module.exports = {
                 ifChangeCharacter.data = value;
 
                 const snackMessage = {
-                    zh_cn: '你需要先将此开关打开才能修改角色',
+                    vi: 'Bạn cần bật tùy chọn này trước để đổi nhân vật',
                     en: 'You need to set this option to true first to change character'
                 }
                 if (value) {
@@ -239,16 +239,16 @@ module.exports = {
             displayName: 'Change Character',
             description: 'Change character',
             t_displayName: {
-                zh_cn: '修改角色',
+                vi: 'Đổi nhân vật',
                 en: 'Change Character'
             },
             t_description: {
-                zh_cn: '修改角色',
+                vi: 'Đổi nhân vật',
                 en: 'Change character'
             },
             buttonName: 'change',
             t_buttonName: {
-                zh_cn: '修改',
+                vi: 'Đổi',
                 en: 'Change'
             },
             onChange: () => {
@@ -261,7 +261,7 @@ module.exports = {
                     iManager.showDialog('loading-dialog');
                     const snackMessage = {
                         en: "change character",
-                        zh_cn: "修改角色"
+                        vi: "Đổi nhân vật"
                     }
                     iManager.t_snack(snackMessage);
 
@@ -272,7 +272,7 @@ module.exports = {
                     if (sourceCharacter === '' || targetCharacter === '') {
                         const snackMessage = {
                             en: "Please set source character and target character",
-                            zh_cn: "请设置源角色和目标角色"
+                            vi: "Hãy đặt nhân vật nguồn và nhân vật đích"
                         }
                         iManager.t_snack(snackMessage, 'error');
                         iManager.dismissDialog('loading-dialog');
@@ -296,7 +296,7 @@ module.exports = {
                 else {
                     const snackMessage = {
                         en: "You need to set 'If Change Character' to true first",
-                        zh_cn: "你需要先将 '确认修改' 保持为开启状态"
+                        vi: "Bạn cần đặt 'Xác nhận đổi' thành bật trước"
                     }
                     iManager.t_snack(snackMessage, 'error');
                 }

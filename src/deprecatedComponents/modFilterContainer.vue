@@ -113,7 +113,7 @@ watch(currentCharacter, (newVal, oldVal) => {
 
 function getFilterItems() {
   if (!props.filterItems) {
-    props.filterItems = ['全部', '已选择', '1'];
+    props.filterItems = ['Tất cả', 'Đã chọn', '1'];
   }
   return props.filterItems;
 }

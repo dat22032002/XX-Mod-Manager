@@ -55,7 +55,7 @@ const setPinState = (iManager, state) => {
 
     if (state) {
         iManager.t_snack({
-            zh_cn: '置顶窗口',
+            vi: 'Ghim cửa sổ',
             en: 'Pin window'
         }, 'info')
 
@@ -63,7 +63,7 @@ const setPinState = (iManager, state) => {
     }
     else {
         iManager.t_snack({
-            zh_cn: '取消置顶窗口',
+            vi: 'Bỏ ghim cửa sổ',
             en: 'Unpin window'
         }, 'info')
 
@@ -76,7 +76,7 @@ const setPinState = (iManager, state) => {
 module.exports = {
     name: pluginName,
     t_displayName: {
-        zh_cn: '窗口置顶',
+        vi: 'Ghim cửa sổ',
         en: 'Pin Window'
     },
     init(iManager) {
@@ -103,11 +103,11 @@ module.exports = {
             data: '',
             type: 'markdown',
             t_displayName: {
-                'zh_cn': '窗口置顶',
+                'vi': 'Ghim cửa sổ',
                 'en': 'Pin Window'
             },
             t_description: {
-                'zh_cn': '在mod页面添加一个按钮，点击后可以置顶窗口\n# 使用方法\n点击按钮即可置顶窗口\n再次点击取消置顶',
+                'vi': 'Thêm một nút vào trang mod, bấm để ghim cửa sổ\n# Cách dùng\nBấm nút để ghim cửa sổ\nBấm lại để bỏ ghim',
                 'en': 'Add a button to the mod page, click to pin the window\n# Usage\nClick the button to pin the window\nClick again to cancel pinning'
             },
             onChange: (value) => {
@@ -122,7 +122,7 @@ module.exports = {
             type: 'boolean',
             displayName: 'ifAblePlugin',
             t_displayName: {
-                'zh_cn': '是否启用',
+                'vi': 'Bật',
                 'en': 'Enable'
             },
             onChange: (value) => {
@@ -147,7 +147,7 @@ module.exports = {
             type: 'boolean',
             displayName: 'ifInherit',
             t_displayName: {
-                'zh_cn': '继承上次状态',
+                'vi': 'Giữ nguyên trạng thái lần trước',
                 'en': 'Inherit last state'
             },
             onChange: (value) => {
@@ -163,7 +163,7 @@ module.exports = {
             type: 'boolean',
             displayName: 'pingState',
             t_displayName: {
-                'zh_cn': '当前置顶状态',
+                'vi': 'Trạng thái ghim hiện tại',
                 'en': 'Current Pin State'
             },
             onChange: (value) => {

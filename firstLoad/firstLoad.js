@@ -26,16 +26,16 @@ import { createI18n } from 'vue-i18n';
 
 // 导入语言包
 import en from '../src/locales/en.json';
-import zh_cn from '../src/locales/zh-cn.json';
+import vi from '../src/locales/vi.json';
 
 // 创建i18n实例
 const i18n = createI18n({
   locale: 'en', // 设置默认语言
-  fallbackLocale: 'zh_cn', // 设置回退语言
+  fallbackLocale: 'en', // 设置回退语言
   legacy: false,
   messages: {
     en,
-    zh_cn,
+    vi,
   },
 });
 

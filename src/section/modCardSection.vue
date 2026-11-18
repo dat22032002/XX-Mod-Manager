@@ -144,7 +144,7 @@ function handleBatchSetCharacterButtonClicked(){
 
     if (!targetCharacter.value) {
         t_snack({
-            zh_cn: '请输入角色名',
+            vi: 'Hãy nhập tên nhân vật',
             en: 'Please enter the character name',
         },SnackType.error);
         console.error('targetCharacter is empty');
@@ -152,7 +152,7 @@ function handleBatchSetCharacterButtonClicked(){
     }
     if (ModIds.length == 0) {
         t_snack({
-            zh_cn: '请至少选择一个mod',
+            vi: 'Hãy chọn ít nhất một mod',
             en: 'Please select at least one mod',
         },SnackType.error);
         console.error('selectedModIds is empty');
@@ -194,8 +194,8 @@ const translatedPresets = computed(() => {
     // 根据语言翻译 default
     //debug
     console.log('presets changed', language.value);
-    if (language.value === 'zh_cn') {
-        return ['默认预设', ...g_data_vue.presetList.value];
+    if (language.value === 'vi') {
+        return ['Mặc định', ...g_data_vue.presetList.value];
     } else {
         return ['default', ...g_data_vue.presetList.value];
     }

@@ -21,7 +21,7 @@ class XXMMCore{
     public static setCustomConfigFolder = (path: string) => {
         // 检查路径是否存在
         if (!fs.existsSync(path)){
-            t_snack(new TranslatedText("Custom config folder not exist", "自定义配置文件夹不存在"), SnackType.error);
+            t_snack(new TranslatedText("Custom config folder not exist", "Thư mục cấu hình tùy chỉnh không tồn tại"), SnackType.error);
             console.error(`Custom config folder not exist: ${path}`);
             return;
         }
@@ -59,7 +59,7 @@ class XXMMCore{
                 if (fs.existsSync(args.customConfigFolder)){
                     XXMMCore.customConfigFolder = args.customConfigFolder;
                 }else{
-                    t_snack(new TranslatedText("Custom config folder not exist", "自定义配置文件夹不存在"), SnackType.error);
+                    t_snack(new TranslatedText("Custom config folder not exist", "Thư mục cấu hình tùy chỉnh không tồn tại"), SnackType.error);
                     console.error(`Custom config folder not exist: ${args.customConfigFolder}`);
                 }
             }

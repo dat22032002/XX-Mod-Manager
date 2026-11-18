@@ -16,7 +16,7 @@ let customConfigFolder = '';
 
 //! 这是非常不健康的方法
 //! 同一个变量需要在多个地方使用，但是又不能直接获取
-let currentLanguage = 'zh_cn';
+let currentLanguage = 'en';
 
 const dataPath = app.getPath('userData');
 const configPath = () => {
@@ -35,10 +35,10 @@ function snack(message, type = 'info') {
     console.log(`snack:${message} type:${type}`);
     mainWindow.webContents.send('snack', message, type);
 }
-function t_snack(message_ch,message_en, type = 'info') {
+function t_snack(message_vi,message_en, type = 'info') {
     getConfig(configPath()).then((config) => {
         const language = config.language;
-        snack((language == 'zh_cn') ? message_ch : message_en, type);
+        snack((language == 'vi') ? message_vi : message_en, type);
     });
 }
 
@@ -74,20 +74,20 @@ function readFile(filePath) {
 
 function testPath(name,path,tryfix = false) {
     if (!path) {
-        t_snack(`${name}路径未定义`,`${name} path not defined`,'error');
+        t_snack(`${name} chưa được đặt`,`${name} path not defined`,'error');
         return false;
     }
     if (!fs.existsSync(path) && !tryfix) {
-        t_snack(`${name}路径不存在`,`${name} path not exists`,'error');
+        t_snack(`${name} không tồn tại`,`${name} path not exists`,'error');
         return false;
     }
     if (!fs.existsSync(path) && tryfix) {
         try {
             fs.mkdirSync(path,{recursive:true});
-            t_snack(`${name}路径不存在，已自动创建`,`${name} path not exists, auto created`,'info');
+            t_snack(`${name} không tồn tại, đã tự tạo`,`${name} path not exists, auto created`,'info');
         }
         catch (err) {
-            t_snack(`${name}路径不存在，自动创建失败`,`${name} path not exists, auto create failed`,'error');
+            t_snack(`${name} không tồn tại, tự tạo thất bại`,`${name} path not exists, auto create failed`,'error');
             return false;
         }
         return true;
@@ -95,11 +95,11 @@ function testPath(name,path,tryfix = false) {
     return true;
 }
 
-function t_testPath(name_ch,name_en,path,tryfix = false) {
+function t_testPath(name_vi,name_en,path,tryfix = false) {
     // return (getConfig(configPath()).language == 'zh_cn') ? testPath(name_ch,path,tryfix) : testPath(name_en,path,tryfix);
     const language = currentLanguage;
     // snack(`testPath:${language} ${name_ch} ${name_en} ${path} ${tryfix}`);
-    return testPath((language == 'zh_cn') ? name_ch : name_en,path,tryfix);
+    return testPath((language == 'vi') ? name_vi : name_en,path,tryfix);
 }
 
 //-========================== 对外接口 ==========================
@@ -139,7 +139,7 @@ async function getConfig(filePath) {
     }
     else {
         const defaultConfig = {
-            language: 'zh_cn', // 语言
+            language: 'en', // 语言
             theme: 'dark', // 主题
             modSourcePath: null, // mod的源路径
             modTargetPath: null, // mod的目标路径
@@ -300,7 +300,7 @@ function getMods(modSourcePath) {
     const mods = [];
 
     // 错误处理
-    if (!t_testPath('模组', 'mod', modSourcePath,false)){
+    if (!t_testPath('Mod', 'mod', modSourcePath,false)){
         snack('get-mods failed');
         return mods;
     }
@@ -370,7 +370,7 @@ function getPresetList(presetPath) {
     const presets = [];
 
     // 错误处理
-    if (!t_testPath('预设', 'preset', presetPath,false)) return presets;
+    if (!t_testPath('Preset', 'preset', presetPath,false)) return presets;
 
     // preset 以单个json文件存储，里面包含了该 preset 所启用的 mod
     // 这个函数只需要返回 preset 的名称即可
@@ -397,7 +397,7 @@ function loadPreset(presetPath, presetName) {
 async function savePreset(presetPath, presetName, mods) {
     const presetFilePath = path.join(presetPath, `${presetName}.json`);
 
-    if (!t_testPath('预设', 'preset', presetPath,true)) return;
+    if (!t_testPath('Preset', 'preset', presetPath,true)) return;
     
     fs.writeFileSync(presetFilePath, JSON.stringify(mods));
     // snack(`Preset ${presetName} saved`);
