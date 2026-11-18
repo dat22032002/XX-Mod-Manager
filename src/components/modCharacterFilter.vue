@@ -13,8 +13,8 @@
                     </path>
                 </svg>
             </s-icon>
-            <div id="search-input-container" style="display: flex;align-items: center;flex: 1; margin-left: 8px;">
-                <s-text-field id="search-input" class="OO-shade-box" style="min-height: 25px;flex: 1;background-color:var(--s-color-surface);border-radius: 5px;" @input="handleSearchInput" v-model="searchInput">
+            <div id="search-input-container" style="display: flex;align-items: center;flex: 1;min-width: 0;margin-left: 8px;">
+                <s-text-field id="search-input" class="OO-shade-box" style="min-height: 25px;flex: 1;width: 100%;min-width: 0;background-color:var(--s-color-surface);border-radius: 5px;" @input="handleSearchInput" v-model="searchInput">
 
                 </s-text-field>
             </div>
@@ -209,6 +209,7 @@ defineExpose({
 
 .search-box-fixed {
     width: 200px;
+    min-width: 0;
     flex-shrink: 0;
     height: 35px;
     display: inline-flex;
@@ -218,6 +219,11 @@ defineExpose({
     border-radius: 8px;
     background-color: var(--s-color-surface-container);
     border: 1px solid var(--s-color-outline-variant);
+    overflow: hidden;
+}
+
+#search-filter-chip s-icon {
+    flex-shrink: 0;
 }
 
 .chip-radio-bar {
