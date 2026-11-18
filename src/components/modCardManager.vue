@@ -259,6 +259,15 @@ const handleFilterChangeToSelected = () => {
 
 const handleFilterChangeToSearch = (search) => {
     console.log('handleFilterChangeToSearch', search);
+    if (!search || !search.trim()) {
+        // Blank search (e.g. only spaces): same as clearing the search.
+        // Without this reset, filteredMods would fall back to the previous
+        // character filter and the list would not show everything.
+        searchText.value = '';
+        wasSearching = false;
+        iManager.setCurrentCharacter('all');
+        return;
+    }
     // Mirror the text in Vue state: the list is filtered from it (see
     // filteredMods), because unmounted cards cannot be hidden via the DOM.
     searchText.value = search || '';
