@@ -146,12 +146,17 @@ async function changeFilterToSearch(search){
         });
         return;
     }
-    // 遍历 mod-item 元素，判断是否包含搜索内容
+    // 搜索不区分大小写：统一转小写再比较
+    const keyword = search.toLowerCase();
+    // 遍历 mod-item 元素，判断 mod 名称或角色名称是否包含搜索内容
     modItems.forEach(item => {
-        // 获取 mod-item 的名称
+        // 获取 mod-item 的名称和角色名称
         const name = item.getAttribute('name');
-        // 如果名称包含搜索内容，则显示，否则隐藏
-        if (name && name.includes(search)) {
+        const character = item.getAttribute('character');
+        // 名称或角色名称包含搜索内容，则显示，否则隐藏
+        const nameMatch = name && name.toLowerCase().includes(keyword);
+        const characterMatch = character && character.toLowerCase().includes(keyword);
+        if (nameMatch || characterMatch) {
             item.classList.remove('hidden');
         } else {
             item.classList.add('hidden');
