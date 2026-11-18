@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { ipcRenderer } = require('electron');
 import { ModInfo } from "./ModInfo";
+import type { CachedModEntry } from "./ModCache";
 
 import { EventType, EventSystem } from "../helper/EventSystem";
 import { SnackType, snack, t_snack } from "../helper/SnackHelper";
@@ -136,6 +137,24 @@ class ModData {
         modData.id = modInfo.id;
 
         ModData.handlePreview(modData, modInfo);
+        return modData;
+    }
+
+    // Build a ModData from a cache entry without touching the disk.
+    // Same field mapping and fallbacks as fromModInfo; the preview path
+    // comes straight from the cache instead of a folder scan.
+    public static fromCache(modInfo: ModInfo, entry: CachedModEntry): ModData {
+        // Deep-clone so live edits never mutate the cached copy in memory.
+        const meta = JSON.parse(JSON.stringify(entry.meta || {}));
+        const modData = new ModData(
+            modInfo.modName,
+            meta.character || "Unknown",
+            meta.description || "no description",
+            meta.url || "no url",
+            entry.previewPath || "",
+            meta.hotkeys || []
+        );
+        modData.id = modInfo.id;
         return modData;
     }
 

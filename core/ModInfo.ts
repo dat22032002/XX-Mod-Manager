@@ -1,4 +1,5 @@
 import ErrorHandler from "./ErrorHandler";
+import type { CachedModEntry } from "./ModCache";
 const fs = require('fs');
 const path = require('path');
 
@@ -96,6 +97,32 @@ class ModInfo {
         this.metaData = ModInfo.modDataTemplate.copy();
 
         this.init(location);
+    }
+
+    // Build a ModInfo from a cache entry without touching the disk.
+    // Only used when the folder and its mod.json are unchanged since the
+    // entry was written, so the cached data is the same as a fresh read.
+    public static fromCache(location: string, entry: CachedModEntry): ModInfo {
+        const modInfo = Object.create(ModInfo.prototype) as ModInfo;
+        modInfo.location = location;
+        modInfo.modName = entry.modName;
+        modInfo.id = entry.id;
+        // A cached mod was already seen on an earlier launch, so it is
+        // no longer new. (Fresh loads still report newMod in memory.)
+        modInfo.newMod = false;
+        modInfo.metaData = ModInfo.modDataTemplate.copy();
+
+        // Deep-clone so live edits never mutate the cached copy in memory.
+        const meta = JSON.parse(JSON.stringify(entry.meta || {}));
+        for (const item of ModInfo.modDataTemplate.items) {
+            const value = meta[item.key];
+            // null means the stored value had the wrong type; keep the
+            // template default, same as init() does for a bad mod.json.
+            if (value !== undefined && value !== null) {
+                modInfo.metaData.set(item.key, value, item.type);
+            }
+        }
+        return modInfo;
     }
 
     private init(location: string) {
@@ -283,6 +310,26 @@ class ModInfo {
         metaData['location'] = this.location;
         metaData['modName'] = this.modName;
         fs.writeFileSync(metaDataPath, JSON.stringify(metaData, null, 4), 'utf8');
+    }
+
+    // Serialize the loaded state for the cache. Callers supply fresh stat
+    // data (folder mtime, mod.json mtime + size) and the resolved preview
+    // path, so later loads can tell whether this mod changed.
+    public toCacheEntry(folderMtimeMs: number, modJsonMtimeMs: number, modJsonSize: number, previewPath: string): CachedModEntry {
+        const meta: Record<string, any> = {};
+        for (const item of ModInfo.modDataTemplate.items) {
+            meta[item.key] = this.metaData.get(item.key);
+        }
+        return {
+            location: this.location,
+            folderMtimeMs: folderMtimeMs,
+            modJsonMtimeMs: modJsonMtimeMs,
+            modJsonSize: modJsonSize,
+            id: this.id,
+            modName: this.modName,
+            meta: meta,
+            previewPath: previewPath,
+        };
     }
 
     public rename(newName: string, callback: (err: any) => void) {

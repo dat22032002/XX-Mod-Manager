@@ -210,6 +210,32 @@ function getData() {
         }
     }
 
+    //-------------------- 重新扫描全部 mod 的按钮 ------------------//
+    // 正常情况下不需要点：每次打开程序都会自动发现新增/删除/改过的 mod。
+    // 只有缓存坏了、列表显示不对时才用它强制重扫一遍。
+    let rescanAllModsButton = {
+        name: 'rescanAllMods',
+        type: 'button',
+        displayName: 'Rescan All Mods',
+        description: 'Clear the mod cache and rescan all mods',
+        t_displayName: {
+            zh_cn: '重新扫描全部mod',
+            en: 'Rescan All Mods'
+        },
+        t_description: {
+            zh_cn: '清除mod缓存并重新扫描全部mod（缓存损坏、列表显示不对时使用）',
+            en: 'Clear the mod cache and rescan all mods (use when the cache is broken or the list looks wrong)'
+        },
+        buttonName: 'Rescan All Mods',
+        t_buttonName: {
+            zh_cn: '重新扫描',
+            en: 'Rescan'
+        },
+        onChange: () => {
+            iManager.rescanAllMods();
+        }
+    }
+
     //-------------------- 打开 firstLoad 页面的按钮 ------------------//
     let openFirstLoadButton = {
         name: 'openFirstLoad',
@@ -235,7 +261,7 @@ function getData() {
         }
     }
     return {
-        languageData, themeData, ifStartWithLastPresetData,modTargetPathData, modSourcePathData, presetPathData, initAllDataButton, openFirstLoadButton
+        languageData, themeData, ifStartWithLastPresetData,modTargetPathData, modSourcePathData, presetPathData, initAllDataButton, rescanAllModsButton, openFirstLoadButton
     }
 }
 
