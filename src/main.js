@@ -60,7 +60,6 @@ iManager.on("initDone", () => {
 // 首次打开时打开 初始化窗口
 // iManager.snack('first load : '+iManager.config.firstLoad);
 EventSystem.on('wakeUp', () => {
-    iManager.snack('first load : '+iManager.config.firstLoad);
     console.log('❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️\nfist load:', iManager.config.firstLoad);
     if (iManager.config.firstLoad) {
         // debug 
