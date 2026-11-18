@@ -1,0 +1,41 @@
+# Máy kiểm tra tự động (CI) cho bản fork XX-Mod-Manager.
+# Chạy mỗi khi có thay đổi gửi lên nhánh stable hoặc mở đơn gộp code vào stable:
+# cài đặt -> đóng gói giao diện -> đóng gói file .exe Windows -> lưu file lại để tải về thử.
+# Chưa gồm bước soi lỗi code (lint/typecheck): code cũ chưa sạch nên sẽ thêm sau
+# khi đã dọn xong, tránh máy báo đỏ vì lỗi có sẵn từ trước.
+name: CI
+
+on:
+  push:
+    branches: [stable]
+  pull_request:
+    branches: [stable]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Lấy code
+        uses: actions/checkout@v4
+
+      - name: Cài Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Cài thư viện
+        run: npm ci
+
+      - name: Đóng gói giao diện
+        run: npx vite build
+
+      - name: Đóng gói file .exe Windows
+        run: npx electron-builder --win
+
+      - name: Lưu file để tải về thử
+        uses: actions/upload-artifact@v4
+        with:
+          name: xx-mod-manager-windows
+          path: build/
+          if-no-files-found: error
