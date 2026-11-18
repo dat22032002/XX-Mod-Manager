@@ -4,10 +4,11 @@
             :translatedItems="translateCharacters" ref="characterFilterRef" /> -->
         <ModCharacterFilter class="characterFilter" @itemChange="handleFilterChange" ref="characterFilterRef" @filterChangeToAll="handleFilterChangeToAll"
             @filterChangeToSelected="handleFilterChangeToSelected" @filterChangeToSearch="handleFilterChangeToSearch" />
-        <s-scroll-view style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
+        <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
-            <div id="mod-container" :compact="compactMode" ref="modContainerRef">
-                <modCard v-for="mod in mods" :modRef="mod" :lazyLoad=true :compactMode="compactMode"
+            <div id="mod-container" :compact="compactMode" ref="modContainerRef"
+                :style="{ paddingTop: windowPaddingTop + 'px', paddingBottom: windowPaddingBottom + 'px' }">
+                <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true :compactMode="compactMode"
                     :ref="setModCardRef(mod.id)" />
             </div>
             <div class="placeholder"></div>
@@ -18,13 +19,15 @@
 <script setup>
 import 'sober';
 import chipRadioBar from './chipRadioBar.vue';
-import { ref, onMounted, computed, useTemplateRef, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, useTemplateRef, watch, reactive, nextTick } from 'vue';
 import modCard from './modCard.vue';
 import { Tween, Group } from "@tweenjs/tween.js";
 import IManager, { g_data_vue } from '../../electron/IManager';
 import { g_config_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 import ModCharacterFilter from './modCharacterFilter.vue';
+import { computeColumns, computeWindow, CARD_WIDTH, CARD_GAP, OVERSCAN_ROWS } from './modWindowing.js';
+import { selectedModIdSet, setSelectedModIds } from '../../helper/SelectedMods';
 
 const iManager = new IManager();
 
@@ -45,6 +48,12 @@ watch(currentCharacter, (newVal) => {
         console.log('currentCharacter changed:', newVal);
         characterFilterRef.value.selectItemByName(newVal);
         changeFilter(newVal);
+        // Snapshot the selection when the 'selected' filter is applied, so
+        // the list behaves as before: toggling a card while viewing
+        // 'selected' does not make it vanish until the filter is re-applied.
+        if (newVal === 'selected') {
+            selectedSnapshot.value = new Set(selectedModIdSet);
+        }
     }
 });
 
@@ -71,6 +80,112 @@ const translateCharacters = computed(() => {
     }
 });
 
+//-==================== 只渲染视口附近的卡片（虚拟列表） ====================//
+// The grid used to mount every mod card at once; with hundreds of mods that
+// dominated startup time. Now only the rows near the viewport are mounted
+// (plus a small overscan buffer), and blank padding above/below the mounted
+// rows keeps the scrollbar and scroll positions exactly as if the whole list
+// were mounted. The math lives in ./modWindowing.js so it can be checked
+// without a browser.
+
+// Current search text, mirrored from handleFilterChangeToSearch. The list is
+// filtered in Vue state (not only by hiding DOM nodes) because unmounted
+// cards have no DOM node to hide.
+const searchText = ref('');
+// Snapshot of the selection when the 'selected' filter is applied (see the
+// currentCharacter watcher above and loadMods below).
+const selectedSnapshot = ref(null);
+
+const filteredMods = computed(() => {
+    const list = mods.value || [];
+    // Search: same rule as changeFilterToSearch (character-prefix spec) —
+    // a search matching exactly one character filters by that character,
+    // any other non-empty search matches nothing.
+    const keyword = (searchText.value || '').trim().toLowerCase();
+    if (keyword !== '') {
+        const characterList = g_data_vue.characterList;
+        const characterNames = (characterList && characterList.value) || [];
+        const matched = characterNames.filter(name => name && name.toLowerCase().startsWith(keyword));
+        if (matched.length !== 1) return [];
+        const character = matched[0];
+        return list.filter(mod => mod.character === character);
+    }
+    const character = currentCharacter.value;
+    if (!character || character === 'all') return list;
+    if (character === 'selected') {
+        const snapshot = selectedSnapshot.value;
+        if (snapshot) return list.filter(mod => snapshot.has(mod.id));
+        return list.filter(mod => selectedModIdSet.has(mod.id));
+    }
+    return list.filter(mod => mod.character === character);
+});
+
+// Whenever the filtered list changes (filter, search, reload), recompute the
+// mounted rows right away: the old window range may point past the end of a
+// much shorter list, which would briefly show a blank grid with stale padding.
+watch(filteredMods, () => {
+    updateWindow();
+});
+
+// Mounted slice of filteredMods: [windowRange.start, windowRange.end).
+const windowRange = reactive({ start: 0, end: 0 });
+const windowPaddingTop = ref(0);
+const windowPaddingBottom = ref(0);
+const windowMods = computed(() => filteredMods.value.slice(windowRange.start, windowRange.end));
+
+const scrollViewRef = useTemplateRef('scrollViewRef');
+let windowRaf = 0;
+let windowResizeObserver = null;
+
+function readRowHeight() {
+    // The grid row height animates during compact-mode transitions; read the
+    // live value so the padding stays in sync with the rows.
+    const el = modContainerRef.value;
+    if (el) {
+        const parsed = parseFloat(getComputedStyle(el).gridAutoRows);
+        if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
+    return props.compactMode ? 150 : 350;
+}
+
+function scheduleWindowUpdate() {
+    if (windowRaf) return;
+    windowRaf = requestAnimationFrame(() => {
+        windowRaf = 0;
+        updateWindow();
+    });
+}
+
+function updateWindow() {
+    const container = modContainerRef.value;
+    const scrollView = scrollViewRef.value;
+    if (!container || !scrollView) return;
+    const list = filteredMods.value;
+    const columns = computeColumns(container.clientWidth, CARD_WIDTH, CARD_GAP);
+    const rowHeight = readRowHeight();
+    const viewRect = scrollView.getBoundingClientRect();
+    const contRect = container.getBoundingClientRect();
+    const scrollOffset = Math.max(0, viewRect.top - contRect.top);
+    const win = computeWindow({
+        itemCount: list.length,
+        columns,
+        rowHeight,
+        gap: CARD_GAP,
+        scrollOffset,
+        viewportHeight: scrollView.clientHeight,
+        overscanRows: OVERSCAN_ROWS,
+    });
+    if (win.startIndex !== windowRange.start || win.endIndex !== windowRange.end) {
+        windowRange.start = win.startIndex;
+        windowRange.end = win.endIndex;
+        // Newly mounted cards need IntersectionObserver observation so their
+        // preview images lazy-load as before.
+        nextTick(() => observeMods());
+    }
+    if (windowPaddingTop.value !== win.paddingTop) windowPaddingTop.value = win.paddingTop;
+    if (windowPaddingBottom.value !== win.paddingBottom) windowPaddingBottom.value = win.paddingBottom;
+}
+
 // 定义 loadMods 方法
 const loadMods = async () => {
     mods.value = iManager.data.modList
@@ -78,6 +193,12 @@ const loadMods = async () => {
     // 检查是否选择了预设，如果选择了预设，则加载预设
     if (iManager.temp.currentPreset && iManager.temp.currentPreset != 'default') {
         await loadPreset(iManager.temp.currentPreset);
+    }
+
+    // The 'selected' filter is a snapshot taken when the filter is applied;
+    // refresh it after a reload so it matches the freshly loaded preset.
+    if (currentCharacter.value === 'selected') {
+        selectedSnapshot.value = new Set(selectedModIdSet);
     }
 
     // 检查是否选择了角色，如果选择了角色，则筛选角色
@@ -92,6 +213,10 @@ const loadMods = async () => {
 
     //debug
     console.log(`❇️❇️❇️❇️❇️❇️❇️\nsuccess load mods, mod count: ${mods.value.length}, character count: ${characters.value.length}`);
+
+    // The list changed size; recompute which rows to mount.
+    await nextTick();
+    updateWindow();
 };
 
 // 绑定 mod卡片的引用
@@ -104,11 +229,15 @@ const setModCardRef = (id) => (el) => {
 let wasSearching = false;
 // 定义 handleFilterChange 方法
 const handleFilterChange = (character) => {
+    // A character chip was clicked: any active search is over.
+    searchText.value = '';
+    wasSearching = false;
     iManager.setCurrentCharacter(character);
 };
 
 const handleFilterChangeToAll = () => {
     iManager.setCurrentCharacter('all');
+    searchText.value = '';
     if (wasSearching) {
         wasSearching = false;
         changeFilterToSearch('');
@@ -119,6 +248,7 @@ const handleFilterChangeToAll = () => {
 
 const handleFilterChangeToSelected = () => {
     iManager.setCurrentCharacter('selected');
+    searchText.value = '';
     if (wasSearching) {
         wasSearching = false;
         changeFilterToSearch('');
@@ -129,6 +259,9 @@ const handleFilterChangeToSelected = () => {
 
 const handleFilterChangeToSearch = (search) => {
     console.log('handleFilterChangeToSearch', search);
+    // Mirror the text in Vue state: the list is filtered from it (see
+    // filteredMods), because unmounted cards cannot be hidden via the DOM.
+    searchText.value = search || '';
     // currentCharacter变成all
     // iManager.setCurrentCharacter('all');
     // 但是筛选并不按照currentCharacter来筛选，而是按照搜索的内容来筛选
@@ -220,6 +353,10 @@ async function changeFilter(character) {
 async function loadPreset(presetName) {
     const preset = await iManager.loadPreset(presetName);
     const mods = preset?.getModIds() || [];
+    // Record the preset's selection up front. Cards that are not mounted
+    // (scrolled out of view) read this when they mount, so the preset still
+    // applies to them; mounted cards are flipped below as before.
+    setSelectedModIds(mods);
     //遍历modCardRefs，如果 满足 mods.includes(mod.name) ^ mod.clicked 则调用click
     for (const [key, value] of Object.entries(modCardRefs.value)) {
         if (!value) continue;
@@ -284,10 +421,14 @@ let isAnimating = false;
 const compactAnimation = new Tween({ height: 350 }).to({ height: 150 }, 200).onComplete(isAnimating = false);
 compactAnimation.onUpdate((object) => {
     modContainerRef.value.style.gridAutoRows = `${object.height}px`;
+    // Row height is animating: keep the windowing padding in sync with it.
+    updateWindow();
 });
 const expandAnimation = new Tween({ height: 150 }).to({ height: 350 }, 200).onComplete(isAnimating = false);
 expandAnimation.onUpdate((object) => {
     modContainerRef.value.style.gridAutoRows = `${object.height}px`;
+    // Row height is animating: keep the windowing padding in sync with it.
+    updateWindow();
 });
 
 animate.add(compactAnimation);
@@ -305,6 +446,9 @@ watch(() => props.compactMode, (newVal) => {
         expandAnimation.start();
         updateAnimate();
     }
+    // The row height finishes animating after 200ms; recompute the mounted
+    // rows once it has settled.
+    setTimeout(updateWindow, 250);
 });
 
 function updateAnimate() {
@@ -361,6 +505,19 @@ onMounted(async () => {
     observeMods();
     refreshPlaceholderRef.value.style.height = '0px';
 
+    // Windowing: recompute the mounted rows when the list is scrolled or
+    // resized (window resize changes how many columns fit).
+    const scrollView = scrollViewRef.value;
+    if (scrollView) {
+        scrollView.addEventListener('scroll', scheduleWindowUpdate, { passive: true });
+    }
+    if (typeof ResizeObserver !== 'undefined') {
+        windowResizeObserver = new ResizeObserver(scheduleWindowUpdate);
+        if (modContainerRef.value) windowResizeObserver.observe(modContainerRef.value);
+        if (scrollView) windowResizeObserver.observe(scrollView);
+    }
+    updateWindow();
+
     // 接受文件拖拽事件，可以直接通过拖拽文件到窗口中导入 mod，或者拖拽图片到窗口中为 mod 添加预览图
     modCardManagerRef.value.addEventListener('dragover', (event) => {
         event.preventDefault();
@@ -380,6 +537,21 @@ onMounted(async () => {
         // console.log('drop', event,event.dataTransfer.files,event.dataTransfer.items);
         iManager.handleDrop(event);
     });
+});
+
+onUnmounted(() => {
+    const scrollView = scrollViewRef.value;
+    if (scrollView) {
+        scrollView.removeEventListener('scroll', scheduleWindowUpdate);
+    }
+    if (windowResizeObserver) {
+        windowResizeObserver.disconnect();
+        windowResizeObserver = null;
+    }
+    if (windowRaf) {
+        cancelAnimationFrame(windowRaf);
+        windowRaf = 0;
+    }
 });
 
 
@@ -405,7 +577,10 @@ defineExpose({
     justify-items: center;
     min-height: 500px;
 
-    transition: all 0.5s;
+    /* Only the row height animates (compact mode). The windowing padding
+    must change instantly when scrolling, so it is kept out of the
+    transition — `all` would make it lag 0.5s behind every scroll. */
+    transition: grid-auto-rows 0.5s;
 }
 
 #mod-card-manager {
