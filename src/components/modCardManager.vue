@@ -147,21 +147,26 @@ async function changeFilterToSearch(search){
         return;
     }
     // 搜索不区分大小写：统一转小写再比较
-    const keyword = search.toLowerCase();
-    // 遍历 mod-item 元素，判断 mod 名称或角色名称是否包含搜索内容
-    modItems.forEach(item => {
-        // 获取 mod-item 的名称和角色名称
-        const name = item.getAttribute('name');
-        const character = item.getAttribute('character');
-        // 名称或角色名称包含搜索内容，则显示，否则隐藏
-        const nameMatch = name && name.toLowerCase().includes(keyword);
-        const characterMatch = character && character.toLowerCase().includes(keyword);
-        if (nameMatch || characterMatch) {
+    const keyword = search.trim().toLowerCase();
+    if (keyword === '') {
+        modItems.forEach(item => {
             item.classList.remove('hidden');
-        } else {
+        });
+        return;
+    }
+    // 只按角色名称的开头几个字母匹配
+    const characterList = g_data_vue.characterList;
+    const characterNames = (characterList && characterList.value) || [];
+    const matched = characterNames.filter(name => name && name.toLowerCase().startsWith(keyword));
+    // 开头字母撞到 0 个或多个角色时，什么都不显示
+    if (matched.length !== 1) {
+        modItems.forEach(item => {
             item.classList.add('hidden');
-        }
-    });
+        });
+        return;
+    }
+    // 唯一匹配：像点击该角色标签一样选中它，显示该角色的 mod
+    iManager.setCurrentCharacter(matched[0]);
 }
 
 async function changeFilter(character) {
