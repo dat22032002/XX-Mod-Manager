@@ -105,6 +105,17 @@
     "all": "全部",
     "selected": "已选择"
   },
+  "apply": {
+    "progress": "正在应用 Mod {done}/{total}……",
+    "titleSuccess": "应用成功",
+    "titlePartial": "应用完成，但有失败项",
+    "applied": "已应用",
+    "removed": "已移除",
+    "skipped": "无需改动",
+    "failed": "失败",
+    "failedMods": "失败的 Mod",
+    "close": "关闭"
+  },
   "firstLoad": {
     "huan-ying-shi-yong-xxmodmanagerxxmm": "欢迎使用 XX-mod-manager(XXMM)",
     "selectLanguageAndTheme": "在下方先选择你的语言和主题",

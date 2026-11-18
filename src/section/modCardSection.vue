@@ -77,7 +77,13 @@
             </div>
                 
             </s-popup>
-            <s-button @click="handleApplyButtonClicked" id="apply-button"
+            <div v-if="applying" class="apply-progress">
+                <div class="apply-progress-text">{{ $t('apply.progress', { done: applyDone, total: applyTotal }) }}</div>
+                <div class="apply-progress-bar">
+                    <div class="apply-progress-fill" :style="{ width: applyPercent + '%' }"></div>
+                </div>
+            </div>
+            <s-button @click="handleApplyButtonClicked" id="apply-button" :disabled="applying"
                 class="OO-color-gradient font-hongmeng OO-button" style="color: var(--s-color-surface);">
                 {{ $t('buttons.apply') }}
             </s-button>
@@ -224,13 +230,27 @@ const presetSelectorRef = useTemplateRef('presetSelectorRef');
 //#endregion
 
 //-=========================== apply button ===========================
-function handleApplyButtonClicked() {
-    // debug
-    const mods = Array.from(document.querySelectorAll('.mod-item'));
+const applying = ref(false);
+const applyDone = ref(0);
+const applyTotal = ref(0);
+const applyPercent = computed(() => applyTotal.value > 0 ? Math.round(applyDone.value / applyTotal.value * 100) : 0);
 
-    iManager.applyMods(selectedModIds()).then(() => {
+async function handleApplyButtonClicked() {
+    if (applying.value) {
+        return;
+    }
+    applying.value = true;
+    applyDone.value = 0;
+    applyTotal.value = 0;
+    try {
+        await iManager.applyMods(selectedModIds(), (done, total) => {
+            applyDone.value = done;
+            applyTotal.value = total;
+        });
         console.log('apply success', selectedModIds());
-    });
+    } finally {
+        applying.value = false;
+    }
 }
 
 EventSystem.on('toggledMod', (mod) => {
@@ -287,5 +307,35 @@ EventSystem.on('toggledMod', (mod) => {
     font-size: 20px;
 
     color: var(--s-color-dark-surface);
+}
+
+.apply-progress {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 260px;
+    margin-right: 10px;
+}
+
+.apply-progress-text {
+    font-size: 14px;
+    color: var(--s-color-on-surface);
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.apply-progress-bar {
+    height: 6px;
+    background: var(--s-color-surface-container-high);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.apply-progress-fill {
+    height: 100%;
+    background: var(--s-color-primary);
+    transition: width 0.15s;
 }
 </style>
