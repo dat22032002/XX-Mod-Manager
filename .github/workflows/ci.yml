@@ -1,5 +1,6 @@
 # Máy kiểm tra tự động (CI) cho bản fork XX-Mod-Manager.
-# Chạy mỗi khi có thay đổi gửi lên nhánh stable hoặc mở đơn gộp code vào stable:
+# Chạy mỗi khi có thay đổi gửi lên nhánh stable hoặc mở đơn gộp code vào stable,
+# hoặc khi bấm chạy tay (để đóng gói bản thử cho nhánh đang làm mà chưa gộp):
 # cài đặt -> đóng gói giao diện -> đóng gói file .exe Windows -> lưu file lại để tải về thử.
 # Chưa gồm bước soi lỗi code (lint/typecheck): code cũ chưa sạch nên sẽ thêm sau
 # khi đã dọn xong, tránh máy báo đỏ vì lỗi có sẵn từ trước.
@@ -10,6 +11,7 @@ on:
     branches: [stable]
   pull_request:
     branches: [stable]
+  workflow_dispatch:
 
 jobs:
   build-windows:
