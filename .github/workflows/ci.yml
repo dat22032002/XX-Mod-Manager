@@ -31,11 +31,11 @@ jobs:
         run: npx vite build
 
       - name: Đóng gói file .exe Windows
-        run: npx electron-builder --win
+        run: npx electron-builder --win --publish never
 
       - name: Lưu file để tải về thử
         uses: actions/upload-artifact@v4
         with:
           name: xx-mod-manager-windows
-          path: build/
+          path: build/*.zip
           if-no-files-found: error
