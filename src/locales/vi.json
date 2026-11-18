@@ -103,7 +103,9 @@
     "confirm": "xác nhận",
     "refresh": "làm mới",
     "all": "Tất cả",
-    "selected": "Đã chọn"
+    "selected": "Đã chọn",
+    "minimize": "Thu nhỏ",
+    "fullscreen": "Toàn màn hình"
   },
   "apply": {
     "progress": "Đang áp dụng mod {done} trên {total}...",
