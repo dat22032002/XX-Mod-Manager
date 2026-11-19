@@ -423,6 +423,11 @@ defineExpose({
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    /* Tiêu đề nhỏ theo thẻ khi thu nhỏ dưới 100% (24px ở 250px; 19.2px ở
+    200px; 14.4px ở 150px; 9.6px ở 100px); thẻ to hơn 100% thì min() giữ
+    nguyên 24px. line-height đi kèm để hàng tiêu đề co theo chữ. */
+    font-size: min(24px, calc(var(--card-width, 250px) * 0.096));
+    line-height: 1.6;
 }
 
 .mod-item .pin-btn {
