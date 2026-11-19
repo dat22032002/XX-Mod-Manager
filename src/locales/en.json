@@ -105,7 +105,9 @@
     "all": "All",
     "selected": "Selected",
     "minimize": "Minimize",
-    "fullscreen": "Fullscreen"
+    "fullscreen": "Fullscreen",
+    "add": "Add",
+    "close": "Close"
   },
   "apply": {
     "progress": "Applying mod {done} of {total}...",
@@ -175,11 +177,17 @@
     "warning": "This will delete ALL presets and ALL settings. This cannot be undone.",
     "backupNote": "Before deleting, a backup copy will be saved next to the config file."
   },
+  "closeDialog": {
+    "title": "Close the app?",
+    "message": "Are you sure you want to close XX Mod Manager?"
+  },
   "mod-image": "Mod Image",
   "no-mod-selected": "No mod selected",
   "dialogEnterPassword": {
     "title": "Please Enter Password",
     "cancel": "Cancel entering password and exit decompression",
-    "confirm": "Confirm Password:"
+    "confirm": "Confirm Password:",
+    "label": "Extraction password",
+    "placeholder": "Enter the extraction password"
   }
 }

@@ -105,7 +105,9 @@
     "all": "Tất cả",
     "selected": "Đã chọn",
     "minimize": "Thu nhỏ",
-    "fullscreen": "Toàn màn hình"
+    "fullscreen": "Toàn màn hình",
+    "add": "Thêm",
+    "close": "Đóng"
   },
   "apply": {
     "progress": "Đang áp dụng mod {done} trên {total}...",
@@ -175,11 +177,17 @@
     "warning": "Toàn bộ preset và toàn bộ cài đặt sẽ bị xóa hết. Không thể hoàn tác.",
     "backupNote": "Trước khi xóa, app sẽ lưu một bản sao lưu ngay cạnh file cài đặt."
   },
+  "closeDialog": {
+    "title": "Đóng app?",
+    "message": "Bạn có chắc muốn đóng XX Mod Manager không?"
+  },
   "mod-image": "Ảnh mod",
   "no-mod-selected": "Chưa chọn mod nào",
   "dialogEnterPassword": {
     "title": "Hãy nhập mật khẩu",
     "cancel": "Hủy nhập mật khẩu và thoát giải nén",
-    "confirm": "Xác nhận mật khẩu:"
+    "confirm": "Xác nhận mật khẩu:",
+    "label": "Mật khẩu giải nén",
+    "placeholder": "Nhập mật khẩu giải nén"
   }
 }

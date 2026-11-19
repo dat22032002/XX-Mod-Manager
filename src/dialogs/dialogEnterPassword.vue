@@ -4,8 +4,8 @@
         <template v-slot:content>
             <p>{{ $t('dialogEnterPassword.title') }}</p>
             <div class="OO-setting-bar">
-                <h3>{{ $t('presetDialog.name') }}</h3>
-                <s-text-field v-model="getPassword" :placeholder="$t('presetDialog.requireName')" id="preset-name">
+                <h3>{{ $t('dialogEnterPassword.label') }}</h3>
+                <s-text-field v-model="getPassword" type="password" :placeholder="$t('dialogEnterPassword.placeholder')" id="archive-password">
 
                 </s-text-field>
             </div>

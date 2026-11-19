@@ -137,12 +137,13 @@
                     </div>
                     <div class="hotkey-item OO-setting-bar">
 
-                      <s-text-field
-                        @change="(event) => { addNewHotkeyByDescription(event.target.value); event.target.value = ''; }"
+                      <s-text-field v-model="newHotkeyDescription"
                         style="left: 5px;" :placeholder="$t('editDialog.mod-info-hotkeys-description')" />
-                      <s-text-field
-                        @change="(event) => { addNewHotkeyByHotkey(event.target.value); event.target.value = ''; }"
+                      <s-text-field v-model="newHotkeyKey"
                         :placeholder="$t('editDialog.mod-info-hotkeys-hotkey')" />
+                      <s-button class="OO-button font-hongmeng" @click="addNewHotkey">
+                        <p>{{ $t('buttons.add') }}</p>
+                      </s-button>
                     </div>
                   </div>
 
@@ -230,6 +231,10 @@ const tempModInfo = ref(ModData.fromJson({
 const editModInfoDialog = useTemplateRef('edit-mod-dialog');
 const img = ref(null);
 
+// Ô nhập phím tắt mới: chỉ tạo phím khi bấm nút Thêm, không tạo ở từng ô nữa.
+const newHotkeyDescription = ref('');
+const newHotkeyKey = ref('');
+
 // 需要显示的mod发生变化时，更新 临时mod信息
 watch(() => props.mod, async (newVal) => {
   console.log('[dialogModInfo2] watch props.mod changed', newVal.name);
@@ -282,14 +287,17 @@ const handleHotkeyInput = (hotkey, value) => {
   hotkey.key = value;
 }
 
-const addNewHotkeyByDescription = (description) => {
-  console.log(`add hot key`, description, `to`, tempModInfo.value.id);
-  tempModInfo.value.addHotkey("", description);
-}
-
-const addNewHotkeyByHotkey = (key) => {
-  console.log(`add hot key`, key, `to`, tempModInfo.value.id);
-  tempModInfo.value.addHotkey(key, "");
+const addNewHotkey = () => {
+  const key = newHotkeyKey.value.trim();
+  const description = newHotkeyDescription.value.trim();
+  // Phím là phần bắt buộc (phím không có nút bấm thì vô dụng); mô tả có thể trống.
+  if (!key) {
+    return;
+  }
+  console.log(`add hot key`, key, description, `to`, tempModInfo.value.id);
+  tempModInfo.value.addHotkey(key, description);
+  newHotkeyDescription.value = '';
+  newHotkeyKey.value = '';
 }
 
 const handleSelectImage = async () => {
