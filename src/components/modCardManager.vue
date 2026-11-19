@@ -191,7 +191,10 @@ const loadMods = async () => {
     mods.value = iManager.data.modList
 
     // 检查是否选择了预设，如果选择了预设，则加载预设
-    if (iManager.temp.currentPreset && iManager.temp.currentPreset != 'default') {
+    // preset Mặc định cũng được khôi phục từ config (defaultPresetModIds)，
+    // không bỏ qua như trước nữa — nếu không lựa chọn ở Mặc định sẽ mất
+    // mỗi lần mở app / chuyển preset / làm mới.
+    if (iManager.temp.currentPreset) {
         await loadPreset(iManager.temp.currentPreset);
     }
 
@@ -407,6 +410,17 @@ EventSystem.on(EventType.modListChanged, () => {
     //debug
     console.log('get modListChanged, reload display mods');
     mods.value = null;
+    setTimeout(() => {
+        loadMods();
+        observeMods();
+    }, 1);
+});
+
+// Làm mới không tải lại cửa sổ: cập nhật danh sách mà KHÔNG xóa mods.value,
+// nên vị trí cuộn + bộ lọc + ô tìm kiếm + lựa chọn đều giữ nguyên.
+EventSystem.on(EventType.refreshModList, () => {
+    //debug
+    console.log('get refreshModList, reload display mods without resetting scroll');
     setTimeout(() => {
         loadMods();
         observeMods();

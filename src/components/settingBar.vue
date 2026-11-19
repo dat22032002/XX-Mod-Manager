@@ -48,7 +48,7 @@
             <s-text-field :value="data.data" @input="onChange($event.target.value)">
             </s-text-field>
             <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                @click="iManager.getFilePath(data.t_displayName ? data.t_displayName[local] : data.displayName, 'directory').then((res) => { data.data = res; onChange(res); })">
+                @click="pickPath('directory')">
                 <s-icon type="add"></s-icon>
             </s-icon-button>
         </div>
@@ -58,7 +58,7 @@
             <s-text-field :value="data.data" @input="onChange($event.target.value)">
             </s-text-field>
             <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                @click="iManager.getFilePath(data.t_displayName ? data.t_displayName[local] : data.displayName, 'ini').then((res) => { data.data = res; onChange(res); })">
+                @click="pickPath('ini')">
                 <s-icon type="add"></s-icon>
             </s-icon-button>
         </div>
@@ -68,7 +68,7 @@
             <s-text-field :value="data.data" @input="onChange($event.target.value)">
             </s-text-field>
             <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                @click="iManager.getFilePath(data.t_displayName ? data.t_displayName[local] : data.displayName, 'exe').then((res) => { data.data = res; onChange(res); })">
+                @click="pickPath('exe')">
                 <s-icon type="add"></s-icon>
             </s-icon-button>
         </div>
@@ -149,6 +149,17 @@ const onChange = (value) => {
     if (data.value.type === 'select') {
         data.value.data = value;
     }
+};
+
+// Mở hộp chọn đường dẫn. Người dùng bấm Hủy → getFilePath trả về chuỗi rỗng,
+// giữ nguyên đường dẫn cũ, không ghi đè, không báo lỗi.
+const pickPath = (fileType) => {
+    iManager.getFilePath(data.value.t_displayName ? data.value.t_displayName[local.value] : data.value.displayName, fileType).then((res) => {
+        if (res) {
+            data.value.data = res;
+            onChange(res);
+        }
+    });
 };
 
 function refresh() {

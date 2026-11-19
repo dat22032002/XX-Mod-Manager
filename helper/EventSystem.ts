@@ -33,6 +33,8 @@ enum EventType {
     currentPresetChanged = 'currentPresetChanged',
     currentModChanged = 'currentModChanged',
     modListChanged = 'modListChanged',
+    // Làm mới danh sách mà không tải lại cửa sổ (giữ vị trí cuộn, bộ lọc, tìm kiếm, lựa chọn)
+    refreshModList = 'refreshModList',
     //----------事件节点----------
     modsApplied = 'modsApplied',
     addMod = 'addMod',

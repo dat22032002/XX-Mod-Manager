@@ -103,7 +103,9 @@
     "confirm": "confirm",
     "refresh": "refresh",
     "all": "All",
-    "selected": "Selected"
+    "selected": "Selected",
+    "minimize": "Minimize",
+    "fullscreen": "Fullscreen"
   },
   "apply": {
     "progress": "Applying mod {done} of {total}...",
@@ -167,6 +169,11 @@
     "nameExist": "Default name already exists",
     "requireName": "Please enter the preset name",
     "success": "Preset added successfully"
+  },
+  "resetDialog": {
+    "title": "Reset all data?",
+    "warning": "This will delete ALL presets and ALL settings. This cannot be undone.",
+    "backupNote": "Before deleting, a backup copy will be saved next to the config file."
   },
   "mod-image": "Mod Image",
   "no-mod-selected": "No mod selected",

@@ -62,6 +62,7 @@ let g_config = {
     presetPath: null,
     ifStartWithLastPreset: true,
     lastUsedPreset: null,
+    defaultPresetModIds: [],
     bounds: {
         width: 800,
         height: 600,
@@ -100,6 +101,7 @@ const g_config_vue = {
     presetPath: ref(null),
     ifStartWithLastPreset: ref(true),
     lastUsedPreset: ref(null),
+    defaultPresetModIds: ref([]),
     bounds: ref({
         width: 800,
         height: 600,
@@ -185,6 +187,7 @@ class IManager {
         presetPath: null, // 预设路径
         ifStartWithLastPreset: true, // 是否启动时使用上次使用的预设
         lastUsedPreset: null, // 上次使用的预设,如果 ifStartWithLastPreset 为 true，则启动时使用这个预设
+        defaultPresetModIds: [], // preset Mặc định没有文件 riêng，lựa chọn của nó lưu ở đây
         bounds: {
             width: 800,
             height: 600,
@@ -304,11 +307,13 @@ class IManager {
         const currentConfig = XXMMCore.getCurrentConfig();
 
         //如果为空，则使用默认配置，并覆盖本地配置
-        if (currentConfig == {} || currentConfig == null) {
+        // (currentConfig == {} 永远为 false：两个对象字面量不可能相等，
+        // 所以损坏的配置文件以前会被当成正常配置而直接覆盖。)
+        if (currentConfig == null || Object.keys(currentConfig).length === 0) {
             // snack('配置文件不存在');
             t_snack({
-                vi: `Không tìm thấy file cấu hình`,
-                en: `Config file not found`,
+                vi: `Không đọc được file cấu hình, dùng cài đặt mặc định`,
+                en: `Could not read the config file, using default settings`,
             }, SnackType.error);
 
             this.saveConfig();
@@ -434,7 +439,14 @@ class IManager {
         this.data.characterList = Array.from(this.data.characterList).sort();
 
         // 如果 currentCharacter 不为空，且 characterList 中不包含 currentCharacter，则将 currentCharacter 设置为 all
-        if (this.temp.currentCharacter !== null && !this.data.characterList.includes(this.temp.currentCharacter)) {
+        // 'all' 和 'selected' 是 tab giả (không phải tên nhân vật) nên không bao giờ
+        // có trong characterList — giữ nguyên tab, không ép về 'all' khi làm mới.
+        // Chỉ ép về 'all' khi đang đứng ở tên nhân vật thật mà nhân vật đó đã
+        // không còn mod nào trong kho nữa.
+        if (this.temp.currentCharacter !== null
+            && this.temp.currentCharacter !== 'all'
+            && this.temp.currentCharacter !== 'selected'
+            && !this.data.characterList.includes(this.temp.currentCharacter)) {
             this.setCurrentCharacter('all');
         }
     }
@@ -447,7 +459,14 @@ class IManager {
 
     async loadPreset(presetName) {
         if (presetName === 'default') {
-            return null;
+            // Preset Mặc định không có file riêng: lựa chọn của nó lưu trong
+            // config (defaultPresetModIds). Trả về object có getModIds()
+            // giống Preset thật, chỉ giữ id còn tồn tại trong danh sách mod.
+            const savedIds = this.config.defaultPresetModIds || [];
+            const liveIds = this.data.modList.map((mod) => mod.id);
+            return {
+                getModIds: () => savedIds.filter((id) => liveIds.includes(id)),
+            };
         }
 
         const preset = PresetHelper.getPresetByName(presetName);
@@ -457,6 +476,19 @@ class IManager {
         }
         console.log(`load preset ${presetName}`, preset, preset.modIds.length);
         return preset;
+    }
+
+    // Làm mới danh sách mod mà KHÔNG tải lại cả cửa sổ: quét lại thư mục mod
+    // (phát hiện mod mới/xóa/đổi), cập nhật danh sách, giữ nguyên vị trí cuộn,
+    // bộ lọc, ô tìm kiếm và lựa chọn.
+    async refreshModList() {
+        await this.loadPresets();
+        await this.newLoadMods();
+        EventSystem.trigger(EventType.refreshModList);
+        t_snack({
+            vi: `Đã làm mới danh sách mod`,
+            en: `Mod list refreshed`,
+        });
     }
 
     async getModInfo(modName) {
@@ -786,9 +818,19 @@ class IManager {
     }
 
     async initAllData() {
-        await ipcRenderer.invoke('init-all-data');
-        // 刷新页面
-        location.reload();
+        // Gửi đường dẫn config + preset ĐANG DÙNG để main process xóa đúng chỗ
+        // (người dùng có thể dùng thư mục cấu hình tùy chỉnh, không phải mặc định).
+        const result = await ipcRenderer.invoke('init-all-data', XXMMCore.getConfigFilePath(), this.config.presetPath);
+        if (result && result.ok) {
+            // 刷新页面
+            location.reload();
+        } else {
+            // Xóa thất bại: báo lỗi, không reload (dữ liệu vẫn còn nguyên).
+            t_snack({
+                vi: `Xóa dữ liệu thất bại: ${(result && result.error) || 'lỗi không rõ'}`,
+                en: `Failed to reset data: ${(result && result.error) || 'unknown error'}`,
+            }, SnackType.error);
+        }
     }
 
     async openUrl(url) {
@@ -1029,6 +1071,8 @@ class IManager {
 
         let ifContainChinese = false;
         let ifSuccess = true;
+        // Entries skipped by the zip-slip guard (paths escaping the mod folder).
+        let skippedEntries = [];
 
         if (!fs.existsSync(destinationPath)) {
             fs.mkdirSync(destinationPath);
@@ -1045,6 +1089,15 @@ class IManager {
             const newFilePath = filePath.replace(/\*/g, '_');
             if (filePath !== newFilePath) {
                 ifContainChinese = true;
+            }
+            // Zip-slip guard: skip entries whose resolved path escapes the
+            // destination folder (e.g. "../../evil.txt" in a malicious archive).
+            // Checked on the final path (after the * replacement) and before
+            // any folder is created.
+            if (!PathHelper.isPathInside(destinationPath, newFilePath)) {
+                skippedEntries.push(entry.path);
+                console.error(`Skipped entry escaping the mod folder: ${entry.path}`);
+                return;
             }
             //debug
             // console.log(`Converted: ${filePath}`, newFilePath);
@@ -1179,6 +1232,15 @@ class IManager {
                 en: `Mod ${path.basename(destinationPath)} extracted successfully`,
             }
             t_snack(t_message);
+            // Report entries the zip-slip guard skipped, so the user knows the
+            // archive tried to write outside the mod folder.
+            if (skippedEntries.length > 0) {
+                const t_skipped = {
+                    vi: `Đã bỏ qua ${skippedEntries.length} file cố ghi ra ngoài thư mục mod: ${skippedEntries.join(', ')}`,
+                    en: `Skipped ${skippedEntries.length} file(s) trying to write outside the mod folder: ${skippedEntries.join(', ')}`,
+                }
+                t_snack(t_skipped, 'error');
+            }
 
             return true;
         }
@@ -1378,6 +1440,12 @@ class IManager {
         PresetHelper.savePresetById(presetName,modIds);
     }
 
+    // Lưu lựa chọn của preset Mặc định vào config (nó không có file riêng).
+    async saveDefaultPreset(modIds){
+        this.config.defaultPresetModIds = [...modIds];
+        this.saveConfig();
+    }
+
     async applyMods(modList, onProgress) {
         const modTargetPath = this.config.modTargetPath;
         const modSourcePath = this.config.modSourcePath;
@@ -1492,10 +1560,9 @@ class IManager {
         if (filePath) {
             return filePath;
         }
-        else {
-            t_snack({ vi: 'Không tìm thấy file', en: 'File not found' });
-            return '';
-        }
+        // Người dùng bấm Hủy trong hộp chọn: trả về chuỗi rỗng, không báo lỗi —
+        // hủy chọn không phải lỗi, nơi gọi sẽ giữ nguyên đường dẫn cũ.
+        return '';
     }
 
     async setConfig(key, value) {
