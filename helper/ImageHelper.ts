@@ -117,6 +117,24 @@ class ImageHelper {
         this.imageCache.clear();
     }
 
+    // Drop ONE path from the RAM thumbnail cache. The RAM LRU is keyed by
+    // path only, so overwriting a preview at the same path (drag a new
+    // cover onto a card) would keep serving the old thumbnail; the disk
+    // thumb cache is keyed by path+mtime+size so it never goes stale.
+    // Called when a mod's preview is replaced.
+    public static evictImage(imagePath: string) {
+        const url = this.imageCache.get(imagePath);
+        if (url) {
+            this.imageCache.delete(imagePath);
+            try {
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                // Already revoked or invalid: nothing to free.
+            }
+        }
+        this.pendingThumbs.delete(imagePath);
+    }
+
     // Returns the blob URL of the thumbnail for imagePath, generating and
     // caching it on disk when needed. Returns null when no thumbnail
     // applies (image already small, no disk cache available, or the

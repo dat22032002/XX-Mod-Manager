@@ -250,6 +250,10 @@ class ModData {
         // const previewDest = path.join(modSourcePath, this.name, previeFileName);
         const previewDest = path.join(this.getModPathSync(), previeFileName);
         fs.copyFileSync(previewPath, previewDest);
+        // Ảnh cũ còn nằm trong bộ nhớ đệm theo đường dẫn — đuổi cả đường
+        // cũ lẫn đường mới ra để lần đọc sau không lấy nhầm ảnh cũ.
+        ImageHelper.evictImage(this.preview);
+        ImageHelper.evictImage(previewDest);
         this.preview = previewDest;
 
         // 清除旧的预览图
@@ -269,6 +273,11 @@ class ModData {
         const imageDest = path.join(this.getModPathSync(), `preview.${this.modPreviewBase64WithHeader.getExt()}`);
 
         fs.writeFileSync(imageDest, this.modPreviewBase64WithHeader.withoutHeader(), 'base64');
+
+        // Ảnh cũ còn nằm trong bộ nhớ đệm theo đường dẫn — đuổi cả đường
+        // cũ lẫn đường mới ra để lần đọc sau không lấy nhầm ảnh cũ.
+        ImageHelper.evictImage(this.preview);
+        ImageHelper.evictImage(imageDest);
 
         //debug
         this.preview = imageDest;

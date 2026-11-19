@@ -210,12 +210,25 @@ const onImageHoverEnd = () => {
 onMounted(() => {
     // Cuộn lưới cũng tắt xem trước (thẻ đã chạy khỏi chỗ chuột đang để).
     window.addEventListener('scroll', hideHoverPreview, true);
+    // Đổi ảnh preview (kéo thả ảnh mới vào thẻ, chọn ảnh khác trong hộp
+    // sửa mod) thì thẻ phải đọc lại ảnh: trước đây thẻ chỉ tải ảnh 1 lần
+    // lúc mới hiện (enterWindow) nên file đã đổi mà thẻ vẫn hiện ảnh cũ.
+    // Chi tiết bên phải (modInfo) đã nghe sự kiện này từ trước, thẻ thì chưa.
+    EventSystem.on(EventType.modInfoChanged, onModInfoChanged);
 });
 
 onUnmounted(() => {
     window.removeEventListener('scroll', hideHoverPreview, true);
+    EventSystem.off(EventType.modInfoChanged, onModInfoChanged);
     hideHoverPreview();
 });
+
+// Thông tin mod đổi: chỉ đọc lại ảnh khi đúng là mod của thẻ này.
+const onModInfoChanged = async (mod) => {
+    if (mod && mod.id === props.modRef.id) {
+        img.value = await getImage();
+    }
+};
 
 function playClickAnim(modItem, event = null, rect = null) {
     //获取鼠标相对于卡片的位置（百分比）
