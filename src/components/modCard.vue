@@ -194,7 +194,7 @@ function playClickAnim(modItem, event = null, rect = null) {
             { transform: `perspective( 500px ) translate(${-rotateY * 15}px,${rotateX * 15}px) rotateX(${rotateX * rotateLevel}deg) rotateY(${rotateY * rotateLevel}deg) scale(1.05)` },
             //缩小一点
             { transform: `perspective( 500px ) translate(${-rotateY * 15}px,${rotateX * 15}px) rotateX(${rotateX * rotateLevel}deg) rotateY(${rotateY * rotateLevel}deg) scale(1)` },
-            { transform: `perspective( 500px ) rotate3d(1,1,0,0deg) scale(0.95)` }
+            { transform: `perspective( 500px ) rotate3d(1,1,0,0deg)` }
         ], {
             duration: 600,
             easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
@@ -203,7 +203,7 @@ function playClickAnim(modItem, event = null, rect = null) {
     }
     else {
         modItem.animate([
-            { transform: `perspective( 500px ) rotate3d(1,1,0,0deg) scale(0.95)` },
+            { transform: `perspective( 500px ) rotate3d(1,1,0,0deg)` },
 
             { transform: `perspective( 500px ) translate(${-rotateY * 5}px,${rotateX * 5}px) rotateX(${rotateX * rotateLevel}deg) rotateY(${rotateY * rotateLevel * 0.2}deg) scale(0.88)` },
             //缩小一点
@@ -345,7 +345,7 @@ defineExpose({
     background-origin: padding-box, border-box;
     background-image: linear-gradient(to right, var(--s-color-surface-container-low), var(--s-color-surface-container-low)), linear-gradient(90deg, var(--s-color-primary), var(--s-color-secondary));
     box-sizing: border-box;
-    transform: rotate3d(1, 1, 0, 0deg) scale(0.95);
+    transform: rotate3d(1, 1, 0, 0deg);
     border-radius: 12px;
 }
 
