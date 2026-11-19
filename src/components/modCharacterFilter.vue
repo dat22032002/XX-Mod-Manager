@@ -27,12 +27,13 @@
             </div>
           </div>
         </div>
-        <!-- Nút Bộ lọc: bung/thu 2 hàng lọc loại + sắp xếp ở dưới
-             (modCardManager). Nằm giữa ô tìm kiếm và thanh tag nhân vật
-             theo ý Đạt (19/11). Nghiêng -20° như ô tìm kiếm để mép phải
-             song song với mép trái thanh tag. Đang có lọc/xếp khác mặc
-             định thì nút vàng lên để nhìn là biết lưới đang bị lọc. -->
-        <div id="filter-toggle-chip" class="filter-toggle" :class="{ active: hasActiveFilter, expanded: filterExpanded }" @click="toggleFilterPanel">
+        <!-- Nút Bộ lọc: bấm vào thì bảng lọc hiện ra dưới dạng overlay
+             phủ lên lưới mod (không đẩy nội dung xuống), mép trái bảng
+             thẳng với mép trái nút. Nút phát sáng khi bảng đang mở.
+             Đang có lọc/xếp khác mặc định thì nút vàng lên để nhìn là
+             biết lưới đang bị lọc. Nghiêng -20° như ô tìm kiếm để mép
+             phải song song với mép trái thanh tag. -->
+        <div id="filter-toggle-chip" class="filter-toggle" :class="{ active: hasActiveFilter, open: panelOpen }" @click="panelOpen = !panelOpen">
             <div class="filter-toggle-inner">
                 <s-icon>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -41,6 +42,26 @@
                 </s-icon>
                 <span>{{ $t('filter.button') }}</span>
                 <span class="filter-toggle-chevron">▼</span>
+            </div>
+        </div>
+        <!-- Lớp bắt bấm trong suốt phủ cả màn hình khi bảng đang mở:
+             bấm ra ngoài bảng thì đóng bảng. Nằm dưới nút và bảng
+             (z-index) nên không chặn 2 cái đó. -->
+        <div class="filter-backdrop" v-show="panelOpen" @click="panelOpen = false"></div>
+        <!-- Bảng lọc overlay: mỗi nhóm 1 hàng riêng để đủ chỗ hiện hết
+             chip mà không phải lăn ngang (hàng lưới hẹp, 9 chip chung
+             1 hàng sẽ bị cắt ở cửa sổ nhỏ). Bấm chip thì bảng ở lại mở
+             để chọn tiếp nhóm còn lại; bấm nút hoặc bấm ra ngoài thì đóng.
+             Dùng v-show để chipRadioBar không bị gắn lại (thanh vàng giữ
+             nguyên vị trí đã đo) khi đóng bảng. -->
+        <div class="filter-panel" v-show="panelOpen">
+            <div class="type-filter-wrap">
+                <chipRadioBar :items="typeItems" :translatedItems="translatedTypes"
+                    @itemChange="handleTypeChange" ref="typeFilterRef" />
+            </div>
+            <div class="sort-wrap">
+                <chipRadioBar :items="sortItems" :translatedItems="translatedSorts"
+                    @itemChange="handleSortChange" ref="sortBarRef" />
             </div>
         </div>
         <horizontalScrollBar class="chip-radio-bar" id="character-filter-bar" style="height: fit-content;">
@@ -56,8 +77,10 @@
 
 <script setup lang="ts">
 import horizontalScrollBar from './horizontalScrollBar.vue';
-import { ref, reactive, watch, Ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue';
+import { ref, reactive, watch, Ref, onMounted, onBeforeUnmount, nextTick, computed, useTemplateRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 import chipButton from './chipButton.vue';
+import chipRadioBar from './chipRadioBar.vue';
 import IManager from '../../electron/IManager';
 const iManager = new IManager();
 
@@ -67,30 +90,98 @@ import { g_data_vue } from '../../electron/IManager';
 const lastClickedElement = ref<HTMLElement | null>(null);
 const searchInput = ref<string>('');
 
-// Nút Bộ lọc: bung/thu 2 hàng lọc loại + sắp xếp (trạng thái lưu trong
-// config nên đóng app mở lại vẫn giữ). Nút vàng lên khi đang có lọc theo
-// loại hoặc xếp khác mặc định — nhìn là biết lưới đang bị lọc dù đã thu gọn.
-const filterExpanded = g_config_vue.filterExpanded;
+// Nút Bộ lọc: bảng overlay bung hay đóng — trạng thái chỉ trong phiên
+// làm việc (mở app lại thì bảng đóng, như mọi bảng thả xuống). Nút vàng
+// lên khi đang có lọc theo loại hoặc xếp khác mặc định — nhìn là biết
+// lưới đang bị lọc dù bảng đã đóng.
+const panelOpen = ref(false);
 const hasActiveFilter = computed(() =>
     g_config_vue.modTypeFilter.value !== 'all' || g_config_vue.modSortBy.value !== 'default');
-// Ghi config dồn 300ms như hàng lọc/xếp (bấm lia lịa chỉ ghi 1 lần).
-let saveExpandedTimer = null;
-const toggleFilterPanel = () => {
-    iManager.config.filterExpanded = !iManager.config.filterExpanded;
-    if (saveExpandedTimer) clearTimeout(saveExpandedTimer);
-    saveExpandedTimer = setTimeout(() => {
-        saveExpandedTimer = null;
+
+//-==================== Lọc theo loại mod + sắp xếp ====================//
+// Loại mod theo getModSlot (SelectedMods): đồ mặc định, (WP) = vũ khí,
+// (EF) = hiệu ứng, (ACC) = phụ kiện. Thêm loại mới thì thêm vào ModSlot +
+// getModSlot, thêm 1 mục vào TYPE_ITEMS + 1 khóa locale filter.*. Lựa
+// chọn lưu trong config (modCardManager đọc để lọc/xếp danh sách).
+const TYPE_ITEMS = ['all', 'outfit', 'weapon', 'effect', 'accessory'];
+const TYPE_LABEL_KEYS = {
+    all: 'filter.allTypes',
+    outfit: 'filter.outfit',
+    weapon: 'filter.weapon',
+    effect: 'filter.effect',
+    accessory: 'filter.accessory',
+};
+const SORT_OPTIONS = [
+    { value: 'default', labelKey: 'filter.sortDefault' },
+    { value: 'name-asc', labelKey: 'filter.sortNameAsc' },
+    { value: 'name-desc', labelKey: 'filter.sortNameDesc' },
+    { value: 'time-desc', labelKey: 'filter.sortTimeDesc' },
+    { value: 'time-asc', labelKey: 'filter.sortTimeAsc' },
+];
+const SORT_VALUES = SORT_OPTIONS.map(o => o.value);
+
+const { t } = useI18n();
+const typeItems = TYPE_ITEMS;
+const sortItems = SORT_VALUES;
+const translatedTypes = computed(() => TYPE_ITEMS.map(item => t(TYPE_LABEL_KEYS[item])));
+const translatedSorts = computed(() => SORT_OPTIONS.map(o => t(o.labelKey)));
+
+const typeFilterRef = useTemplateRef('typeFilterRef');
+const sortBarRef = useTemplateRef('sortBarRef');
+
+// Bung bảng lọc ra thì đo lại thanh vàng 2 hàng: lúc bảng đóng (display:
+// none) chip có kích thước 0 nên thanh trượt đo lúc gắn/mở app bị lệch;
+// đo lại sau 2 khung hình cho bố cục ổn định (giống thanh tag nhân vật).
+// selectItemByName với mục đang chọn chỉ đo lại, không phát sự kiện đổi.
+watch(panelOpen, (open) => {
+    if (!open) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        const type = TYPE_ITEMS.includes(g_config_vue.modTypeFilter.value) ? g_config_vue.modTypeFilter.value : 'all';
+        const sort = SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default';
+        if (typeFilterRef.value) typeFilterRef.value.selectItemByName(type);
+        if (sortBarRef.value) sortBarRef.value.selectItemByName(sort);
+    }));
+});
+
+// Ghi config dồn: bấm lia lịa thì chờ 300ms sau lần bấm cuối mới ghi
+// 1 lần (giống cách ghi mức phóng to ở modCardSection).
+let saveFilterTimer = null;
+function saveFilterSettings() {
+    if (saveFilterTimer) clearTimeout(saveFilterTimer);
+    saveFilterTimer = setTimeout(() => {
+        saveFilterTimer = null;
         iManager.saveConfig();
     }, 300);
-};
+}
+
+function handleTypeChange(type) {
+    if (!TYPE_ITEMS.includes(type)) return;
+    iManager.config.modTypeFilter = type;
+    saveFilterSettings();
+}
+
+function handleSortChange(sort) {
+    if (!SORT_VALUES.includes(sort)) return;
+    iManager.config.modSortBy = sort;
+    saveFilterSettings();
+}
 
 const language = g_config_vue.language;
 const characterList = g_data_vue.characterList as Ref<string[]>;
 watch(language, (newValue) => {
     // 刷新一下滑块，因为不同语言的长度不一样
     const elment = lastClickedElement.value;
-    if (!elment) return;
-    updateSlider(elment);
+    if (elment) updateSlider(elment);
+    // Chữ trên chip lọc/xếp đổi độ dài theo ngôn ngữ nên đặt lại thanh
+    // trượt 2 hàng đó nếu bảng đang mở (bảng đóng thì lần bung sau đo lại).
+    if (panelOpen.value) {
+        nextTick(() => {
+            const type = TYPE_ITEMS.includes(g_config_vue.modTypeFilter.value) ? g_config_vue.modTypeFilter.value : 'all';
+            const sort = SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default';
+            if (typeFilterRef.value) typeFilterRef.value.selectItemByName(type);
+            if (sortBarRef.value) sortBarRef.value.selectItemByName(sort);
+        });
+    }
 }, { immediate: true });
 
 //-=============== 定义事件 ===============
@@ -278,6 +369,10 @@ defineExpose({
     display: flex;
     align-items: center;
     width: 100%;
+    /* Bảng lọc overlay định vị theo hàng này (absolute) và phải nổi lên
+       trên lưới mod ở dưới (z-index). */
+    position: relative;
+    z-index: 30;
     /* Không để khe: mép trái thanh tag đã nghiêng cùng góc 20° với ô
     tìm kiếm (xem .chip-radio-bar) nên hai mép song song, thanh tag có
     thể dí sát ô tìm kiếm mà không chèn lên nhau — Đạt muốn sát vào
@@ -336,6 +431,11 @@ defineExpose({
     cursor: pointer;
     transform: skew(-20deg);
     user-select: none;
+    /* Nổi trên lớp bắt bấm (z-index 40) để bấm nút vẫn tắt/bật được
+       bảng khi bảng đang mở. */
+    position: relative;
+    z-index: 60;
+    transition: box-shadow 0.2s ease;
 }
 
 /* Đang có lọc/xếp khác mặc định thì nút vàng như chip đang chọn. */
@@ -343,6 +443,13 @@ defineExpose({
     background-color: var(--s-color-primary);
     border-color: var(--s-color-primary);
     color: var(--s-color-on-primary);
+}
+
+/* Bảng đang mở thì nút phát sáng (hào quang màu vàng chủ đạo). Dòng
+   đầu là dự phòng cho trình duyệt chưa hiểu color-mix. */
+.filter-toggle.open {
+    box-shadow: 0 0 18px 3px rgba(220, 233, 59, 0.55);
+    box-shadow: 0 0 18px 3px color-mix(in srgb, var(--s-color-primary) 65%, transparent);
 }
 
 .filter-toggle-inner {
@@ -363,8 +470,47 @@ defineExpose({
     transition: transform 0.2s ease-in-out;
 }
 
-.filter-toggle.expanded .filter-toggle-chevron {
+.filter-toggle.open .filter-toggle-chevron {
     transform: rotate(180deg);
+}
+
+/* Lớp bắt bấm trong suốt phủ cả màn hình khi bảng lọc đang mở: bấm ra
+   ngoài bảng thì đóng bảng. Nằm dưới nút (60) và bảng (50) nên không
+   chặn 2 cái đó. */
+.filter-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: transparent;
+}
+
+/* Bảng lọc overlay: thả xuống từ nút Bộ lọc, phủ lên lưới mod chứ
+   không đẩy nội dung. Mép trái thẳng với mép trái nút (= ô tìm kiếm
+   160px + khe 8px; đổi rộng ô tìm kiếm thì đổi cả số này), mép phải
+   thẳng với mép phải hàng lọc. */
+.filter-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 168px;
+    right: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    background-color: var(--s-color-surface-container-low);
+    border: 1px solid var(--s-color-outline-variant);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.type-filter-wrap {
+    width: 100%;
+}
+
+.sort-wrap {
+    width: 100%;
 }
 
 .search-input-field {

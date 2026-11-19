@@ -4,23 +4,10 @@
             :translatedItems="translateCharacters" ref="characterFilterRef" /> -->
         <ModCharacterFilter class="characterFilter" @itemChange="handleFilterChange" ref="characterFilterRef" @filterChangeToAll="handleFilterChangeToAll"
             @filterChangeToSelected="handleFilterChangeToSelected" @filterChangeToSearch="handleFilterChangeToSearch" />
-        <!-- Lọc theo loại mod + sắp xếp: mỗi nhóm 1 hàng riêng để đủ chỗ
-             hiện hết chip mà không phải lăn ngang (hàng lưới hẹp, 9 chip
-             chung 1 hàng sẽ bị cắt ở cửa sổ nhỏ — đã gặp ở bản thử đầu).
-             Hai hàng thu gọn được: nút "Bộ lọc" (giữa ô tìm kiếm và thanh
-             tag nhân vật, modCharacterFilter) bung/thu qua filterExpanded.
-             Dùng v-show để chipRadioBar không bị gắn lại (thanh vàng giữ
-             nguyên vị trí đã đo) khi thu gọn. -->
-        <div class="filter-sort-rows" v-show="filterExpanded">
-            <div class="type-filter-wrap">
-                <chipRadioBar :items="typeItems" :translatedItems="translatedTypes"
-                    @itemChange="handleTypeChange" ref="typeFilterRef" />
-            </div>
-            <div class="sort-wrap">
-                <chipRadioBar :items="sortItems" :translatedItems="translatedSorts"
-                    @itemChange="handleSortChange" ref="sortBarRef" />
-            </div>
-        </div>
+        <!-- Giao diện lọc theo loại mod + sắp xếp (nút "Bộ lọc" + bảng
+             overlay) nằm trong ModCharacterFilter; chỗ này chỉ đọc lựa
+             chọn đã lưu trong config để lọc/xếp danh sách (xem
+             filteredMods). -->
         <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
             <div id="mod-container" :compact="compactMode" ref="modContainerRef" :style="containerStyle">
@@ -34,9 +21,7 @@
 
 <script setup>
 import 'sober';
-import chipRadioBar from './chipRadioBar.vue';
 import { ref, onMounted, onUnmounted, computed, useTemplateRef, watch, reactive, nextTick } from 'vue';
-import { useI18n } from 'vue-i18n';
 import modCard from './modCard.vue';
 import { Tween, Group } from "@tweenjs/tween.js";
 import IManager, { g_data_vue } from '../../electron/IManager';
@@ -79,12 +64,11 @@ watch(currentCharacter, (newVal) => {
 });
 
 // 切换语言的时候，all 和 全部 的长度不一样，所以需要切换
+// (Thanh trượt hàng chip lọc/xếp đặt lại trong modCharacterFilter khi
+// đổi ngôn ngữ — thanh đó nằm ở bảng overlay bên đó.)
 watch(g_config_vue.language, (newVal) => {
     setTimeout(() => {
         characterFilterRef.value.selectItemByName(currentCharacter.value);
-        // Chữ trên chip loại/xếp đổi độ dài theo ngôn ngữ nên đặt lại thanh trượt.
-        if (typeFilterRef.value) typeFilterRef.value.selectItemByName(typeFilter.value);
-        if (sortBarRef.value) sortBarRef.value.selectItemByName(sortBy.value);
     }, 0);
 });
 
@@ -105,31 +89,14 @@ const translateCharacters = computed(() => {
 });
 
 //-==================== Lọc theo loại mod + sắp xếp ====================//
-// Loại mod theo getModSlot (SelectedMods): đồ mặc định, (WP) = vũ khí,
-// (EF) = hiệu ứng, (ACC) = phụ kiện. Thêm loại mới thì thêm vào ModSlot +
-// getModSlot, thêm 1 mục vào TYPE_ITEMS + 1 khóa locale filter.*.
+// Giao diện lọc/xếp (nút "Bộ lọc" + bảng overlay) nằm ở
+// modCharacterFilter; chỗ này chỉ đọc lựa chọn đã lưu trong config để
+// lọc/xếp danh sách. Loại mod theo getModSlot (SelectedMods): đồ mặc
+// định, (WP) = vũ khí, (EF) = hiệu ứng, (ACC) = phụ kiện. Thêm loại mới
+// thì thêm vào ModSlot + getModSlot, thêm 1 mục vào TYPE_ITEMS ở
+// modCharacterFilter + 1 khóa locale filter.*.
 const TYPE_ITEMS = ['all', 'outfit', 'weapon', 'effect', 'accessory'];
-const TYPE_LABEL_KEYS = {
-    all: 'filter.allTypes',
-    outfit: 'filter.outfit',
-    weapon: 'filter.weapon',
-    effect: 'filter.effect',
-    accessory: 'filter.accessory',
-};
-const SORT_OPTIONS = [
-    { value: 'default', labelKey: 'filter.sortDefault' },
-    { value: 'name-asc', labelKey: 'filter.sortNameAsc' },
-    { value: 'name-desc', labelKey: 'filter.sortNameDesc' },
-    { value: 'time-desc', labelKey: 'filter.sortTimeDesc' },
-    { value: 'time-asc', labelKey: 'filter.sortTimeAsc' },
-];
-const SORT_VALUES = SORT_OPTIONS.map(o => o.value);
-
-const { t } = useI18n();
-const typeItems = TYPE_ITEMS;
-const sortItems = SORT_VALUES;
-const translatedTypes = computed(() => TYPE_ITEMS.map(item => t(TYPE_LABEL_KEYS[item])));
-const translatedSorts = computed(() => SORT_OPTIONS.map(o => t(o.labelKey)));
+const SORT_VALUES = ['default', 'name-asc', 'name-desc', 'time-desc', 'time-asc'];
 
 // Đọc qua g_config_vue (lưu trong config.json nên mở app lại vẫn giữ);
 // giá trị lạ trong config cũ thì về mặc định.
@@ -137,47 +104,6 @@ const typeFilter = computed(() =>
     TYPE_ITEMS.includes(g_config_vue.modTypeFilter.value) ? g_config_vue.modTypeFilter.value : 'all');
 const sortBy = computed(() =>
     SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default');
-// Hai hàng lọc/xếp bung hay thu — nút "Bộ lọc" (giữa ô tìm kiếm và thanh
-// tag nhân vật, ở modCharacterFilter) đổi giá trị này.
-const filterExpanded = g_config_vue.filterExpanded;
-
-const typeFilterRef = useTemplateRef('typeFilterRef');
-const sortBarRef = useTemplateRef('sortBarRef');
-
-// Bung bảng lọc ra thì đo lại thanh vàng 2 hàng: lúc thu gọn (display:
-// none) chip có kích thước 0 nên thanh trượt đo lúc gắn/mở app bị lệch;
-// đo lại sau 2 khung hình cho bố cục ổn định (giống modCharacterFilter).
-// selectItemByName với mục đang chọn chỉ đo lại, không phát sự kiện đổi.
-watch(filterExpanded, (expanded) => {
-    if (!expanded) return;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (typeFilterRef.value) typeFilterRef.value.selectItemByName(typeFilter.value);
-        if (sortBarRef.value) sortBarRef.value.selectItemByName(sortBy.value);
-    }));
-});
-
-// Ghi config dồn: bấm lia lịa thì chờ 300ms sau lần bấm cuối mới ghi
-// 1 lần (giống cách ghi mức phóng to ở modCardSection).
-let saveFilterTimer = null;
-function saveFilterSettings() {
-    if (saveFilterTimer) clearTimeout(saveFilterTimer);
-    saveFilterTimer = setTimeout(() => {
-        saveFilterTimer = null;
-        iManager.saveConfig();
-    }, 300);
-}
-
-function handleTypeChange(type) {
-    if (!TYPE_ITEMS.includes(type)) return;
-    iManager.config.modTypeFilter = type;
-    saveFilterSettings();
-}
-
-function handleSortChange(sort) {
-    if (!SORT_VALUES.includes(sort)) return;
-    iManager.config.modSortBy = sort;
-    saveFilterSettings();
-}
 
 //-==================== 只渲染视口附近的卡片（虚拟列表） ====================//
 // The grid used to mount every mod card at once; with hundreds of mods that
@@ -626,13 +552,8 @@ onMounted(async () => {
     syncRowHeight();
     updateWindow();
 
-    // Đặt thanh trượt của hàng chip loại/xếp theo bộ lọc đã lưu (mặc định
-    // là 'all' / 'default'): đo sau 2 khung hình để chip đã vẽ xong kích
-    // thước thật.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (typeFilterRef.value) typeFilterRef.value.selectItemByName(typeFilter.value);
-        if (sortBarRef.value) sortBarRef.value.selectItemByName(sortBy.value);
-    }));
+    // Thanh trượt hàng chip lọc/xếp đo lại mỗi lần bảng overlay bung ra
+    // (modCharacterFilter) — bảng đóng lúc mở app nên không đo ở đây.
 
     // 接受文件拖拽事件，可以直接通过拖拽文件到窗口中导入 mod，或者拖拽图片到窗口中为 mod 添加预览图
     modCardManagerRef.value.addEventListener('dragover', (event) => {
@@ -727,23 +648,6 @@ defineExpose({
 .characterFilter {
     /* background-color: aqua; */
     border-radius: 10px;
-}
-
-/* Hai hàng lọc loại + sắp xếp, xếp chồng nhau (xem ghi chú ở template). */
-.filter-sort-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    width: 100%;
-    margin-top: 4px;
-}
-
-.type-filter-wrap {
-    width: 100%;
-}
-
-.sort-wrap {
-    width: 100%;
 }
 
 /* #mod-container[compact="true"] {
