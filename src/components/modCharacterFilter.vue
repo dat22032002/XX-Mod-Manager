@@ -319,6 +319,14 @@ defineExpose({
     flex: 1;
     min-width: 0;
     min-height: 35px;
+    /* Mép trái nghiêng theo ô tìm kiếm: ô nghiêng 20° nên mép phải của
+       nó lệch trái dần xuống dưới, trong khi mép trái thẳng đứng của
+       thanh tag làm khe giữa hai bên thành hình nêm (trên hẹp ~14px,
+       dưới rộng ~22px) — nhìn như vệt đen. Cắt mép trái thanh tag theo
+       cùng góc 20° (thanh cao 41px → lệch 15px, chia đều hai đầu quanh
+       tâm) để khe đều ~18px suốt chiều cao. Tag đầu lúc chưa kéo vẫn
+       hiện đủ (mép trái của nó nằm phải đường cắt). */
+    clip-path: polygon(7.5px 0, 100% 0, 100% 100%, -7.5px 100%);
 
     >* {
         margin-right: 5px;
