@@ -27,7 +27,7 @@ import { g_config_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 import ModCharacterFilter from './modCharacterFilter.vue';
 import { computeColumns, computeWindow, CARD_WIDTH, CARD_GAP, OVERSCAN_ROWS } from './modWindowing.js';
-import { selectedModIdSet, setSelectedModIds } from '../../helper/SelectedMods';
+import { selectedModIdSet, setSelectedModIdsExclusive } from '../../helper/SelectedMods';
 
 const iManager = new IManager();
 
@@ -293,7 +293,10 @@ async function loadPreset(presetName) {
     // (modCard's `clicked` is a computed over it), so mounted cards update
     // on their own and cards that are not mounted yet still get the
     // preset's selection when they mount — no card-clicking loop needed.
-    setSelectedModIds(mods);
+    // Áp dụng luật 1 mod/1 loại mỗi nhân vật cho preset luôn (mod sau
+    // cùng nhân vật + cùng loại sẽ thắng mod trước), không báo gì thêm để
+    // khỏi làm phiền lúc mở app (preset mặc định tự tải lúc khởi động).
+    setSelectedModIdsExclusive(mods.value || [], mods);
 
     //debug
     console.log('loadPreset', presetName);
