@@ -58,6 +58,8 @@
     <dialogConfirmReset />
     <dialogConfirmClose />
     <dialogConfirmDeleteMod />
+    <dialogUpdateAvailable />
+    <dialogUpdateDownloaded />
 </template>
 
 <script setup>
@@ -76,9 +78,15 @@ import dialogApplyResult from './dialogs/dialogApplyResult.vue';
 import dialogConfirmReset from './dialogs/dialogConfirmReset.vue';
 import dialogConfirmClose from './dialogs/dialogConfirmClose.vue';
 import dialogConfirmDeleteMod from './dialogs/dialogConfirmDeleteMod.vue';
+import dialogUpdateAvailable from './dialogs/dialogUpdateAvailable.vue';
+import dialogUpdateDownloaded from './dialogs/dialogUpdateDownloaded.vue';
 
 import DialogNeedRefresh from './dialogs/dialogNeedRefresh.vue';
 import { EventSystem } from '../helper/EventSystem';
+
+// Nghe sự kiện cập nhật từ tiến trình chính (có bản mới -> mở hộp hỏi).
+import { initUpdateListener } from '../helper/UpdateHelper';
+initUpdateListener();
 
 const loaded = ref(false);
 

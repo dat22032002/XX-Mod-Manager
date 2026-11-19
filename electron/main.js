@@ -5,6 +5,7 @@ require('./fileSystem.js')
 const setMainWindow = require('./fileSystem.js').setMainWindow;
 const setCustomConfigFolder = require('./fileSystem.js').setCustomConfigFolder;
 const getSavedWindowBounds = require('./fileSystem.js').getSavedWindowBounds;
+const { initUpdater } = require('./updater.js');
 let currentMainWindow;
 
 let devMode = false;
@@ -149,6 +150,8 @@ const createWindow = () => {
 
   currentMainWindow = mainWindow;
   setMainWindow(mainWindow);
+  // Tự kiểm tra bản cập nhật (chỉ chạy trên bản cài đặt Windows).
+  initUpdater(mainWindow);
 
   //-==================== 监听窗口显隐 ====================
   currentMainWindow.on("blur", () => {
