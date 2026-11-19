@@ -908,16 +908,23 @@ class IManager {
         // qua im lặng.
         let importedCount = 0;
         let skippedCount = 0;
+        // Số mục THẬT (file/thư mục) người dùng thả — không tính các định
+        // dạng clipboard. Kéo ảnh từ trình duyệt/Discord thì mỗi định dạng
+        // (link, chữ, html...) cũng là 1 item nhưng webkitGetAsEntry()
+        // trả null; trước đây mỗi cái null bị tính là 1 mục "bỏ qua" nên
+        // kéo 1 ảnh mà app báo đỏ "Imported 0 mod(s), skipped 5 item(s)"
+        // dù ảnh đã đổi xong.
+        let entryCount = 0;
         for (let i = 0; i < items.length; i++) {
             const item = items[i].webkitGetAsEntry();
 
             console.log('get entry from drag event', item);
             if (item == null) {
-                //debug
-                console.log('What is this?');
-                skippedCount++;
+                // Định dạng clipboard, không phải file người dùng thả:
+                // bỏ qua im lặng, không tính là "bỏ qua".
                 continue;
             }
+            entryCount++;
             try {
                 if (item.isDirectory) {
                     // 如果拖入的是文件夹，则视为用户想要添加mod
@@ -966,8 +973,11 @@ class IManager {
                 skippedCount++;
             }
         }
-        // Thả 1 mục thì mỗi đường xử lý đã tự báo; thả nhiều mới báo tổng kết.
-        if (items.length > 1) {
+        // Thả 1 mục thật thì mỗi đường xử lý đã tự báo; thả nhiều mục mới
+        // báo tổng kết — và chỉ báo khi có mod được nhập hoặc có file
+        // thật bị bỏ qua. Kéo mấy ảnh đổi cover thì thẻ đã đổi ngay trước
+        // mắt, không cần báo "Imported 0 mod(s), skipped 0 item(s)".
+        if (entryCount > 1 && (importedCount > 0 || skippedCount > 0)) {
             const t_message = {
                 vi: `Đã nhập ${importedCount} mod, bỏ qua ${skippedCount} mục`,
                 en: `Imported ${importedCount} mod(s), skipped ${skippedCount} item(s)`,
