@@ -36,6 +36,13 @@
                 <s-divider></s-divider>
                 <settingBar :data="initAllDataButton"></settingBar>
                 <settingBar :data="rescanAllModsButton"></settingBar>
+                <div class="OO-setting-bar update-check-row">
+                    <h3>{{ $t('update.checkTitle') }}</h3>
+                    <p>{{ $t('update.currentVersion', { version: currentVersion }) }}</p>
+                    <s-button class="OO-button" :disabled="isCheckingUpdate" @click="handleCheckForUpdates">
+                        {{ isCheckingUpdate ? $t('update.checking') : $t('update.checkButton') }}
+                    </s-button>
+                </div>
 
                 <div class="placeholder" style="flex: 1;min-height: 150px;"></div>
             </div>
@@ -199,7 +206,8 @@ const { t, locale } = useI18n()
 
 import { IPluginLoader } from '../../helper/PluginLoader.ts';
 import { EventSystem, EventType } from '../../helper/EventSystem.ts';
-import { SnackType, t_snack } from '../../helper/SnackHelper.ts';
+import { SnackType, t_snack, snack } from '../../helper/SnackHelper.ts';
+import { updateState, fetchAppVersion, checkForUpdates } from '../../helper/UpdateHelper';
 
 const tabs = ref(['normal', 'advanced', 'switch-config', 'about', 'plugin']);
 const translatedTabs = computed(() => {
@@ -222,6 +230,37 @@ const handleTabChange = (tab) => {
     //debug
     console.log('handleTabChange', tab);
 };
+
+//-==================== Kiểm tra cập nhật ====================-
+// Version đang chạy (lấy qua IPC get-app-version khi trang mở).
+const currentVersion = ref('');
+// Đang kiểm tra hoặc đang tải thì khóa nút lại.
+const isCheckingUpdate = computed(() => updateState.status === 'checking' || updateState.status === 'downloading');
+
+const handleCheckForUpdates = () => {
+    if (isCheckingUpdate.value) {
+        return;
+    }
+    checkForUpdates(true);
+};
+
+// Chỉ lần bấm tay mới hiện thông báo kết quả (tự kiểm tra lúc mở app
+// thì im lặng: đã là bản mới nhất hoặc lỗi mạng đều không báo).
+watch(() => updateState.status, (newStatus) => {
+    if (!updateState.manualCheck) {
+        return;
+    }
+    if (newStatus === 'uptodate') {
+        snack(t('update.upToDate'));
+        updateState.manualCheck = false;
+    } else if (newStatus === 'error') {
+        snack(updateState.checkError === 'unsupported' ? t('update.notSupported') : t('update.checkFailed'), SnackType.error);
+        updateState.manualCheck = false;
+    } else if (newStatus === 'available') {
+        // Hộp có-bản-mới đã mở, không cần hiện thêm thông báo.
+        updateState.manualCheck = false;
+    }
+});
 
 
 const plugins = ref({});
@@ -483,6 +522,11 @@ onMounted(async () => {
     //初始化tab
     currentTab.value = tabs.value[0];
 
+    // Lấy version đang chạy để hiện cạnh nút kiểm tra cập nhật.
+    fetchAppVersion().then((v) => {
+        currentVersion.value = v;
+    });
+
     // 挂载插件的额外设置
     EventSystem.on(EventType.pluginLoaded, () => {
         plugins.value = IPluginLoader.plugins;
@@ -533,6 +577,19 @@ onMounted(async () => {
     align-items: stretch;
     justify-content: flex-start;
     flex-wrap: nowrap;
+}
+
+/* Hàng kiểm tra cập nhật: tiêu đề + version xếp sát nhau bên trái.
+   .OO-setting-bar mặc định space-between sẽ đẩy version ra mép phải,
+   chui xuống dưới nút bấm (nút đặt tuyệt đối ở mép phải). */
+.update-check-row {
+    justify-content: flex-start;
+    gap: 16px;
+}
+
+.update-check-row p {
+    margin: 0;
+    white-space: nowrap;
 }
 
 .setting-content {

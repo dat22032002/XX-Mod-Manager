@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@tweenjs/tween.js": "^25.0.0",
+    "electron-updater": "^6.8.11",
     "hmc-win32": "^1.4.92",
     "sober": "^0.6.8",
     "vue": "^3.5.12",

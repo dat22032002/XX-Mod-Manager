@@ -16,6 +16,8 @@ enum DialogID {
     dialogConfirmClose = 'dialog-confirm-close',
     dialogConfirmDeleteMod = 'dialog-confirm-delete-mod',
     dialogConfirmBatchCharacter = 'dialog-confirm-batch-character',
+    dialogUpdateAvailable = 'dialog-update-available',
+    dialogUpdateDownloaded = 'dialog-update-downloaded',
 }
 
 class DialogHelper {

@@ -201,6 +201,26 @@
     "done": "Character set for {count} mods",
     "doneWithFailures": "Character set for {ok} mods, {fail} failed: {names}"
   },
+  "update": {
+    "checkTitle": "App updates",
+    "checkButton": "Check for updates",
+    "checking": "Checking...",
+    "currentVersion": "Current version: {version}",
+    "upToDate": "You are already on the latest version",
+    "checkFailed": "Could not check for updates, please try again later",
+    "notSupported": "Updates are only available in the installed Windows version",
+    "availableTitle": "A new version is available",
+    "newVersion": "New version: {version}",
+    "releaseNotes": "What's new",
+    "updateNow": "Update now",
+    "later": "Later",
+    "downloading": "Downloading update... {percent}%",
+    "downloadedTitle": "Update downloaded",
+    "downloadedMessage": "Version {version} is ready. Restart the app to install it.",
+    "downloadedNote": "If you choose Later, the update will install the next time you quit the app.",
+    "restartNow": "Restart now",
+    "downloadFailed": "Download failed, please try again later"
+  },
   "switchConfig": {
     "noSelection": "Please select a config first"
   }
