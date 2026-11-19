@@ -361,7 +361,9 @@ class ModData {
     }
 
     //-========== 获取mod信息 ===========
-    public async getPreviewBase64(ifWithHeader: boolean = false) {
+    // fullSize: the edit dialog / detail panel show the cover larger than
+    // a card, so they use the full-size image; cards use the 250px thumbnail.
+    public async getPreviewBase64(ifWithHeader: boolean = false, fullSize: boolean = false) {
         // 优化,改为使用ImageBase64类
         if (!this.preview) {
             return "";
@@ -376,6 +378,9 @@ class ModData {
             //     ImageHelper.clearImageCache();
             // }, 1000);
             //debug
+            if (fullSize) {
+                return ImageHelper.getFullImageUrlFromLocalPath(this.getModPreviewPath());
+            }
             return ImageHelper.getImageUrlFromLocalPath(this.getModPreviewPath(), true);
         }
 

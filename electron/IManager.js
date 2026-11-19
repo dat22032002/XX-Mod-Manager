@@ -131,7 +131,7 @@ class IManager {
         return iManager;
     }
 
-    constructor() {
+    constructor(options = {}) {
         Archive = window.Archive;
         if (IManager.instance) {
             return IManager.instance;
@@ -141,6 +141,15 @@ class IManager {
 
         this.HMC = HMC
 
+        // Chế độ khởi động nhẹ (cửa sổ cài đặt lần đầu / đổi cấu hình):
+        // chỉ cần cài đặt, không cần danh sách mod hay plugin.
+        this._lightInit = !!(options && options.light);
+
+        // Promise hoàn thành khi init xong — waitInit() chờ promise này thay vì
+        // hỏi cờ inited mỗi 10ms.
+        this._initResolve = null;
+        this._initPromise = new Promise((resolve) => { this._initResolve = resolve; });
+
         // 初始化
         this.init();
     }
@@ -148,11 +157,7 @@ class IManager {
 
     anouncedFinishInit = false;
     async waitInit() {
-        while (!this.inited) {
-            //debug
-            //console.log('===== waitInit wait =====');
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
+        await this._initPromise;
         //debug
         if (!this.anouncedFinishInit) {
             console.log('✅====== waitInit done ======');
@@ -342,7 +347,20 @@ class IManager {
             console.log('ifKeepModNameAsModFolderName changed to:', newValue);
         });
 
-        this.saveConfig();
+        // Chỉ ghi lại file khi nội dung thật sự thay đổi — trước đây mỗi lần mở
+        // app đều ghi lại toàn bộ file dù không đổi gì. File và _config dùng
+        // chung một cách ghi (JSON.stringify 4 khoảng trắng) nên so sánh chuỗi
+        // là đủ; file khác (thiếu khóa, khóa lạ, hỏng) vẫn được ghi lại như cũ.
+        try {
+            const configPath = XXMMCore.getConfigFilePath();
+            const currentText = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf8') : null;
+            if (currentText !== JSON.stringify(this._config, null, 4)) {
+                this.saveConfig();
+            }
+        } catch (e) {
+            // Đọc/so sánh lỗi thì ghi lại như cũ cho chắc.
+            this.saveConfig();
+        }
     }
 
     newMods = [];
@@ -433,10 +451,14 @@ class IManager {
 
     async refreshCharacterList() {
         // 加载 character
-        this.data.characterList = new Set(this.data.modList.map((mod) => mod.character));
-        // 当 currentCharacter 不变时，不会触发 currentCharacterChanged 事件
-        // 但是 characterList 的顺序 是按照从mod中获取的顺序，所以这里需要将其排序一下，默认按照字母排序
-        this.data.characterList = Array.from(this.data.characterList).sort();
+        const newList = Array.from(new Set(this.data.modList.map((mod) => mod.character))).sort();
+        // Danh sách không đổi thì không gán lại — mỗi lần gán qua Proxy đều
+        // kích hoạt Vue vẽ lại dải chip nhân vật. Trước đây hàm này dựng lại
+        // + gán 2 lần (Set rồi Array) mỗi khi có sự kiện modInfoChanged.
+        const oldList = this.data.characterList;
+        if (oldList.length !== newList.length || oldList.some((c, i) => c !== newList[i])) {
+            this.data.characterList = newList;
+        }
 
         // 如果 currentCharacter 不为空，且 characterList 中不包含 currentCharacter，则将 currentCharacter 设置为 all
         // 'all' 和 'selected' 是 tab giả (không phải tên nhân vật) nên không bao giờ
@@ -558,9 +580,8 @@ class IManager {
             console.log(`mod ${modName} already exists`, this.data.modList.length);
         }
 
-        // 刷新一下characterList
-        this.data.characterList = new Set(this.data.modList.map((mod) => mod.character));
-        this.data.characterList = Array.from(this.data.characterList).sort();
+        // 刷新一下characterList (chỉ gán lại khi danh sách thật sự đổi)
+        await this.refreshCharacterList();
 
         return modData;
     }
@@ -594,9 +615,8 @@ class IManager {
         // 将其添加到 modList 中
         this.data.modList.push(mod);
 
-        // 刷新一下characterList
-        this.data.characterList = new Set(this.data.modList.map((mod) => mod.character));
-        this.data.characterList = Array.from(this.data.characterList).sort();
+        // 刷新一下characterList (chỉ gán lại khi danh sách thật sự đổi)
+        await this.refreshCharacterList();
 
         return mod;
     }
@@ -633,38 +653,52 @@ class IManager {
         console.log('✅>> themeChange to', this.config.theme);
 
         // 加载mod
-        startTime = new Date().getTime();
-        // 挂载回调
-        ModLoader.onAfterLoad(this.afterModsLoad.bind(this));
-        await this.newLoadMods();
-        endTime = new Date().getTime();
-        console.log('✅>> loadMods done, cost', endTime - startTime, 'ms');
+        if (!this._lightInit) {
+            startTime = new Date().getTime();
+            // 挂载回调
+            ModLoader.onAfterLoad(this.afterModsLoad.bind(this));
+            await this.newLoadMods();
+            endTime = new Date().getTime();
+            console.log('✅>> loadMods done, cost', endTime - startTime, 'ms');
 
-        // 加载预设
-        await this.loadPresets();
-        console.log('✅>> loadPresets done');
+            // 加载预设
+            await this.loadPresets();
+            console.log('✅>> loadPresets done');
+        } else {
+            // Chế độ nhẹ: cửa sổ này không cần danh sách mod hay preset.
+            console.log('✅>> light init: skip loadMods + loadPresets');
+        }
 
 
 
         //debug
         console.log('✅>> init IManager done');
         this.inited = true;
+        if (this._initResolve) {
+            this._initResolve(this);
+            this._initResolve = null;
+        }
 
-        //----------------- 事件监听 -----------------
-        EventSystem.on(EventType.modInfoChanged, async (mod) => {
-            // characterList 变化
-            this.data.characterList = new Set(this.data.modList.map((mod) => mod.character));
-            this.data.characterList = Array.from(this.data.characterList).sort();
-        });
-        EventSystem.on(EventType.currentModChanged, (mod) => {
-            this.temp.currentMod = mod;
-        });
+        if (!this._lightInit) {
+            //----------------- 事件监听 -----------------
+            EventSystem.on(EventType.modInfoChanged, async (mod) => {
+                // characterList 变化 — chỉ dựng lại khi danh sách thật sự đổi
+                // (đặt nhân vật hàng loạt bắn N sự kiện, không dựng lại N lần).
+                await this.refreshCharacterList();
+            });
+            EventSystem.on(EventType.currentModChanged, (mod) => {
+                this.temp.currentMod = mod;
+            });
+        }
 
 
         //调用 start 方法
         setTimeout(() => {
             this.trigger('initDone', this);
-            this.start();
+            // Chế độ nhẹ không tải plugin (cửa sổ này không cần plugin).
+            if (!this._lightInit) {
+                this.start();
+            }
         }, 10);
     }
 

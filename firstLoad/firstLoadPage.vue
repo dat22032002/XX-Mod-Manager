@@ -123,10 +123,10 @@
                     <div class="OO-setting-bar">
                         <h3> {{ $t('setting.modTargetPath') }} </h3>
                         <div class="OO-s-text-field-container">
-                            <s-text-field :value="modTargetPath" @input="modTargetPath = $event.target.value">
+                            <s-text-field :value="modTargetPath" @input="modTargetPath = $event.target.value" @change="savePaths">
                             </s-text-field>
                             <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                                @click="iManager.setConfigFromDialog('modTargetPath', 'directory').then((res) => { modTargetPath = res })">
+                                @click="iManager.setConfigFromDialog('modTargetPath', 'directory').then((res) => { modTargetPath = res; savePaths(); })">
                                 <s-icon type="add"></s-icon>
                             </s-icon-button>
                         </div>
@@ -138,10 +138,10 @@
                     <div class="OO-setting-bar">
                         <h3> {{ $t('setting.modSourcePath') }} </h3>
                         <div class="OO-s-text-field-container">
-                            <s-text-field :value="modSourcePath" @input="modSourcePath = $event.target.value">
+                            <s-text-field :value="modSourcePath" @input="modSourcePath = $event.target.value" @change="savePaths">
                             </s-text-field>
                             <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                                @click="iManager.setConfigFromDialog('modSourcePath', 'directory').then((res) => { modSourcePath = res })">
+                                @click="iManager.setConfigFromDialog('modSourcePath', 'directory').then((res) => { modSourcePath = res; savePaths(); })">
                                 <s-icon type="add"></s-icon>
                             </s-icon-button>
                         </div>
@@ -162,10 +162,10 @@
                     <div class="OO-setting-bar">
                         <h3> {{ $t('setting.presetPath') }} </h3>
                         <div class="OO-s-text-field-container">
-                            <s-text-field :value="presetPath" @input="presetPath = $event.target.value">
+                            <s-text-field :value="presetPath" @input="presetPath = $event.target.value" @change="savePaths">
                             </s-text-field>
                             <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                                @click="iManager.setConfigFromDialog('presetPath', 'directory').then((res) => { presetPath = res })">
+                                @click="iManager.setConfigFromDialog('presetPath', 'directory').then((res) => { presetPath = res; savePaths(); })">
                                 <s-icon type="add"></s-icon>
                             </s-icon-button>
                         </div>
@@ -282,7 +282,7 @@ let { languageData, themeData, modTargetPathData, modSourcePathData, presetPathD
 
 
 const ipcRenderer = require('electron').ipcRenderer;
-const iManager = new IManager();
+const iManager = new IManager({ light: true });
 
 
 const sections = ref(['intro', 'basic', 'advanced', 'auto', 'more']);
@@ -299,19 +299,26 @@ const ifAutoApply = ref(false);
 const ifAutoRefreshInZZZ = ref(false);
 const ifUseAdmin = ref(false);
 
+// Gõ đường dẫn chỉ đồng bộ vào cài đặt trong RAM; ghi file khi rời ô nhập
+// (@change), khi chọn thư mục bằng hộp thoại, hoặc khi bấm nút xong — trước
+// đây mỗi phím gõ là 1 lần ghi file cấu hình.
 watch(modTargetPath, (newVal) => {
     iManager.config.modTargetPath = newVal;
-    iManager.saveConfig();
 });
 
 watch(modSourcePath, (newVal) => {
     iManager.config.modSourcePath = newVal;
-    iManager.saveConfig();
 });
 watch(presetPath, (newVal) => {
     iManager.config.presetPath = newVal;
-    iManager.saveConfig();
 });
+
+const savePaths = () => {
+    iManager.config.modTargetPath = modTargetPath.value;
+    iManager.config.modSourcePath = modSourcePath.value;
+    iManager.config.presetPath = presetPath.value;
+    iManager.saveConfig();
+};
 
 
 const handleSectionChange = (section) => {

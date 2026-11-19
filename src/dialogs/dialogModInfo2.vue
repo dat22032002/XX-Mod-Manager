@@ -242,7 +242,7 @@ watch(() => props.mod, async (newVal) => {
     // 显式销毁之前的 tempModInfo
     tempModInfo?.value?.destroy();
     tempModInfo.value = newVal.copy();
-    img.value = await newVal.getPreviewBase64(true);
+    img.value = await newVal.getPreviewBase64(true, true);
   }
 });
 
@@ -303,7 +303,7 @@ const handleSelectImage = async () => {
 
 const handleCancel = async () => {
   tempModInfo.value = props.mod.copy();
-  img.value = await props.mod.getPreviewBase64(true);
+  img.value = await props.mod.getPreviewBase64(true, true);
 }
 
 const handleSave = () => {
@@ -359,7 +359,7 @@ onMounted(() => {
   // 监听 dialog 的 show 事件，再同步一次 tempModInfo
   editModInfoDialog.value.$el.addEventListener('show', async () => {
     tempModInfo.value = props.mod.copy();
-    img.value = await props.mod.getPreviewBase64(true);
+    img.value = await props.mod.getPreviewBase64(true, true);
   });
 
   // 监听粘贴操作，如果粘贴的是图片则将其设置为 mod 的预览图片

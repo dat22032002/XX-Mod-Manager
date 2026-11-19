@@ -68,10 +68,12 @@ class IPluginLoader {
     public static pluginConfig: { [key: string]: IPluginData[] } = {};
     public static enviroment: any;
 
-    public static pluginLoadFolders: (() => string)[] = [
+    // HP12: the user-data path is fetched once asynchronously (via the cached
+    // XXMMCore.getDataPath()) instead of a blocking sendSync on every load.
+    public static pluginLoadFolders: (() => string | Promise<string>)[] = [
         () => path.resolve('./plugins'), // 内置插件
-        () => {
-            const userDataPath = ipcRenderer.sendSync('get-user-data-path-sync');
+        async () => {
+            const userDataPath = await XXMMCore.getDataPath();
             return path.join(userDataPath, 'plugins'); // 用户插件
         }   // 全局插件
     ];
@@ -224,7 +226,9 @@ class IPluginLoader {
             return;
         }
         const files = fs.readdirSync(folder);
-        files.forEach(async (file) => {
+        // HP4: files.forEach(async ...) was never awaited, so Init returned
+        // before plugins finished registering; a for...of loop awaits each one.
+        for (const file of files) {
             if (file.endsWith('.js')) {
                 try {
                     const plugin: IPlugin = require(path.join(folder, file)) as unknown as IPlugin;
@@ -238,7 +242,7 @@ class IPluginLoader {
                     t_snack(tt, SnackType.error);
                 }
             }
-        });
+        }
     }
 
     /** @function
@@ -252,9 +256,11 @@ class IPluginLoader {
         const startTime = new Date().getTime();
         await Promise.all(
             IPluginLoader.pluginLoadFolders.map(async (folder) => {
+                // resolve once: a folder entry may be async now (HP12)
+                const folderPath = await folder();
                 // debug
-                console.log(`Load plugins from ${folder()}`);
-                await IPluginLoader.LoadPluginsFromFolder(enviroment, folder());
+                console.log(`Load plugins from ${folderPath}`);
+                await IPluginLoader.LoadPluginsFromFolder(enviroment, folderPath);
             }
             ));
 
@@ -305,9 +311,12 @@ class IPluginLoader {
      * data 是一个对象，包含了 插件的配置数据,以{{配置名：配置值}}的形式保存
     */
     static async SaveAllPluginConfig() {
+        // HP15: one read + one write for all plugins instead of one per plugin
+        const allPluginDataToSave: { [key: string]: any } = {};
         for (const pluginName in IPluginLoader.pluginConfig) {
-            IPluginLoader.SavePluginConfig(pluginName, IPluginLoader.pluginConfig[pluginName]);
+            allPluginDataToSave[pluginName] = IPluginLoader.transformPluginConfigToSave(IPluginLoader.pluginConfig[pluginName]);
         }
+        XXMMCore.saveAllPluginConfig(allPluginDataToSave);
     }
 
     /** @function
@@ -320,15 +329,14 @@ class IPluginLoader {
     static SaveAllPluginConfigSync() {
         //弹出窗口，询问是否保存配置
         // alert('SaveAllPluginConfigSync');
+        // HP15: a single IPC call + a single file write for all plugins,
+        // instead of one read + one full write per plugin (9x on close).
+        const allPluginDataToSave: { [key: string]: any } = {};
         for (const pluginName in IPluginLoader.pluginConfig) {
-            const pluginData = IPluginLoader.pluginConfig[pluginName];
-            const pluginDataToSave = {};
-            pluginData.forEach((data) => {
-                pluginDataToSave[data.name] = data.data;
-            });
-            console.log('savePluginConfig:', pluginName, pluginDataToSave, typeof pluginDataToSave);
-            ipcRenderer.invoke('save-plugin-config', pluginName, pluginDataToSave);
+            allPluginDataToSave[pluginName] = IPluginLoader.transformPluginConfigToSave(IPluginLoader.pluginConfig[pluginName]);
         }
+        console.log('saveAllPluginConfig:', allPluginDataToSave);
+        ipcRenderer.invoke('save-all-plugin-config', allPluginDataToSave);
     }
 
     //-===================== 插件接口 =====================

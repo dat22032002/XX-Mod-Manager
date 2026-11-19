@@ -18,6 +18,12 @@ class TapeConfig{
     private static _userConfigPath: string = '';
     private static _configRootPath: string = '';
     public static async getConfigRootPath(){
+        // HP18: the user-data path never changes within a run — fetch it once
+        // and reuse the cached result instead of an IPC call every time.
+        // (Still empty after a failed fetch, so the next call retries.)
+        if (this._configRootPath) {
+            return this._configRootPath;
+        }
         // 默认为用户数据路径
         this._userConfigPath = await ipcRenderer.invoke('get-user-data-path');
         this._configRootPath = path.join(this._userConfigPath, 'config');
@@ -36,12 +42,34 @@ class TapeConfig{
         this._dir = dir;
         // name为文件夹名
         this.name = path.basename(dir);
-        this.tape_front = ['jpg', 'jpeg', 'png', 'gif'].map(ext => path.join(this._dir, `front.${ext}`)).find(fs.existsSync) || '';
-        this.tape_side = ['jpg', 'jpeg', 'png', 'gif'].map(ext => path.join(this._dir, `side.${ext}`)).find(fs.existsSync) || '';
-        this.tape_back = ['jpg', 'jpeg', 'png', 'gif'].map(ext => path.join(this._dir, `back.${ext}`)).find(fs.existsSync) || '';
-        this.tape_spine = ['jpg', 'jpeg', 'png', 'gif'].map(ext => path.join(this._dir, `spine.${ext}`)).find(fs.existsSync) || '';
-        const descriptionPath = path.join(this._dir, 'description.txt');
-        this.desc = fs.existsSync(descriptionPath) ? fs.readFileSync(descriptionPath, 'utf-8') : new TranslatedText('No Description','Không có mô tả').get();
+        // HP17: read the directory listing once instead of 16 synchronous
+        // existsSync calls (4 image types x 4 extensions). The lowercase map
+        // keeps the Windows case-insensitive existsSync behaviour (e.g. a
+        // FRONT.JPG file still matches front.jpg); a missing/unreadable dir
+        // behaves like before (no images found, no throw).
+        const dirFiles = new Map<string, string>();
+        try {
+            for (const f of fs.readdirSync(dir)) {
+                dirFiles.set(f.toLowerCase(), f);
+            }
+        } catch (e) {
+            // 目录不存在或不可读：与原来 existsSync 全为 false 的结果一致
+        }
+        const findImage = (base: string): string => {
+            for (const ext of ['jpg', 'jpeg', 'png', 'gif']) {
+                const found = dirFiles.get(`${base}.${ext}`);
+                if (found !== undefined) {
+                    return path.join(this._dir, found);
+                }
+            }
+            return '';
+        };
+        this.tape_front = findImage('front');
+        this.tape_side = findImage('side');
+        this.tape_back = findImage('back');
+        this.tape_spine = findImage('spine');
+        const descFile = dirFiles.get('description.txt');
+        this.desc = descFile !== undefined ? fs.readFileSync(path.join(this._dir, descFile), 'utf-8') : new TranslatedText('No Description','Không có mô tả').get();
 
         // debug
         console.log(this);
@@ -60,7 +88,12 @@ class TapeConfig{
             fsProxy.openDir(configRootDir);
         }
         // 遍历 config
-        const configDirs: string[] = fs.readdirSync(configRootDir).filter((file: string): boolean => fs.statSync(path.join(configRootDir, file)).isDirectory());
+        // HP17: withFileTypes gives the entry type from the listing itself —
+        // no statSync per entry (only symlinks still need a stat, to keep the
+        // old behaviour of following a symlink to a directory).
+        const configDirs: string[] = fs.readdirSync(configRootDir, { withFileTypes: true })
+            .filter((entry): boolean => entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(path.join(configRootDir, entry.name)).isDirectory()))
+            .map((entry) => entry.name);
         // 如果没有配置文件夹，创建一个
         if(configDirs.length === 0){
             t_snack(new TranslatedText('No config found', 'Không tìm thấy file cấu hình'), SnackType.error);

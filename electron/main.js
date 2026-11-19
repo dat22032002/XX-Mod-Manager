@@ -4,6 +4,7 @@ const path = require('node:path')
 require('./fileSystem.js')
 const setMainWindow = require('./fileSystem.js').setMainWindow;
 const setCustomConfigFolder = require('./fileSystem.js').setCustomConfigFolder;
+const getSavedWindowBounds = require('./fileSystem.js').getSavedWindowBounds;
 let currentMainWindow;
 
 let devMode = false;
@@ -79,12 +80,56 @@ ipcMain.on("set-custom-config-folder", (event, folder) => {
 });
 
 
+// HP11: same fit-and-center rules as the 'set-bounds' handler, so the window
+// can be created at the exact bounds the renderer would apply after init
+// (and therefore never visibly jumps size on launch).
+function fitBoundsToScreen(bounds) {
+  const screenArea = screen.getDisplayMatching(bounds).workArea;
+  const width = Math.min(bounds.width, screenArea.width);
+  const height = Math.min(bounds.height, screenArea.height);
+  // 如果bounds的x,y，为-1，表示居中
+  if (bounds.x === -1 || bounds.y === -1) {
+    return {
+      x: Math.floor((screenArea.width - width) / 2),
+      y: Math.floor((screenArea.height - height) / 2),
+      width: width,
+      height: height
+    };
+  }
+  if (
+    (bounds.x + bounds.width) > (screenArea.x + screenArea.width) ||
+    bounds.x > (screenArea.x + screenArea.width) ||
+    bounds.x < screenArea.x ||
+    (bounds.y + bounds.height) > (screenArea.y + screenArea.height) ||
+    bounds.y > (screenArea.y + screenArea.height) ||
+    bounds.y < screenArea.y
+  ) {
+    // Fit and center window into the existing screenarea
+    return {
+      x: Math.floor((screenArea.width - width) / 2),
+      y: Math.floor((screenArea.height - height) / 2),
+      width: width,
+      height: height
+    };
+  }
+  return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
+}
+
 const createWindow = () => {
+  // HP11: create the window hidden (show: false) at the saved bounds, and only
+  // show it once ready-to-show fires — previously it appeared immediately at
+  // 800x600 and visibly jumped when the renderer applied the saved bounds.
+  const initialBounds = fitBoundsToScreen(
+    getSavedWindowBounds() || { width: 800, height: 600, x: -1, y: -1 }
+  );
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     frame: false,
-    width: 800,
-    height: 600,
+    show: false,
+    width: initialBounds.width,
+    height: initialBounds.height,
+    x: initialBounds.x,
+    y: initialBounds.y,
     webPreferences: {
       sandbox: false,
       //preload: path.join(__dirname, '../preload.js'),
@@ -127,13 +172,17 @@ const createWindow = () => {
   //mainWindow.loadFile('./electron/index.html')
   // 因为现在是 使用 vite + vue3 开发的，所以这里加载的是 vite 启动的地址
   if (devMode) {
-    mainWindow.loadURL('http://localhost:3000/')
+    // HP22: pick one URL and load it once — previously loadURL was called up
+    // to 3 times (--firstpage + --switchConfig), the first loads wasted.
+    // Precedence matches the old last-load-wins order: switchConfig > firstpage.
+    let startUrl = 'http://localhost:3000/';
     if (firstpage) {
-      mainWindow.loadURL('http://localhost:3000/firstLoad/index.html')
+      startUrl = 'http://localhost:3000/firstLoad/index.html';
     }
     if (switchConfig) {
-      mainWindow.loadURL('http://localhost:3000/switchConfig/index.html')
+      startUrl = 'http://localhost:3000/switchConfig/index.html';
     }
+    mainWindow.loadURL(startUrl);
     if (devTools) {
       mainWindow.webContents.openDevTools()
     }
@@ -151,6 +200,15 @@ const createWindow = () => {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     console.log('main window is ready');
+  });
+
+  // HP11 safety net: with show: false, a failed page load would leave the
+  // window invisible forever (ready-to-show never fires) — show it anyway
+  // so the failure stays visible instead of looking like a dead launch.
+  mainWindow.webContents.once('did-fail-load', () => {
+    if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      mainWindow.show();
+    }
   });
 }
 

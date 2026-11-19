@@ -80,7 +80,7 @@ watch(() => props.mod, (newMod) => {
         img.value = null;
         return;
     }
-    newMod.getPreviewBase64(true).then((base64) => {
+    newMod.getPreviewBase64(true, true).then((base64) => {
         img.value = base64;
     });
 });
@@ -88,7 +88,7 @@ watch(() => props.mod, (newMod) => {
 EventSystem.on(EventType.modInfoChanged,(mod) => {
     if (mod.name == props.mod.name) {
         setTimeout(() => {
-            props.mod.getPreviewBase64(true).then((base64) => {
+            props.mod.getPreviewBase64(true, true).then((base64) => {
                 img.value = base64;
             });
         }, 1);

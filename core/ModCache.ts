@@ -11,7 +11,18 @@
 //
 // The cache must never break launch: any failure (missing/corrupt file,
 // unreadable folder, no userData path) degrades to a full scan.
+//
+// Performance (HP6/HP20): the cache file is read from disk at most once
+// per session. After the first load it lives in memory: load() returns the
+// shared in-memory copy (so importing many mods no longer re-reads and
+// re-writes the whole file per mod), and save() only marks it dirty and
+// schedules one debounced asynchronous write. Writes are serialized
+// through a promise chain, so a later save can never be overwritten by
+// an earlier one still in flight. A pending write is flushed when the
+// window goes to sleep; if the app is killed before the write lands,
+// the next launch simply scans again — the cache is a pure optimization.
 import XXMMCore from './XXMMCore';
+import { EventSystem, EventType } from '../helper/EventSystem';
 
 const fs = require('fs');
 const path = require('path');
@@ -43,6 +54,19 @@ const CACHE_FILE_NAME = 'mod-cache.json';
 class ModCache {
     private static cacheFilePathCache: string | null | undefined = undefined;
 
+    // In-memory copy of the cache file (HP6): read once per session,
+    // then load() returns this object and save() only marks it dirty.
+    private static memoryCache: ModCacheFile | null = null;
+    // True when memoryCache has changes not yet written to disk.
+    private static dirty: boolean = false;
+    // Timer for the debounced write (HP20). Null when none is pending.
+    private static saveTimer: ReturnType<typeof setTimeout> | null = null;
+    // Serializes disk writes so they can never overlap or reorder.
+    private static writeChain: Promise<void> = Promise.resolve();
+    // Bumped by clear(): a write scheduled before the clear must not
+    // recreate the file after it was deleted.
+    private static writeEpoch: number = 0;
+
     public static fresh(keepModNameAsFolder: boolean = false): ModCacheFile {
         return {
             version: CACHE_VERSION,
@@ -65,14 +89,23 @@ class ModCache {
         return this.cacheFilePathCache;
     }
 
+    // Returns the in-memory cache when one is already loaded for this
+    // setting (no disk read); otherwise reads the file once and keeps it.
+    // The returned object is the shared live copy: callers may mutate it
+    // (ModLoader does) and then call save() to persist it.
     public static load(keepModNameAsFolder: boolean): ModCacheFile {
+        if (this.memoryCache && this.memoryCache.keepModNameAsFolder === keepModNameAsFolder) {
+            return this.memoryCache;
+        }
         const cachePath = this.getCacheFilePath();
         const fresh = this.fresh(keepModNameAsFolder);
         if (!cachePath) {
+            this.memoryCache = fresh;
             return fresh;
         }
         try {
             if (!fs.existsSync(cachePath)) {
+                this.memoryCache = fresh;
                 return fresh;
             }
             const raw = fs.readFileSync(cachePath, 'utf8');
@@ -80,38 +113,94 @@ class ModCache {
             // Any shape problem -> ignore the cache, full scan (self-healing).
             if (!parsed || parsed.version !== CACHE_VERSION || typeof parsed.sources !== 'object') {
                 console.warn('ModCache: cache file outdated or corrupt, ignoring it');
+                this.memoryCache = fresh;
                 return fresh;
             }
             // The "keep mod name = folder name" setting changes resolved names,
             // so a cache written under the other setting is not reusable.
             if (parsed.keepModNameAsFolder !== keepModNameAsFolder) {
                 console.log('ModCache: ifKeepModNameAsModFolderName changed, ignoring cache');
+                this.memoryCache = fresh;
                 return fresh;
             }
-            return parsed as ModCacheFile;
+            this.memoryCache = parsed as ModCacheFile;
+            return this.memoryCache;
         } catch (e) {
             console.warn('ModCache: failed to read cache file, ignoring it', e);
+            this.memoryCache = fresh;
             return fresh;
         }
     }
 
+    // Mark the cache dirty and schedule one debounced asynchronous write
+    // (HP20). Never blocks the UI thread. The JSON is serialized when the
+    // write fires, so rapid successive saves collapse into a single write
+    // of the latest state.
     public static save(cache: ModCacheFile): void {
+        this.memoryCache = cache;
+        this.dirty = true;
+        this.scheduleSave();
+    }
+
+    private static scheduleSave(): void {
+        if (this.saveTimer !== null) {
+            return;
+        }
+        this.saveTimer = setTimeout(() => {
+            this.saveTimer = null;
+            this.flushWrite();
+        }, 300);
+    }
+
+    // Write the pending changes now instead of waiting for the debounce.
+    // Safe to call when nothing is pending.
+    public static flush(): void {
+        if (this.saveTimer !== null) {
+            clearTimeout(this.saveTimer);
+            this.saveTimer = null;
+        }
+        this.flushWrite();
+    }
+
+    private static flushWrite(): void {
+        if (!this.dirty || !this.memoryCache) {
+            return;
+        }
         const cachePath = this.getCacheFilePath();
         if (!cachePath) {
             return;
         }
-        try {
-            fs.writeFileSync(cachePath, JSON.stringify(cache), 'utf8');
-        } catch (e) {
+        // Serialize now; the write itself is async and chained, so two
+        // saves can never interleave on disk.
+        const snapshot = JSON.stringify(this.memoryCache);
+        const epoch = this.writeEpoch;
+        this.dirty = false;
+        this.writeChain = this.writeChain.then(() => {
+            // The cache was cleared after this write was scheduled:
+            // do not recreate the deleted file.
+            if (epoch !== this.writeEpoch) {
+                return;
+            }
+            return fs.promises.writeFile(cachePath, snapshot, 'utf8');
+        }).catch((e) => {
             // A failed cache write must not break the app; next launch
             // simply scans again.
             console.warn('ModCache: failed to write cache file', e);
-        }
+        });
     }
 
     // Delete the cache file. The next load is a full scan.
     // Returns true when no cache file remains afterwards.
     public static clear(): boolean {
+        // Drop the in-memory copy and cancel any pending write first,
+        // or a scheduled write could recreate the file right after this.
+        this.memoryCache = null;
+        this.dirty = false;
+        this.writeEpoch++;
+        if (this.saveTimer !== null) {
+            clearTimeout(this.saveTimer);
+            this.saveTimer = null;
+        }
         const cachePath = this.getCacheFilePath();
         if (!cachePath) {
             return false;
@@ -146,5 +235,11 @@ class ModCache {
         }
     }
 }
+
+// When the window goes to sleep, write out any pending cache changes
+// instead of waiting for the debounce — the app may be closed while asleep.
+EventSystem.on(EventType.windowSleep, async () => {
+    ModCache.flush();
+});
 
 export default ModCache;

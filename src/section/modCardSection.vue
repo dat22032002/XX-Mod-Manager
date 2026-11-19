@@ -105,7 +105,7 @@ import modCardManager from '../components/modCardManager.vue';
 import modCardManager2 from '../components/modCardManager2.vue';
 import leftMenu from '../components/leftMenu.vue';
 import modInfo from '../components/modInfo.vue';
-import { ref, onMounted, useTemplateRef, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, useTemplateRef, watch, computed } from 'vue';
 import IManager from '../../electron/IManager';
 import { g_temp_vue, g_config_vue, g_data_vue } from '../../electron/IManager';
 import fsProxy from '../../electron/fsProxy';
@@ -208,6 +208,9 @@ watch(currentPreset, (newVal, oldVal) => {
 });
 
 function handlePresetChange(tab) {
+    // Xả lần ghi preset cũ đang chờ trước khi đổi sang preset khác,
+    // không thì lựa chọn vừa bấm sẽ mất khỏi preset cũ.
+    flushPresetSave();
     iManager.setCurrentPreset(tab);
 }
 
@@ -218,7 +221,19 @@ const selectedModIds = () => [...selectedModIdSet];
 const selectedModNames = () => [...selectedModIdSet].map(id => iManager.data.modList.find(mod => mod.id === id)?.name).filter(Boolean);
 
 
-function savePreset() {
+// Ghi preset dồn: mỗi lần bấm chọn/bỏ mod trước đây ghi lại toàn bộ file
+// preset ngay — bấm lia lịa là ghi file lia lịa. Giờ chờ 500ms sau lần bấm
+// cuối mới ghi 1 lần. Lần ghi đang chờ được xả ngay khi đổi preset hoặc
+// đóng cửa sổ để không mất lựa chọn.
+let savePresetTimer = null;
+function flushPresetSave() {
+    if (savePresetTimer) {
+        clearTimeout(savePresetTimer);
+        savePresetTimer = null;
+        writePresetNow();
+    }
+}
+function writePresetNow() {
     // Preset Mặc định không có file riêng: lựa chọn của nó lưu vào config.
     if (currentPreset.value == 'default') {
         iManager.saveDefaultPreset(selectedModIds());
@@ -228,6 +243,22 @@ function savePreset() {
     console.log('save preset', currentPreset.value, selectedModIds());
     iManager.savePresetByModIds(currentPreset.value, selectedModIds());
 }
+function savePreset() {
+    if (savePresetTimer) {
+        clearTimeout(savePresetTimer);
+    }
+    savePresetTimer = setTimeout(() => {
+        savePresetTimer = null;
+        writePresetNow();
+    }, 500);
+}
+
+// Xả lần ghi đang chờ khi đóng cửa sổ (ghi file là đồng bộ nên kịp xong
+// trước khi cửa sổ đóng).
+window.addEventListener('beforeunload', flushPresetSave);
+onUnmounted(() => {
+    window.removeEventListener('beforeunload', flushPresetSave);
+});
 
 const presetSelectorRef = useTemplateRef('presetSelectorRef');
 
