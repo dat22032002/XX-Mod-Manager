@@ -35,6 +35,7 @@ class ModData {
     public url: string;
     public preview: string;
     public hotkeys: { key: string; description: string; }[];
+    public pinned: boolean = false; // mod đã ghim (lên đầu danh sách) hay chưa
 
     private index = 0; // mod的id
     private static indexCount = 0; // mod的id计数器
@@ -100,7 +101,7 @@ class ModData {
         if (!json.name) {
             throw new Error("ModData.fromJson: name is required");
         }
-        return new ModData(
+        const modData = new ModData(
             json.name,
             json.character || "Unknown",
             json.description || "no description",
@@ -108,6 +109,8 @@ class ModData {
             json.preview || "",
             json.hotkeys || []
         );
+        modData.pinned = !!json.pinned;
+        return modData;
     }
     public toJson(): any {
         return {
@@ -116,7 +119,8 @@ class ModData {
             description: this.description,
             url: this.url,
             preview: this.preview,
-            hotkeys: this.hotkeys
+            hotkeys: this.hotkeys,
+            pinned: this.pinned
         };
     }
     public static fromModInfo(modInfo: ModInfo): ModData {
@@ -130,6 +134,7 @@ class ModData {
         );
 
         modData.id = modInfo.id;
+        modData.pinned = !!modInfo.metaData.get('pinned');
 
         ModData.handlePreview(modData, modInfo);
         return modData;
@@ -150,6 +155,7 @@ class ModData {
             meta.hotkeys || []
         );
         modData.id = modInfo.id;
+        modData.pinned = !!meta.pinned;
         return modData;
     }
 
@@ -209,6 +215,7 @@ class ModData {
         ).setModSourcePath(this.modSourcePath);
         newModData.id = this.id;
         newModData.index = this.index;
+        newModData.pinned = this.pinned;
 
         return newModData;
     }

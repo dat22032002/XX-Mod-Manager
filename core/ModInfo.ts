@@ -400,6 +400,7 @@ modDataTemplate.add('category', 'Unknown', ModMetaDataType.String);
 modDataTemplate.add('description', 'no description', ModMetaDataType.String);
 modDataTemplate.add('hotkeys', [], ModMetaDataType.Array);
 modDataTemplate.add('preview', 'Unknown', ModMetaDataType.String);
+modDataTemplate.add('pinned', false, ModMetaDataType.Boolean);
 ModInfo.setModDataTemplate(modDataTemplate);
 
 // const modInfo = new ModInfo("E:\\1myProgramFile\\electron Files\\TestMod");
