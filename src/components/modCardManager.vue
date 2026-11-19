@@ -102,14 +102,15 @@ const translateCharacters = computed(() => {
 
 //-==================== Lọc theo loại mod + sắp xếp ====================//
 // Loại mod theo getModSlot (SelectedMods): đồ mặc định, (WP) = vũ khí,
-// (EF) = hiệu ứng. Thêm loại mới (vd phụ kiện) thì thêm vào ModSlot +
+// (EF) = hiệu ứng, (ACC) = phụ kiện. Thêm loại mới thì thêm vào ModSlot +
 // getModSlot, thêm 1 mục vào TYPE_ITEMS + 1 khóa locale filter.*.
-const TYPE_ITEMS = ['all', 'outfit', 'weapon', 'effect'];
+const TYPE_ITEMS = ['all', 'outfit', 'weapon', 'effect', 'accessory'];
 const TYPE_LABEL_KEYS = {
     all: 'filter.allTypes',
     outfit: 'filter.outfit',
     weapon: 'filter.weapon',
     effect: 'filter.effect',
+    accessory: 'filter.accessory',
 };
 const SORT_OPTIONS = [
     { value: 'default', labelKey: 'filter.sortDefault' },

@@ -128,6 +128,7 @@
     "outfit": "Outfit",
     "weapon": "Weapon",
     "effect": "Effect",
+    "accessory": "Accessory",
     "sortDefault": "Default",
     "sortNameAsc": "Name A–Z",
     "sortNameDesc": "Name Z–A",
