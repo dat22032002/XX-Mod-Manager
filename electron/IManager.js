@@ -908,20 +908,58 @@ class IManager {
         // qua im lặng.
         let importedCount = 0;
         let skippedCount = 0;
+        // Số mục THẬT (file/thư mục) người dùng thả — không tính các định
+        // dạng clipboard. Kéo ảnh từ trình duyệt/Discord thì mỗi định dạng
+        // (link, chữ, html...) cũng là 1 item nhưng webkitGetAsEntry()
+        // trả null; trước đây mỗi cái null bị tính là 1 mục "bỏ qua" nên
+        // kéo 1 ảnh mà app báo đỏ "Imported 0 mod(s), skipped 5 item(s)".
+        let entryCount = 0;
+        // Gói kéo từ trình duyệt chứa CẢ file ảnh CẢ link của cùng 1 ảnh:
+        // chỉ xử lý 1 trong 2, không thì ảnh bị add 2 lần (báo "Updated
+        // cover" 2 lần). Ưu tiên file; link chỉ dùng khi gói kéo không có
+        // file ảnh nào và cũng không phải nhập mod.
+        let handledImage = false;
+        let handledMod = false;
+        const urlItems = [];
         for (let i = 0; i < items.length; i++) {
             const item = items[i].webkitGetAsEntry();
 
             console.log('get entry from drag event', item);
             if (item == null) {
-                //debug
-                console.log('What is this?');
-                skippedCount++;
+                // Không có Entry KHÔNG có nghĩa là không có file: kéo ảnh
+                // từ trình duyệt/Discord thì file ảnh CÓ trong gói kéo
+                // (getAsFile() lấy được) nhưng không có Entry vì nó không
+                // nằm trên ổ đĩa máy. Đã kiểm chứng bằng cú kéo thật
+                // 19/11: item file image/png có entry null nhưng getAsFile
+                // trả file test.png đầy đủ — code cũ bỏ qua luôn nên ảnh
+                // không được add (Đạt báo 19:22).
+                const file = items[i].getAsFile ? items[i].getAsFile() : null;
+                if (file) {
+                    entryCount++;
+                    const result = await this.handleDroppedFile(file);
+                    if (result === 'image') handledImage = true;
+                    else if (result === 'imported') { importedCount++; handledMod = true; }
+                    else if (result === 'skipped') { skippedCount++; handledMod = true; }
+                    else if (result === 'invalid') skippedCount++;
+                    continue;
+                }
+                // Chỉ có link ảnh (không có file): giữ lại để xử lý sau
+                // vòng lặp — chỉ tải khi gói kéo không có file ảnh nào.
+                if (items[i].kind === 'string' && items[i].type === 'text/uri-list') {
+                    entryCount++;
+                    urlItems.push(items[i]);
+                    continue;
+                }
+                // Định dạng clipboard khác (chữ, html...): bỏ qua im lặng,
+                // không tính là "bỏ qua".
                 continue;
             }
+            entryCount++;
             try {
                 if (item.isDirectory) {
                     // 如果拖入的是文件夹，则视为用户想要添加mod
                     console.log('Directory:', item.fullPath);
+                    handledMod = true;
                     if (await this.handleFolderDrop(item)) {
                         importedCount++;
                     } else {
@@ -936,29 +974,11 @@ class IManager {
                         skippedCount++;
                         continue;
                     }
-                    if (file.type.startsWith('image/')) {
-                        // debug
-                        console.log(`Image file: ${file.name}`);
-                        // 交给 handleImageDrop 处理
-                        this.handleImageDrop(file);
-                        continue;
-                    }
-                    // 通过使用 libarchive 处理 压缩文件，它能够支持所有的压缩文件
-                    if (file.name.endsWith('.zip') || file.name.endsWith('.rar') || file.name.endsWith('.7z') || file.type === 'application/zip' || file.type === 'application/x-compressed' || file.type === 'application/x-tar' || file.type === 'application/x-gzip') {
-                        // debug
-                        console.log(`Zip file: ${file.name}`);
-                        // 交给 handleArchiveDrop 处理
-                        if (await this.handleArchiveDrop(file)) {
-                            importedCount++;
-                        } else {
-                            skippedCount++;
-                        }
-                        continue;
-                    }
-
-                    console.log('File type:', file.type);
-                    snack('Invalid file type：' + file.type);
-                    skippedCount++;
+                    const result = await this.handleDroppedFile(file);
+                    if (result === 'image') handledImage = true;
+                    else if (result === 'imported') { importedCount++; handledMod = true; }
+                    else if (result === 'skipped') { skippedCount++; handledMod = true; }
+                    else if (result === 'invalid') skippedCount++;
                 }
             } catch (error) {
                 console.error('handleDropEntry failed for item', i, error);
@@ -966,8 +986,16 @@ class IManager {
                 skippedCount++;
             }
         }
-        // Thả 1 mục thì mỗi đường xử lý đã tự báo; thả nhiều mới báo tổng kết.
-        if (items.length > 1) {
+        // Gói kéo chỉ có link ảnh (không có file ảnh, không nhập mod):
+        // tải ảnh từ link đầu tiên rồi đổi cover như thả file ảnh.
+        if (!handledImage && !handledMod && urlItems.length > 0) {
+            urlItems[0].getAsString((url) => { this.handleImageUrlDrop(url); });
+        }
+        // Thả 1 mục thật thì mỗi đường xử lý đã tự báo; thả nhiều mục mới
+        // báo tổng kết — và chỉ báo khi có mod được nhập hoặc có file
+        // thật bị bỏ qua. Kéo mấy ảnh đổi cover thì thẻ đã đổi ngay trước
+        // mắt, không cần báo "Imported 0 mod(s), skipped 0 item(s)".
+        if (entryCount > 1 && (importedCount > 0 || skippedCount > 0)) {
             const t_message = {
                 vi: `Đã nhập ${importedCount} mod, bỏ qua ${skippedCount} mục`,
                 en: `Imported ${importedCount} mod(s), skipped ${skippedCount} item(s)`,
@@ -1016,6 +1044,57 @@ class IManager {
             this.setModPreviewBase64ByName(imageUrl, this.temp.currentMod.name);
         };
         reader.readAsDataURL(file);
+    }
+
+    // Xử lý 1 file được thả (dùng chung cho cả 2 đường: file có Entry từ
+    // thư mục máy, và file không Entry từ app khác). Ảnh → đổi cover;
+    // file nén → nhập mod; còn lại → báo sai loại file.
+    // Trả về 'image' | 'imported' | 'skipped' (file nén lỗi) | 'invalid'
+    // (file không phải ảnh/nén).
+    async handleDroppedFile(file) {
+        if (file.type.startsWith('image/')) {
+            // debug
+            console.log(`Image file: ${file.name}`);
+            // 交给 handleImageDrop 处理
+            this.handleImageDrop(file);
+            return 'image';
+        }
+        // 通过使用 libarchive 处理 压缩文件，它能够支持所有的压缩文件
+        if (file.name.endsWith('.zip') || file.name.endsWith('.rar') || file.name.endsWith('.7z') || file.type === 'application/zip' || file.type === 'application/x-compressed' || file.type === 'application/x-tar' || file.type === 'application/x-gzip') {
+            // debug
+            console.log(`Zip file: ${file.name}`);
+            // 交给 handleArchiveDrop 处理
+            if (await this.handleArchiveDrop(file)) {
+                return 'imported';
+            }
+            return 'skipped';
+        }
+
+        console.log('File type:', file.type);
+        snack('Invalid file type：' + file.type);
+        return 'invalid';
+    }
+
+    // Kéo ảnh mà gói kéo chỉ có link (không có file): tải ảnh từ link rồi
+    // đổi cover như thả file ảnh. Link ảnh trên mạng (vd Discord CDN) cho
+    // phép tải trực tiếp; tải lỗi thì báo rõ chứ không im lặng.
+    async handleImageUrlDrop(url) {
+        url = (url || '').trim().split(/\r?\n/)[0];
+        if (!url) return;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const blob = await res.blob();
+            if (!blob.type.startsWith('image/')) {
+                snack('Invalid image file');
+                return;
+            }
+            const name = url.split('/').pop().split(/[?#]/)[0] || 'dropped-image';
+            this.handleImageDrop(new File([blob], name, { type: blob.type }));
+        } catch (error) {
+            console.error('handleImageUrlDrop failed for', url, error);
+            snack('Failed to download image: ' + error.message, 'error');
+        }
     }
 
     archivePassword = null;
