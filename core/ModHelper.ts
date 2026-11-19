@@ -65,18 +65,21 @@ class ModData {
         // const stackTrace = new Error();
         // console.log(`ℹ️ℹ️ℹ️ModData ${this.name} is being created`,this.id,stackTrace)
 
-        // 当进入休眠状态时，清空缓存
-        EventSystem.on(EventType.windowSleep, async () => {
-            this.oldPreview = "";
-            // this.modPreviewBase64 = "";
-            this.modPreviewBase64WithHeader.clear();
+        // TC12: KHÔNG đăng ký bộ nghe windowSleep riêng cho mỗi mod nữa —
+        // trước đây mỗi ModData tạo 1 bộ nghe mà không bao giờ hủy, mỗi lần
+        // tải lại danh sách là thêm N bộ nghe cũ giữ xác ModData cũ (rò rỉ).
+        // Giờ chỉ có 1 bộ nghe chung ở ModLoader, duyệt danh sách mod đang
+        // sống và gọi clearPreviewCache() cho từng mod.
+    }
 
-        });
+    // Xóa bộ nhớ đệm ảnh bìa khi cửa sổ nghỉ (gọi từ bộ nghe chung ở ModLoader).
+    public clearPreviewCache() {
+        this.oldPreview = "";
+        this.modPreviewBase64WithHeader.clear();
     }
     // 析构函数
     public destroy() {
-        this.modPreviewBase64WithHeader.clear();
-        // this.modPreviewBase64 = "";
+        this.clearPreviewCache();
 
         // 释放资源
         ImageHelper.clearImageCache();

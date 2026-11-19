@@ -5,7 +5,7 @@
   "main": "./electron/main.js",
   "author": "XLXZ",
   "license": "GPL-3.0-only",
-  "version": "1.4.0",
+  "version": "1.4.11",
   "type": "commonjs",
   "scripts": {
     "dev": "vite",
@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@tweenjs/tween.js": "^25.0.0",
+    "electron-updater": "^6.8.11",
     "hmc-win32": "^1.4.92",
     "sober": "^0.6.8",
     "vue": "^3.5.12",

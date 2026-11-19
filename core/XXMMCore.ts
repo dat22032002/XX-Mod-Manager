@@ -1,6 +1,7 @@
 import { SnackType, t_snack } from "../helper/SnackHelper";
 import { ModInfo, ModMetaData, ModMetaDataItem, ModMetaDataType } from "./ModInfo";
 import { TranslatedText } from "../helper/Language";
+import { writeFileAtomicSync } from "../helper/SafeWrite";
 const fs = require('fs');
 const path = require('path');
 
@@ -98,7 +99,7 @@ class XXMMCore{
     public static getCurrentConfig(){
         const configFilePath = XXMMCore.getConfigFilePath();
         if (!fs.existsSync(configFilePath)){
-            fs.writeFileSync(configFilePath, JSON.stringify({}, null, 4), 'utf8');
+            writeFileAtomicSync(configFilePath, JSON.stringify({}, null, 4), 'utf8');
             console.log(`Config file not exist, create a new one: ${configFilePath}`);
         }
         // File hỏng (JSON sai) thì sao lưu thành .bak rồi trả về {} — loadConfig
@@ -115,7 +116,8 @@ class XXMMCore{
         try {
             // debug
             console.log(`saveCurrentConfig: ${JSON.stringify(config, null, 4)}`);
-            fs.writeFileSync(XXMMCore.getConfigFilePath(), JSON.stringify(config, null, 4), 'utf8');
+            // TC5: ghi qua file tạm rồi đổi tên (mọi lần ghi trong file này đều vậy).
+            writeFileAtomicSync(XXMMCore.getConfigFilePath(), JSON.stringify(config, null, 4), 'utf8');
         } catch (e) {
             console.error(`saveCurrentConfig error: ${e}`);
         }
@@ -159,7 +161,7 @@ class XXMMCore{
     public static getPluginConfig(pluginName){
         const pluginConfigPath = XXMMCore.getPluginConfigPath();
         if (!fs.existsSync(pluginConfigPath)){
-            fs.writeFileSync(pluginConfigPath, JSON.stringify({}, null, 4), 'utf8');
+            writeFileAtomicSync(pluginConfigPath, JSON.stringify({}, null, 4), 'utf8');
             console.log(`Plugin config file not exist, create a new one: ${pluginConfigPath}`);
         }
         // 读取文件，找到对应的插件配置，返回
@@ -175,7 +177,7 @@ class XXMMCore{
     public static savePluginConfig(pluginName,pluginDataToSave){
         const pluginConfigPath = XXMMCore.getPluginConfigPath();
         if (!fs.existsSync(pluginConfigPath)){
-            fs.writeFileSync(pluginConfigPath, JSON.stringify({}, null, 4), 'utf8');
+            writeFileAtomicSync(pluginConfigPath, JSON.stringify({}, null, 4), 'utf8');
             console.log(`Plugin config file not exist, create a new one: ${pluginConfigPath}`);
         }
         // 读取文件，插入新的数据，保存文件
@@ -183,7 +185,7 @@ class XXMMCore{
         // 插入新的数据
         pluginConfig[pluginName] = pluginDataToSave;
         // 保存文件
-        fs.writeFileSync(pluginConfigPath, JSON.stringify(pluginConfig, null, 4), 'utf8');
+        writeFileAtomicSync(pluginConfigPath, JSON.stringify(pluginConfig, null, 4), 'utf8');
         // debug
         console.log(`Plugin config file saved: ${pluginConfigPath}`);
     }
@@ -194,7 +196,7 @@ class XXMMCore{
     public static saveAllPluginConfig(allPluginDataToSave){
         const pluginConfigPath = XXMMCore.getPluginConfigPath();
         if (!fs.existsSync(pluginConfigPath)){
-            fs.writeFileSync(pluginConfigPath, JSON.stringify({}, null, 4), 'utf8');
+            writeFileAtomicSync(pluginConfigPath, JSON.stringify({}, null, 4), 'utf8');
             console.log(`Plugin config file not exist, create a new one: ${pluginConfigPath}`);
         }
         // 读取文件，插入新的数据，保存文件
@@ -202,7 +204,7 @@ class XXMMCore{
         // 插入新的数据
         Object.assign(pluginConfig, allPluginDataToSave);
         // 保存文件
-        fs.writeFileSync(pluginConfigPath, JSON.stringify(pluginConfig, null, 4), 'utf8');
+        writeFileAtomicSync(pluginConfigPath, JSON.stringify(pluginConfig, null, 4), 'utf8');
         // debug
         console.log(`Plugin config file saved: ${pluginConfigPath}`);
     }
@@ -211,7 +213,7 @@ class XXMMCore{
     public static getDisabledPlugins(){
         const disabledPluginsPath = XXMMCore.getDisabledPluginsPath();
         if (!fs.existsSync(disabledPluginsPath)){
-            fs.writeFileSync(disabledPluginsPath, JSON.stringify([], null, 4), 'utf8');
+            writeFileAtomicSync(disabledPluginsPath, JSON.stringify([], null, 4), 'utf8');
             console.log(`Disabled plugins file not exist, create a new one: ${disabledPluginsPath}`);
             return [];
         }
@@ -219,7 +221,7 @@ class XXMMCore{
     }
 
     public static saveDisabledPlugins(disabledPlugins: string[]){
-        fs.writeFileSync(XXMMCore.getDisabledPluginsPath(), JSON.stringify(disabledPlugins, null, 4), 'utf8');
+        writeFileAtomicSync(XXMMCore.getDisabledPluginsPath(), JSON.stringify(disabledPlugins, null, 4), 'utf8');
     }
 
     // 初始化

@@ -37,7 +37,7 @@
                 </s-tooltip>
             </div>
             <div class="bottom-right">
-                <s-button @click="handleApplyButtonClicked" id="apply-button"
+                <s-button @click="handleApplyButtonClicked" id="apply-button" :disabled="!currentTape"
                     class="OO-color-gradient font-hongmeng OO-button" style="color: var(--s-color-surface);">
                     {{ $t('buttons.apply') }}
                 </s-button>
@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, useTemplateRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import backButton from '../../src/components/backButton.vue';
 import plainConfig2 from './components/plainConfig2.vue';
@@ -65,8 +66,11 @@ import TapeConfig from './js/configManager';
 import { g_allConfig_vue } from './js/configManager';
 import IManager from '../../electron/IManager';
 const iManager = new IManager({ light: true });
+const { t } = useI18n();
 const allConfig = g_allConfig_vue;
-const currentTape = ref(allConfig[0]);
+// TC30: allConfig là ref nên allConfig[0] là undefined — khởi tạo null,
+// nút Apply khóa khi chưa chọn (xem :disabled ở template).
+const currentTape = ref<any>(null);
 
 const plainConfigRefs = useTemplateRef("plainConfigRefs");
 
@@ -101,6 +105,12 @@ function handleRefreshButtonClicked() {
 
 function handleApplyButtonClicked() {
     console.log('handleApplyButtonClicked');
+    // TC30: chưa chọn cấu hình thì báo + không làm gì (trước đây đọc
+    // currentTape.value._dir trên undefined nên app văng TypeError).
+    if (!currentTape.value) {
+        iManager.snack(t('switchConfig.noSelection'), 'error');
+        return;
+    }
     iManager.temp.ifDontSaveOnClose = true;
     XXMMCore.setCustomConfigFolder(currentTape.value._dir);
     iManager.changeUrl('');

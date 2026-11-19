@@ -198,16 +198,40 @@ module.exports = {
 
                     // 修改mod的character,当所有mod的character都修改完成后，关闭loading-dialog
                     // 使用Promise.all来等待所有的promise完成
+                    // TC15: bắt lỗi từng mod (lưu lỗi thì hoàn lại tên cũ +
+                    // ghi tên vào danh sách lỗi) và luôn tắt hộp chờ bằng
+                    // .finally — trước đây 1 mod lỗi là Promise.all reject,
+                    // .then không chạy, hộp Loading kẹt vĩnh viễn.
+                    const failedMods = [];
                     Promise.all(iManager.data.modList.map(async (mod) => {
                         if (mod.character === sourceCharacter) {
-                            mod.character = targetCharacter;
-                            // debug
-                            console.log('mod:', mod.name, 'character changed to:', mod.character);
-                            await mod.saveModInfo();
+                            try {
+                                mod.character = targetCharacter;
+                                // debug
+                                console.log('mod:', mod.name, 'character changed to:', mod.character);
+                                await mod.saveModInfo();
+                            } catch (error) {
+                                mod.character = sourceCharacter;
+                                failedMods.push(mod.name);
+                                console.error('changeCharacter: failed to save mod', mod.name, error);
+                            }
                         }
                     })).then(() => {
-                        iManager.dismissDialog('loading-dialog');
+                        if (failedMods.length > 0) {
+                            iManager.t_snack({
+                                en: `Failed to change character for ${failedMods.length} mod(s): ${failedMods.join(', ')}`,
+                                vi: `Đổi nhân vật thất bại cho ${failedMods.length} mod: ${failedMods.join(', ')}`
+                            }, 'error');
+                        }
                         iManager.showDialog('dialog-need-refresh');
+                    }).catch((error) => {
+                        console.error('changeCharacter: unexpected error', error);
+                        iManager.t_snack({
+                            en: 'Failed to change character: ' + error.message,
+                            vi: 'Đổi nhân vật thất bại: ' + error.message
+                        }, 'error');
+                    }).finally(() => {
+                        iManager.dismissDialog('loading-dialog');
                     });
                 }
                 else {

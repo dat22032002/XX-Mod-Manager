@@ -254,7 +254,8 @@ This plugin modifies the mod's INI files, so please ensure you !back up your mod
          * 3. Update Strategy:
          *    a) Main files: Update directly with their values from d3dx_user.ini
          *    b) Immediate LOD sync: After updating each main file, copy its entire 
-         *       [Constants] section to all LOD files in the same directory
+         *       [Constants] section to LOD files in the same directory whose name
+       matches the main file / mod folder (TC19)
          *    c) Orphaned LOD files: Update individually if no main file exists
          * 
          * 4. Variable patterns supported:
@@ -503,12 +504,27 @@ If you use XXMM as your mod manager, the program will try to automatically get t
 
                     const result = await syncPersistentVariables();
 
+                    // TC24: lần đồng bộ trước còn đang chạy thì lần này bị bỏ qua.
+                    if (result.skipped) {
+                        iManager.t_snack({
+                            en: "Sync already in progress, please wait for it to finish.",
+                            vi: "Đang đồng bộ rồi, hãy đợi lần đồng bộ này xong."
+                        }, 'warning');
+                        return;
+                    }
+
                     let message = `Sync complete! Updated ${result.updateCount} variables in ${result.fileCount} files`;
                     let message_vi = `Đồng bộ xong! Đã cập nhật ${result.updateCount} biến trong ${result.fileCount} file`;
 
                     if (result.lodSyncCount > 0) {
                         message += ` and synced [Constants] to ${result.lodSyncCount} LOD files`;
                         message_vi += ` và đã đồng bộ [Constants] sang ${result.lodSyncCount} file LOD`;
+                    }
+
+                    // TC18: báo số file bị bỏ qua vì chưa có sao lưu.
+                    if (result.skippedNoBackup > 0) {
+                        message += `. Skipped ${result.skippedNoBackup} file(s) with no backup`;
+                        message_vi += `. Đã bỏ qua ${result.skippedNoBackup} file chưa có sao lưu`;
                     }
 
                     iManager.t_snack({
@@ -714,7 +730,8 @@ Cần có file sao lưu trừ khi đã bật 'TÔI KHÔNG QUAN TÂM ĐẾN SAO L
 
                     // Counters for operation tracking
                     let backupCount = 0;  // Successfully backed up files
-                    let skipCount = 0;    // Skipped files (disabled/existing)
+                    let updatedCount = 0; // Existing backups refreshed (TC18)
+                    let skipCount = 0;    // Skipped files (disabled/up-to-date)
 
                     /**
                      * Recursive function to backup INI files
@@ -749,9 +766,26 @@ Cần có file sao lưu trừ khi đã bật 'TÔI KHÔNG QUAN TÂM ĐẾN SAO L
                                 const backupFileName = item + '.msk';
                                 const backupFilePath = path.join(dir, backupFileName);
 
-                                // Skip if backup already exists (prevent duplicates)
+                                // TC18: sao lưu cũ không còn bị bỏ qua hẳn — nếu file
+                                // ini mới hơn bản sao lưu thì ghi đè cập nhật lại;
+                                // chỉ bỏ qua khi bản sao lưu đã mới bằng file gốc.
                                 if (fs.existsSync(backupFilePath)) {
-                                    skipCount++;
+                                    let iniNewer = false;
+                                    try {
+                                        iniNewer = fs.statSync(itemPath).mtimeMs > fs.statSync(backupFilePath).mtimeMs;
+                                    } catch (e) {
+                                        iniNewer = true; // Không đọc được thời gian: sao lưu lại cho chắc
+                                    }
+                                    if (!iniNewer) {
+                                        skipCount++;
+                                        continue;
+                                    }
+                                    try {
+                                        fs.copyFileSync(itemPath, backupFilePath);
+                                        updatedCount++;
+                                    } catch (err) {
+                                        log(`Failed to update backup ${itemPath}: ${err.message}`, 'ERROR');
+                                    }
                                     continue;
                                 }
 
@@ -772,8 +806,8 @@ Cần có file sao lưu trừ khi đã bật 'TÔI KHÔNG QUAN TÂM ĐẾN SAO L
 
                     // Show success notification with statistics
                     iManager.t_snack({
-                        en: `Backup complete! Created ${backupCount} .msk files, skipped ${skipCount} existing/disabled files`,
-                        vi: `Sao lưu xong! Đã tạo ${backupCount} file .msk, đã bỏ qua ${skipCount} file đã tồn tại/đã tắt`
+                        en: `Backup complete! Created ${backupCount} .msk files, updated ${updatedCount} stale backups, skipped ${skipCount} up-to-date/disabled files`,
+                        vi: `Sao lưu xong! Đã tạo ${backupCount} file .msk, đã cập nhật ${updatedCount} bản sao lưu cũ, đã bỏ qua ${skipCount} file đã mới/đã tắt`
                     }, 'success');
 
                 } catch (error) {
@@ -1299,6 +1333,14 @@ The plugin is able to create log files to assist with debugging and recording op
         let fileWatcher = null;
 
         /**
+         * TC24: cờ khóa đồng bộ — file watcher, hẹn giờ 10s và nút bấm tay
+         * đều gọi syncPersistentVariables; đang chạy thì lần gọi sau bỏ qua
+         * (tránh 2 lần chạy xen kẽ ghi đè lên nhau).
+         * @type {boolean}
+         */
+        let syncInProgress = false;
+
+        /**
          * Periodic sync timer instance for forced sync every 5 seconds
          * @type {NodeJS.Timeout|null}
          */
@@ -1583,6 +1625,23 @@ The plugin is able to create log files to assist with debugging and recording op
             let constantsSectionFound = false;
             let constantsWereUpdated = false;
 
+            // TC19: chỉ cập nhật các khóa có trong danh sách đồng bộ, giữ
+            // nguyên khóa riêng của file LOD (trước đây xóa toàn bộ mục
+            // [Constants] cũ rồi ghi lại mỗi khóa đồng bộ). So khớp không
+            // phân biệt hoa thường (như updateVariablesInFile), giữ nguyên
+            // cách viết khóa gốc trong file. Khóa chưa có sẽ thêm vào cuối mục.
+            const pendingKeys = new Map();
+            for (const [key, value] of Object.entries(constants)) {
+                pendingKeys.set(key.toLowerCase(), { key, value });
+            }
+            const flushPendingKeys = () => {
+                for (const { key, value } of pendingKeys.values()) {
+                    newLines.push(`${key} = ${value}`);
+                    constantsWereUpdated = true;
+                }
+                pendingKeys.clear();
+            };
+
             for (const line of lines) {
                 const trimmedLine = line.trim();
 
@@ -1590,12 +1649,9 @@ The plugin is able to create log files to assist with debugging and recording op
                 if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
                     const sectionName = trimmedLine.slice(1, -1).trim();
 
-                    // If we were in Constants section and it's ending, add our constants
+                    // If we were in Constants section and it's ending, add missing constants
                     if (inConstantsSection) {
-                        for (const [key, value] of Object.entries(constants)) {
-                            newLines.push(`${key} = ${value}`);
-                            constantsWereUpdated = true;
-                        }
+                        flushPendingKeys();
                         inConstantsSection = false;
                     }
 
@@ -1604,26 +1660,35 @@ The plugin is able to create log files to assist with debugging and recording op
                         inConstantsSection = true;
                         constantsSectionFound = true;
                         newLines.push(line);
-                        // Skip existing constants - we'll replace them all
                         continue;
                     }
                 }
 
-                // Skip existing constants in the [Constants] section
+                // Trong mục [Constants]: dòng `key = value` có khóa nằm trong
+                // danh sách đồng bộ thì thay giá trị mới; khóa khác giữ nguyên.
                 if (inConstantsSection && trimmedLine && !trimmedLine.startsWith(';') &&
                     trimmedLine.includes('=')) {
-                    continue; // Skip existing constant definitions
+                    const match = trimmedLine.match(/^(.+?)\s*=\s*(.*)$/);
+                    if (match) {
+                        const pending = pendingKeys.get(match[1].trim().toLowerCase());
+                        if (pending) {
+                            pendingKeys.delete(match[1].trim().toLowerCase());
+                            const newLine = `${match[1].trim()} = ${pending.value}`;
+                            if (match[2].trim() !== String(pending.value)) {
+                                constantsWereUpdated = true;
+                            }
+                            newLines.push(newLine);
+                            continue;
+                        }
+                    }
                 }
 
                 newLines.push(line);
             }
 
-            // If we were in Constants section at end of file, add our constants
+            // If we were in Constants section at end of file, add missing constants
             if (inConstantsSection) {
-                for (const [key, value] of Object.entries(constants)) {
-                    newLines.push(`${key} = ${value}`);
-                    constantsWereUpdated = true;
-                }
+                flushPendingKeys();
             }
 
             // If no [Constants] section was found, add one
@@ -1638,7 +1703,9 @@ The plugin is able to create log files to assist with debugging and recording op
 
             if (constantsWereUpdated) {
                 const newContent = newLines.join('\n');
-                fs.writeFileSync(iniPath, newContent, 'utf8');
+                // TC5: ghi qua file tạm rồi đổi tên (qua iManager — plugin tải
+                // lúc chạy nên không import được code core).
+                iManager.writeFileAtomicSync(iniPath, newContent, 'utf8');
                 log(`✅ Updated [Constants] section in ${path.basename(iniPath)}`);
                 return true;
             }
@@ -1652,7 +1719,7 @@ The plugin is able to create log files to assist with debugging and recording op
          * Implements the core sync logic:
          * 1. Updates main INI files directly with their values from d3dx_user.ini
          * 2. After updating each main file, immediately syncs its [Constants] section
-         *    to all LOD files in the same directory
+         *    to matching LOD files in the same directory (TC19)
          * 
          * Variable update patterns supported:
          * - global persist $varname = value
@@ -1740,7 +1807,9 @@ The plugin is able to create log files to assist with debugging and recording op
             // Write the file if modified
             if (modified) {
                 const newContent = newLines.join('\n');
-                fs.writeFileSync(filePath, newContent, 'utf8');
+                // TC5: ghi qua file tạm rồi đổi tên (qua iManager — plugin tải
+                // lúc chạy nên không import được code core).
+                iManager.writeFileAtomicSync(filePath, newContent, 'utf8');
             }
 
             return { updated: modified, updateCount };
@@ -1755,7 +1824,7 @@ The plugin is able to create log files to assist with debugging and recording op
          * ALGORITHM:
          * 1. Parse all entries from d3dx_user.ini
          * 2. Update ONLY main files (skip LOD files completely during variable updates)
-         * 3. Sync [Constants] sections from updated main files to all LOD files in same directory
+         * 3. Sync [Constants] sections from updated main files to matching LOD files in same directory (TC19)
          * 4. LOD files get their values ONLY from [Constants] sync, never from direct d3dx_user.ini updates
          * 
          * This prevents LOD files from being overwritten by d3dx_user.ini values and ensures
@@ -1768,16 +1837,34 @@ The plugin is able to create log files to assist with debugging and recording op
          * 
          * @returns {Promise<Object>} Statistics about the sync operation
          */
+        // TC24: 3 đường gọi (file watcher, hẹn giờ 10s, nút bấm tay) cùng gọi
+        // syncPersistentVariables — khóa ở đây: đang chạy thì lần gọi sau
+        // bỏ qua, tránh 2 lần chạy xen kẽ ghi đè lên nhau.
         const syncPersistentVariables = async () => {
+            if (syncInProgress) {
+                log('Sync already in progress, skipping this run');
+                return { updateCount: 0, fileCount: 0, lodSyncCount: 0, skippedNoBackup: 0, skipped: true };
+            }
+            syncInProgress = true;
+            try {
+                return await syncPersistentVariablesLocked();
+            } finally {
+                syncInProgress = false;
+            }
+        };
+
+        // Phần thân đồng bộ thật, chỉ chạy khi đã giữ khóa syncInProgress.
+        const syncPersistentVariablesLocked = async () => {
             const allEntries = parsePersistentVariables();
 
             // Early exit if no entries to process
             if (Object.keys(allEntries).length === 0) {
-                return { updateCount: 0, fileCount: 0 };
+                return { updateCount: 0, fileCount: 0, lodSyncCount: 0, skippedNoBackup: 0, skipped: false };
             }
 
             let updateCount = 0;
             let fileCount = 0;
+            let skippedNoBackup = 0;
             let processedCount = 0;
             const totalFiles = Object.keys(allEntries).length;
 
@@ -1850,6 +1937,16 @@ The plugin is able to create log files to assist with debugging and recording op
                     continue; // Skip LOD files during main variable update phase
                 }
 
+                // TC18: chỉ đồng bộ file đã có sao lưu (.msk) riêng của nó —
+                // kiểm tra theo từng file sắp đồng bộ, thay vì chỉ cần 1 file
+                // .msk bất kỳ trong cả kho như hasBackupFiles. Bật override
+                // thì bỏ qua kiểm tra.
+                if (!backupOverride.data && !fs.existsSync(actualPath + '.msk')) {
+                    skippedNoBackup++;
+                    log(`Skipping ${path.basename(actualPath)} - no .msk backup found`);
+                    continue;
+                }
+
                 // Update variables in this main file only
                 const result = updateVariablesInFile(actualPath, variables);
                 if (result.updated) {
@@ -1863,7 +1960,9 @@ The plugin is able to create log files to assist with debugging and recording op
 
             // STEP 2: Sync [Constants] sections from updated main files to their LOD files
             // NOTE: LOD files are named by character mod name (e.g., Astra_lod1.ini, Koleda_lod1.ini)
-            // Main INI file name doesn't matter - we sync ALL LOD files in the same directory
+            // TC19: chỉ đồng bộ file LOD có tên khớp với file chính hoặc thư
+            // mục mod — trước đây đồng bộ sang MỌI file _lod trong thư mục,
+            // kể cả file của mod/nhân vật khác nằm chung.
             let lodSyncCount = 0;
             if (updatedMainFiles.length > 0) {
                 log(`Starting LOD sync for ${updatedMainFiles.length} updated main files...`);
@@ -1879,11 +1978,13 @@ The plugin is able to create log files to assist with debugging and recording op
 
                 log(`Found ${Object.keys(constants).length} constants in ${path.basename(mainFilePath)}`);
 
-                // Find all LOD files in the same directory
+                // Find LOD files in the same directory matching this main file (TC19)
                 const mainDir = path.dirname(mainFilePath);
 
                 try {
                     const dirItems = fs.readdirSync(mainDir);
+                    const mainStem = path.basename(mainFilePath).replace(/\.ini$/i, '').toLowerCase();
+                    const modFolderName = path.basename(mainDir).toLowerCase();
                     const lodFiles = dirItems.filter(item => {
                         const itemLower = item.toLowerCase();
 
@@ -1892,10 +1993,10 @@ The plugin is able to create log files to assist with debugging and recording op
                             return false;
                         }
 
-                        // LOD files are named by character mod name (e.g., Astra_lod1.ini, Koleda_lod1.ini)
-                        // Main INI file name doesn't matter - we sync ALL LOD files in the same directory
-                        // This is because LOD files are always character-specific regardless of main file naming
-                        return true;
+                        // TC19: phần tên trước "_lod" phải khớp tên file chính
+                        // (vd Astra.ini -> Astra_lod1.ini) hoặc tên thư mục mod
+                        const lodPrefix = itemLower.slice(0, itemLower.indexOf('_lod'));
+                        return lodPrefix === mainStem || lodPrefix === modFolderName;
                     });
 
                     if (lodFiles.length === 0) {
@@ -1907,6 +2008,12 @@ The plugin is able to create log files to assist with debugging and recording op
                     // Sync constants to each LOD file
                     for (const lodFile of lodFiles) {
                         const lodFilePath = path.join(mainDir, lodFile);
+                        // TC18: file LOD cũng cần có sao lưu riêng của nó.
+                        if (!backupOverride.data && !fs.existsSync(lodFilePath + '.msk')) {
+                            skippedNoBackup++;
+                            log(`Skipping LOD file ${lodFile} - no .msk backup found`);
+                            continue;
+                        }
                         if (updateConstantsSection(lodFilePath, constants)) {
                             lodSyncCount++;
                             log(`🔄 Synced [Constants] from ${path.basename(mainFilePath)} to ${lodFile}`);
@@ -1920,10 +2027,13 @@ The plugin is able to create log files to assist with debugging and recording op
             }
 
             // Only log summary for significant changes
-            if (updateCount > 0 || lodSyncCount > 0) {
+            if (updateCount > 0 || lodSyncCount > 0 || skippedNoBackup > 0) {
                 log(`🎯 Sync complete: ${updateCount} variables updated in ${fileCount}/${totalFiles} main files`);
                 if (lodSyncCount > 0) {
                     log(`🔄 LOD sync complete: ${lodSyncCount} LOD files updated with [Constants] sections`);
+                }
+                if (skippedNoBackup > 0) {
+                    log(`⏭️ Skipped ${skippedNoBackup} file(s) with no .msk backup (create backups or enable the override to sync them)`);
                 }
                 // Count how many files were skipped as LOD files
                 const lodFilesSkipped = totalFiles - fileCount;
@@ -1932,7 +2042,7 @@ The plugin is able to create log files to assist with debugging and recording op
                 }
             }
 
-            return { updateCount, fileCount, lodSyncCount };
+            return { updateCount, fileCount, lodSyncCount, skippedNoBackup, skipped: false };
         };
 
         // Register cleanup handler for when plugin is disabled or reloaded

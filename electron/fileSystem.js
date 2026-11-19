@@ -14,9 +14,7 @@ const dataPath = app.getPath('userData');
 const configPath = () => {
     return (ifCustomConfig) ? path.join(customConfigFolder, 'config.json') : path.join(dataPath, 'config.json');
 }
-const pluginConfigPath = () => {
-    return (ifCustomConfig) ? path.join(customConfigFolder, 'pluginConfig.json') : path.join(dataPath, 'pluginConfig.json');
-}
+// (pluginConfigPath đã bỏ cùng kênh 'save-all-plugin-config' — TC13.)
 
 // HP11: read the window bounds the renderer saved on last close, so the main
 // window can be created at its saved size/position instead of 800x600 and
@@ -72,7 +70,23 @@ ipcMain.handle('get-image', async (event, imagePath) => {
     // 传递一个 buffer 对象给渲染进程
     //debug
     // console.log(`get-image:${imagePath}`);
-    return fs.readFileSync(imagePath).toString('base64');
+    // TC35: ảnh bìa bị xóa tay thì trả ảnh mặc định thay vì văng lỗi làm
+    // kênh IPC reject; cả ảnh mặc định cũng mất thì trả null (không throw).
+    try {
+        if (imagePath && fs.existsSync(imagePath)) {
+            return fs.readFileSync(imagePath).toString('base64');
+        }
+        console.warn(`get-image: file not found, using default image: ${imagePath}`);
+        const defaultImagePath = path.resolve('./src/assets/default.png');
+        if (fs.existsSync(defaultImagePath)) {
+            return fs.readFileSync(defaultImagePath).toString('base64');
+        }
+        console.error(`get-image: default image not found either: ${defaultImagePath}`);
+        return null;
+    } catch (e) {
+        console.error(`get-image failed for ${imagePath}`, e);
+        return null;
+    }
 });
 
 ipcMain.handle('get-file-path', async (event, fileName, fileType, defaultPath) => {
@@ -104,33 +118,11 @@ ipcMain.handle('get-file-path', async (event, fileName, fileType, defaultPath) =
 
 //-=========================== 插件 ===========================
 
-
-// HP15: save every plugin's config with a single read + a single write,
-// instead of one read + one full write per plugin (SaveAllPluginConfigSync
-// used to call savePluginConfig once per plugin on every app close).
-async function saveAllPluginConfig(allConfigs) {
-    const currentPluginConfigPath = pluginConfigPath();
-
-    // 不存在文件则从空对象开始（旧逻辑是先写 '{}' 再读回，效果相同）
-    let data = {};
-    if (fs.existsSync(currentPluginConfigPath)) {
-        // 读取文件，插入新的配置
-        data = JSON.parse(fs.readFileSync(currentPluginConfigPath, 'utf-8'));
-    }
-    Object.assign(data, allConfigs);
-    //debug
-    console.log(`save-all-plugin-config:${currentPluginConfigPath}`, data);
-
-    // 保存文件
-    fs.writeFileSync(currentPluginConfigPath, JSON.stringify(data, null, 2), 'utf-8');
-}
-
-
-// HP15: one IPC call saves all plugins' configs with a single file write
-ipcMain.handle('save-all-plugin-config', async (event, allConfigs) => {
-    saveAllPluginConfig(allConfigs);
-});
-
+// TC13: cấu hình plugin giờ chỉ ghi từ 1 đường duy nhất — ghi đồng bộ trực
+// tiếp ở renderer (XXMMCore.saveAllPluginConfig, gọi từ
+// IPluginLoader.SaveAllPluginConfigSync lúc tắt app). Kênh IPC
+// 'save-all-plugin-config' cũ đã bỏ: 2 tiến trình cùng đọc-sửa-ghi 1 file
+// pluginConfig.json có thể ghi đè mất nhau.
 
 // 保存插件启用状态
 

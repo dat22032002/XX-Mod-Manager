@@ -1,5 +1,4 @@
 //-===================== 插件 =====================
-const { ipcRenderer } = require('electron');
 import XXMMCore from "../core/XXMMCore";
 import { EventType, EventSystem } from "./EventSystem";
 import { TranslatedText } from "./Language";
@@ -325,14 +324,20 @@ class IPluginLoader {
     static SaveAllPluginConfigSync() {
         //弹出窗口，询问是否保存配置
         // alert('SaveAllPluginConfigSync');
-        // HP15: a single IPC call + a single file write for all plugins,
-        // instead of one read + one full write per plugin (9x on close).
+        // TC13: chỉ còn 1 đường ghi cấu hình plugin — ghi đồng bộ trực tiếp
+        // như SaveAllPluginConfig. Trước đây đường tắt app đi qua IPC
+        // 'save-all-plugin-config' (tiến trình chính đọc-sửa-ghi cùng 1 file
+        // pluginConfig.json) trong khi plugin ghi trực tiếp từ giao diện
+        // (XXMMCore.savePluginConfig) — 2 tiến trình đọc-sửa-ghi chồng nhau
+        // có thể ghi đè mất nhau, và lệnh IPC không chờ lúc tắt app có thể
+        // mất luôn trước khi cửa sổ đóng. Ghi đồng bộ ở đây thì chắc chắn
+        // xong trước khi cửa sổ đóng (giống saveConfigSync).
         const allPluginDataToSave: { [key: string]: any } = {};
         for (const pluginName in IPluginLoader.pluginConfig) {
             allPluginDataToSave[pluginName] = IPluginLoader.transformPluginConfigToSave(IPluginLoader.pluginConfig[pluginName]);
         }
         console.log('saveAllPluginConfig:', allPluginDataToSave);
-        ipcRenderer.invoke('save-all-plugin-config', allPluginDataToSave);
+        XXMMCore.saveAllPluginConfig(allPluginDataToSave);
     }
 
     //-===================== 插件接口 =====================
