@@ -97,6 +97,7 @@ const selectedSnapshot = ref(null);
 
 const filteredMods = computed(() => {
     const list = mods.value || [];
+    let result;
     // Search: same rule as changeFilterToSearch (character-prefix spec) —
     // a search matching exactly one character filters by that character,
     // any other non-empty search matches nothing.
@@ -105,18 +106,28 @@ const filteredMods = computed(() => {
         const characterList = g_data_vue.characterList;
         const characterNames = (characterList && characterList.value) || [];
         const matched = characterNames.filter(name => name && name.toLowerCase().startsWith(keyword));
-        if (matched.length !== 1) return [];
-        const character = matched[0];
-        return list.filter(mod => mod.character === character);
+        if (matched.length !== 1) {
+            result = [];
+        } else {
+            const character = matched[0];
+            result = list.filter(mod => mod.character === character);
+        }
+    } else {
+        const character = currentCharacter.value;
+        if (!character || character === 'all') {
+            result = list;
+        } else if (character === 'selected') {
+            const snapshot = selectedSnapshot.value;
+            if (snapshot) result = list.filter(mod => snapshot.has(mod.id));
+            else result = list.filter(mod => selectedModIdSet.has(mod.id));
+        } else {
+            result = list.filter(mod => mod.character === character);
+        }
     }
-    const character = currentCharacter.value;
-    if (!character || character === 'all') return list;
-    if (character === 'selected') {
-        const snapshot = selectedSnapshot.value;
-        if (snapshot) return list.filter(mod => snapshot.has(mod.id));
-        return list.filter(mod => selectedModIdSet.has(mod.id));
-    }
-    return list.filter(mod => mod.character === character);
+    // Ghim lên đầu: mod đã ghim đứng trước, thứ tự còn lại giữ nguyên
+    // (sort của JS là ổn định nên mod không ghim không bị xáo trộn).
+    // slice() để không sửa mảng gốc.
+    return result.slice().sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
 });
 
 // Whenever the filtered list changes (filter, search, reload), recompute the

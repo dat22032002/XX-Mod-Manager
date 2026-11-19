@@ -9,7 +9,15 @@
                 :src="img || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D'" @load="enterWindow" />
         </div>
 
-        <div slot="headline" id="mod-item-headline">{{ props.modRef.name }}</div>
+        <div slot="headline" id="mod-item-headline">
+            <span class="mod-item-name">{{ props.modRef.name }}</span>
+            <button class="pin-btn" :class="{ pinned: props.modRef.pinned }" @click.stop="togglePin"
+                :title="pinTitle" aria-label="Pin to top">
+                <svg viewBox="0 0 24 24" width="18" height="18">
+                    <path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" />
+                </svg>
+            </button>
+        </div>
         <div slot="subhead" id="mod-item-subhead">{{ props.modRef.character }}</div>
         <div slot="text" id="mod-item-text">
             <s-scroll-view>
@@ -51,6 +59,7 @@ const iManager = new IManager();
 import horizontalScrollBar from './horizontalScrollBar.vue';
 
 import { EventSystem, EventType } from '../../helper/EventSystem';
+import { TranslatedText } from '../../helper/Language';
 import { ModData } from '../../core/ModHelper';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
 import { selectedModIdSet } from '../../helper/SelectedMods';
@@ -146,6 +155,24 @@ const openEditModDialog = () => {
     // iManager.showDialog('edit-mod-dialog');
     DialogHelper.showDialog(DialogID.editModDialog);
 }
+
+//===================== ghim mod =====================//
+// Nút ghim ở tiêu đề thẻ: bấm để ghim/bỏ ghim, mod đã ghim lên đầu danh
+// sách. Lưu ngay vào mod.json để lần mở app sau vẫn còn.
+const pinTitle = computed(() => props.modRef.pinned
+    ? new TranslatedText('Unpin', 'Bỏ ghim').get()
+    : new TranslatedText('Pin to top', 'Ghim lên đầu').get());
+
+const togglePin = async () => {
+    props.modRef.pinned = !props.modRef.pinned;
+    try {
+        await props.modRef.saveModInfo();
+    } catch (e) {
+        // Ghi lỗi thì trả lại trạng thái cũ để màn hình không lệch với file.
+        props.modRef.pinned = !props.modRef.pinned;
+        console.error('Failed to save pin state', e);
+    }
+};
 
 function playClickAnim(modItem, event = null, rect = null) {
     //获取鼠标相对于卡片的位置（百分比）
@@ -384,10 +411,48 @@ defineExpose({
 }
 
 .mod-item #mod-item-headline {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     white-space: nowrap;
+    margin-top: 12px;
+}
+
+.mod-item #mod-item-headline .mod-item-name {
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-top: 12px;
+}
+
+.mod-item .pin-btn {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    color: var(--s-color-on-surface-variant);
+    opacity: 0.55;
+}
+
+.mod-item .pin-btn:hover {
+    opacity: 1;
+    background: var(--s-color-surface-container-high);
+}
+
+.mod-item .pin-btn.pinned {
+    opacity: 1;
+    color: var(--s-color-primary);
+}
+
+.mod-item .pin-btn svg {
+    fill: currentColor;
 }
 
 .mod-item #mod-item-subhead {
