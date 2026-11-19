@@ -4,6 +4,19 @@
             :translatedItems="translateCharacters" ref="characterFilterRef" /> -->
         <ModCharacterFilter class="characterFilter" @itemChange="handleFilterChange" ref="characterFilterRef" @filterChangeToAll="handleFilterChangeToAll"
             @filterChangeToSelected="handleFilterChangeToSelected" @filterChangeToSearch="handleFilterChangeToSearch" />
+        <!-- Lọc theo loại mod + sắp xếp: mỗi nhóm 1 hàng riêng để đủ chỗ
+             hiện hết chip mà không phải lăn ngang (hàng lưới hẹp, 9 chip
+             chung 1 hàng sẽ bị cắt ở cửa sổ nhỏ — đã gặp ở bản thử đầu). -->
+        <div class="filter-sort-rows">
+            <div class="type-filter-wrap">
+                <chipRadioBar :items="typeItems" :translatedItems="translatedTypes"
+                    @itemChange="handleTypeChange" ref="typeFilterRef" />
+            </div>
+            <div class="sort-wrap">
+                <chipRadioBar :items="sortItems" :translatedItems="translatedSorts"
+                    @itemChange="handleSortChange" ref="sortBarRef" />
+            </div>
+        </div>
         <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
             <div id="mod-container" :compact="compactMode" ref="modContainerRef" :style="containerStyle">
@@ -19,6 +32,7 @@
 import 'sober';
 import chipRadioBar from './chipRadioBar.vue';
 import { ref, onMounted, onUnmounted, computed, useTemplateRef, watch, reactive, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import modCard from './modCard.vue';
 import { Tween, Group } from "@tweenjs/tween.js";
 import IManager, { g_data_vue } from '../../electron/IManager';
@@ -26,7 +40,7 @@ import { g_config_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 import ModCharacterFilter from './modCharacterFilter.vue';
 import { computeColumns, computeWindow, CARD_GAP, OVERSCAN_ROWS } from './modWindowing.js';
-import { selectedModIdSet, setSelectedModIdsExclusive } from '../../helper/SelectedMods';
+import { selectedModIdSet, setSelectedModIdsExclusive, getModSlot } from '../../helper/SelectedMods';
 
 const iManager = new IManager();
 
@@ -64,6 +78,9 @@ watch(currentCharacter, (newVal) => {
 watch(g_config_vue.language, (newVal) => {
     setTimeout(() => {
         characterFilterRef.value.selectItemByName(currentCharacter.value);
+        // Chữ trên chip loại/xếp đổi độ dài theo ngôn ngữ nên đặt lại thanh trượt.
+        if (typeFilterRef.value) typeFilterRef.value.selectItemByName(typeFilter.value);
+        if (sortBarRef.value) sortBarRef.value.selectItemByName(sortBy.value);
     }, 0);
 });
 
@@ -82,6 +99,65 @@ const translateCharacters = computed(() => {
         return ['All', 'Selected'];
     }
 });
+
+//-==================== Lọc theo loại mod + sắp xếp ====================//
+// Loại mod theo getModSlot (SelectedMods): đồ mặc định, (WP) = vũ khí,
+// (EF) = hiệu ứng. Thêm loại mới (vd phụ kiện) thì thêm vào ModSlot +
+// getModSlot, thêm 1 mục vào TYPE_ITEMS + 1 khóa locale filter.*.
+const TYPE_ITEMS = ['all', 'outfit', 'weapon', 'effect'];
+const TYPE_LABEL_KEYS = {
+    all: 'filter.allTypes',
+    outfit: 'filter.outfit',
+    weapon: 'filter.weapon',
+    effect: 'filter.effect',
+};
+const SORT_OPTIONS = [
+    { value: 'default', labelKey: 'filter.sortDefault' },
+    { value: 'name-asc', labelKey: 'filter.sortNameAsc' },
+    { value: 'name-desc', labelKey: 'filter.sortNameDesc' },
+    { value: 'time-desc', labelKey: 'filter.sortTimeDesc' },
+    { value: 'time-asc', labelKey: 'filter.sortTimeAsc' },
+];
+const SORT_VALUES = SORT_OPTIONS.map(o => o.value);
+
+const { t } = useI18n();
+const typeItems = TYPE_ITEMS;
+const sortItems = SORT_VALUES;
+const translatedTypes = computed(() => TYPE_ITEMS.map(item => t(TYPE_LABEL_KEYS[item])));
+const translatedSorts = computed(() => SORT_OPTIONS.map(o => t(o.labelKey)));
+
+// Đọc qua g_config_vue (lưu trong config.json nên mở app lại vẫn giữ);
+// giá trị lạ trong config cũ thì về mặc định.
+const typeFilter = computed(() =>
+    TYPE_ITEMS.includes(g_config_vue.modTypeFilter.value) ? g_config_vue.modTypeFilter.value : 'all');
+const sortBy = computed(() =>
+    SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default');
+
+const typeFilterRef = useTemplateRef('typeFilterRef');
+const sortBarRef = useTemplateRef('sortBarRef');
+
+// Ghi config dồn: bấm lia lịa thì chờ 300ms sau lần bấm cuối mới ghi
+// 1 lần (giống cách ghi mức phóng to ở modCardSection).
+let saveFilterTimer = null;
+function saveFilterSettings() {
+    if (saveFilterTimer) clearTimeout(saveFilterTimer);
+    saveFilterTimer = setTimeout(() => {
+        saveFilterTimer = null;
+        iManager.saveConfig();
+    }, 300);
+}
+
+function handleTypeChange(type) {
+    if (!TYPE_ITEMS.includes(type)) return;
+    iManager.config.modTypeFilter = type;
+    saveFilterSettings();
+}
+
+function handleSortChange(sort) {
+    if (!SORT_VALUES.includes(sort)) return;
+    iManager.config.modSortBy = sort;
+    saveFilterSettings();
+}
 
 //-==================== 只渲染视口附近的卡片（虚拟列表） ====================//
 // The grid used to mount every mod card at once; with hundreds of mods that
@@ -128,10 +204,26 @@ const filteredMods = computed(() => {
             result = list.filter(mod => mod.character === character);
         }
     }
-    // Ghim lên đầu: mod đã ghim đứng trước, thứ tự còn lại giữ nguyên
-    // (sort của JS là ổn định nên mod không ghim không bị xáo trộn).
-    // slice() để không sửa mảng gốc.
-    return result.slice().sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
+    // Lọc theo loại mod (kết hợp với lọc nhân vật/tìm kiếm ở trên).
+    const type = typeFilter.value;
+    if (type !== 'all') {
+        result = result.filter(mod => getModSlot(mod) === type);
+    }
+    // Sắp xếp: ghim luôn lên đầu, sau đó theo kiểu xếp đã chọn (mặc định
+    // giữ thứ tự tải vào như trước; sort của JS là ổn định nên mod ngang
+    // nhau không bị xáo trộn). slice() để không sửa mảng gốc.
+    const sort = sortBy.value;
+    return result.slice().sort((a, b) => {
+        const pinDiff = Number(!!b.pinned) - Number(!!a.pinned);
+        if (pinDiff !== 0) return pinDiff;
+        switch (sort) {
+            case 'name-asc': return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+            case 'name-desc': return (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base' });
+            case 'time-desc': return (b.addedMs || 0) - (a.addedMs || 0);
+            case 'time-asc': return (a.addedMs || 0) - (b.addedMs || 0);
+            default: return 0;
+        }
+    });
 });
 
 // Whenever the filtered list changes (filter, search, reload), recompute the
@@ -514,6 +606,14 @@ onMounted(async () => {
     syncRowHeight();
     updateWindow();
 
+    // Đặt thanh trượt của hàng chip loại/xếp theo bộ lọc đã lưu (mặc định
+    // là 'all' / 'default'): đo sau 2 khung hình để chip đã vẽ xong kích
+    // thước thật.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (typeFilterRef.value) typeFilterRef.value.selectItemByName(typeFilter.value);
+        if (sortBarRef.value) sortBarRef.value.selectItemByName(sortBy.value);
+    }));
+
     // 接受文件拖拽事件，可以直接通过拖拽文件到窗口中导入 mod，或者拖拽图片到窗口中为 mod 添加预览图
     modCardManagerRef.value.addEventListener('dragover', (event) => {
         event.preventDefault();
@@ -607,6 +707,23 @@ defineExpose({
 .characterFilter {
     /* background-color: aqua; */
     border-radius: 10px;
+}
+
+/* Hai hàng lọc loại + sắp xếp, xếp chồng nhau (xem ghi chú ở template). */
+.filter-sort-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    margin-top: 4px;
+}
+
+.type-filter-wrap {
+    width: 100%;
+}
+
+.sort-wrap {
+    width: 100%;
 }
 
 /* #mod-container[compact="true"] {

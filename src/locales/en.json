@@ -123,6 +123,17 @@
   "stats": {
     "line": "{total} mods · {enabled} enabled · {characters} characters"
   },
+  "filter": {
+    "allTypes": "All types",
+    "outfit": "Outfit",
+    "weapon": "Weapon",
+    "effect": "Effect",
+    "sortDefault": "Default",
+    "sortNameAsc": "Name A–Z",
+    "sortNameDesc": "Name Z–A",
+    "sortTimeDesc": "Newest first",
+    "sortTimeAsc": "Oldest first"
+  },
   "author": "author",
   "caimogu": "Caimogu",
   "firstLoad": {
