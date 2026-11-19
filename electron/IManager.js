@@ -79,6 +79,7 @@ let g_config = {
     cardWidth: 250,
     modTypeFilter: 'all',
     modSortBy: 'default',
+    filterExpanded: false,
 };
 let g_data = {
     modList: [],
@@ -122,6 +123,7 @@ const g_config_vue = {
     cardWidth: ref(250),
     modTypeFilter: ref('all'),
     modSortBy: ref('default'),
+    filterExpanded: ref(false),
 };
 
 const g_data_vue = {
@@ -220,6 +222,7 @@ class IManager {
         cardWidth: 250, // Chiều rộng thẻ ở dạng lưới (100/150/200/250/300/350)
         modTypeFilter: 'all', // Lọc theo loại mod: all/outfit/weapon/effect
         modSortBy: 'default', // Sắp xếp mod: default/name-asc/name-desc/time-desc/time-asc
+        filterExpanded: false,
     };
 
     // 程序运行时的数据

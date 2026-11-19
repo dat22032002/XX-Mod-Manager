@@ -27,6 +27,22 @@
             </div>
           </div>
         </div>
+        <!-- Nút Bộ lọc: bung/thu 2 hàng lọc loại + sắp xếp ở dưới
+             (modCardManager). Nằm giữa ô tìm kiếm và thanh tag nhân vật
+             theo ý Đạt (19/11). Nghiêng -20° như ô tìm kiếm để mép phải
+             song song với mép trái thanh tag. Đang có lọc/xếp khác mặc
+             định thì nút vàng lên để nhìn là biết lưới đang bị lọc. -->
+        <div id="filter-toggle-chip" class="filter-toggle" :class="{ active: hasActiveFilter, expanded: filterExpanded }" @click="toggleFilterPanel">
+            <div class="filter-toggle-inner">
+                <s-icon>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"></path>
+                    </svg>
+                </s-icon>
+                <span>{{ $t('filter.button') }}</span>
+                <span class="filter-toggle-chevron">▼</span>
+            </div>
+        </div>
         <horizontalScrollBar class="chip-radio-bar" id="character-filter-bar" style="height: fit-content;">
             <chipButton :text="$t('buttons.all')" id="all-filter-chip" @click="updateSliderByEvent($event)"></chipButton>
             <chipButton :text="$t('buttons.selected')" id="selected-filter-chip" @click="updateSliderByEvent($event)"></chipButton>
@@ -40,7 +56,7 @@
 
 <script setup lang="ts">
 import horizontalScrollBar from './horizontalScrollBar.vue';
-import { ref, reactive, watch, Ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, reactive, watch, Ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue';
 import chipButton from './chipButton.vue';
 import IManager from '../../electron/IManager';
 const iManager = new IManager();
@@ -50,6 +66,23 @@ import { g_data_vue } from '../../electron/IManager';
 
 const lastClickedElement = ref<HTMLElement | null>(null);
 const searchInput = ref<string>('');
+
+// Nút Bộ lọc: bung/thu 2 hàng lọc loại + sắp xếp (trạng thái lưu trong
+// config nên đóng app mở lại vẫn giữ). Nút vàng lên khi đang có lọc theo
+// loại hoặc xếp khác mặc định — nhìn là biết lưới đang bị lọc dù đã thu gọn.
+const filterExpanded = g_config_vue.filterExpanded;
+const hasActiveFilter = computed(() =>
+    g_config_vue.modTypeFilter.value !== 'all' || g_config_vue.modSortBy.value !== 'default');
+// Ghi config dồn 300ms như hàng lọc/xếp (bấm lia lịa chỉ ghi 1 lần).
+let saveExpandedTimer = null;
+const toggleFilterPanel = () => {
+    iManager.config.filterExpanded = !iManager.config.filterExpanded;
+    if (saveExpandedTimer) clearTimeout(saveExpandedTimer);
+    saveExpandedTimer = setTimeout(() => {
+        saveExpandedTimer = null;
+        iManager.saveConfig();
+    }, 300);
+};
 
 const language = g_config_vue.language;
 const characterList = g_data_vue.characterList as Ref<string[]>;
@@ -282,6 +315,56 @@ defineExpose({
    nhập đã bỏ): chỉ còn đúng 1 viền là khung méo. */
 .search-box-fixed:focus-within {
     border-color: var(--s-color-primary);
+}
+
+/* Nút Bộ lọc: cùng kiểu khối nghiêng -20° cao 35px như ô tìm kiếm, chữ
+   và biểu tượng nghiêng ngược lại cho thẳng. Cách ô tìm kiếm 8px; thanh
+   tag dí sát mép phải nút nhờ margin-left -7px của nó (như trước đây
+   dí sát ô tìm kiếm). */
+.filter-toggle {
+    flex-shrink: 0;
+    height: 35px;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0px 14px;
+    margin-left: 8px;
+    border-radius: 8px;
+    background-color: var(--s-color-surface-container-low);
+    border: 1px solid var(--s-color-outline-variant);
+    color: var(--s-color-on-surface);
+    cursor: pointer;
+    transform: skew(-20deg);
+    user-select: none;
+}
+
+/* Đang có lọc/xếp khác mặc định thì nút vàng như chip đang chọn. */
+.filter-toggle.active {
+    background-color: var(--s-color-primary);
+    border-color: var(--s-color-primary);
+    color: var(--s-color-on-primary);
+}
+
+.filter-toggle-inner {
+    transform: skew(20deg);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.filter-toggle-inner s-icon {
+    flex-shrink: 0;
+}
+
+/* Mũi tên xoay ngược khi bảng lọc đang bung ra. */
+.filter-toggle-chevron {
+    font-size: 10px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.filter-toggle.expanded .filter-toggle-chevron {
+    transform: rotate(180deg);
 }
 
 .search-input-field {

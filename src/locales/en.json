@@ -124,6 +124,7 @@
     "line": "{total} mods · {enabled} enabled · {characters} characters"
   },
   "filter": {
+    "button": "Filter",
     "allTypes": "All types",
     "outfit": "Outfit",
     "weapon": "Weapon",

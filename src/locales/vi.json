@@ -124,6 +124,7 @@
     "line": "{total} mod · {enabled} đang bật · {characters} nhân vật"
   },
   "filter": {
+    "button": "Bộ lọc",
     "allTypes": "Mọi loại",
     "outfit": "Đồ",
     "weapon": "Vũ khí",

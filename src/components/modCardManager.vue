@@ -6,8 +6,12 @@
             @filterChangeToSelected="handleFilterChangeToSelected" @filterChangeToSearch="handleFilterChangeToSearch" />
         <!-- Lọc theo loại mod + sắp xếp: mỗi nhóm 1 hàng riêng để đủ chỗ
              hiện hết chip mà không phải lăn ngang (hàng lưới hẹp, 9 chip
-             chung 1 hàng sẽ bị cắt ở cửa sổ nhỏ — đã gặp ở bản thử đầu). -->
-        <div class="filter-sort-rows">
+             chung 1 hàng sẽ bị cắt ở cửa sổ nhỏ — đã gặp ở bản thử đầu).
+             Hai hàng thu gọn được: nút "Bộ lọc" (giữa ô tìm kiếm và thanh
+             tag nhân vật, modCharacterFilter) bung/thu qua filterExpanded.
+             Dùng v-show để chipRadioBar không bị gắn lại (thanh vàng giữ
+             nguyên vị trí đã đo) khi thu gọn. -->
+        <div class="filter-sort-rows" v-show="filterExpanded">
             <div class="type-filter-wrap">
                 <chipRadioBar :items="typeItems" :translatedItems="translatedTypes"
                     @itemChange="handleTypeChange" ref="typeFilterRef" />
@@ -133,9 +137,24 @@ const typeFilter = computed(() =>
     TYPE_ITEMS.includes(g_config_vue.modTypeFilter.value) ? g_config_vue.modTypeFilter.value : 'all');
 const sortBy = computed(() =>
     SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default');
+// Hai hàng lọc/xếp bung hay thu — nút "Bộ lọc" (giữa ô tìm kiếm và thanh
+// tag nhân vật, ở modCharacterFilter) đổi giá trị này.
+const filterExpanded = g_config_vue.filterExpanded;
 
 const typeFilterRef = useTemplateRef('typeFilterRef');
 const sortBarRef = useTemplateRef('sortBarRef');
+
+// Bung bảng lọc ra thì đo lại thanh vàng 2 hàng: lúc thu gọn (display:
+// none) chip có kích thước 0 nên thanh trượt đo lúc gắn/mở app bị lệch;
+// đo lại sau 2 khung hình cho bố cục ổn định (giống modCharacterFilter).
+// selectItemByName với mục đang chọn chỉ đo lại, không phát sự kiện đổi.
+watch(filterExpanded, (expanded) => {
+    if (!expanded) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (typeFilterRef.value) typeFilterRef.value.selectItemByName(typeFilter.value);
+        if (sortBarRef.value) sortBarRef.value.selectItemByName(sortBy.value);
+    }));
+});
 
 // Ghi config dồn: bấm lia lịa thì chờ 300ms sau lần bấm cuối mới ghi
 // 1 lần (giống cách ghi mức phóng to ở modCardSection).
