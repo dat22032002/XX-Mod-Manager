@@ -128,6 +128,16 @@ class ModInfo {
         modInfo.modName = ModInfo.folderNameToModName(path.basename(location));
         entry.modName = modInfo.modName;
         modInfo.id = entry.id;
+        // Mục cache cũ có thể không có id: không có id thì mod không
+        // vào được chỉ mục theo id, mọi chỗ tra theo id (đường dẫn thư
+        // mục, áp dụng) đều rơi về đường đoán theo tên — sai khi tên
+        // vừa đổi trong bộ nhớ (lỗi ENOENT lúc đổi tên, Đạt gặp 19/11).
+        // Tạo id như lúc quét mới (init) rồi ghi lại vào mục cache để
+        // lần lưu cache sau giữ luôn.
+        if (!modInfo.id) {
+            modInfo.generateID();
+            entry.id = modInfo.id;
+        }
         // A cached mod was already seen on an earlier launch, so it is
         // no longer new. (Fresh loads still report newMod in memory.)
         modInfo.newMod = false;

@@ -271,6 +271,11 @@ class ModData {
         this.oldPreview = "";
         // this.modPreviewBase64 = "";
         this.modPreviewBase64WithHeader.clear();
+
+        // Trả về đường dẫn đích để nơi gọi đặt lại this.preview sau
+        // editModInfo (editModInfo ghi đè preview bằng đường dẫn ảnh
+        // đã chọn, xem handleSave trong dialogModInfo2.vue).
+        return previewDest;
     }
 
     public async setPreviewByBase64(previewBase64: string) {

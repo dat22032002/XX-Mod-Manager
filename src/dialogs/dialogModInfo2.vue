@@ -350,16 +350,27 @@ const handleSave = async () => {
       needChangePreview = true;
     }
 
-    // 保存修改的 mod 信息
-    props.mod.editModInfo(tempModInfo.value);
-
+    // Sao chép/dán ảnh bìa TRƯỚC khi đổi tên trong bộ nhớ: đích sao
+    // chép tính theo thư mục mod hiện tại (còn tồn tại). Làm sau khi
+    // đổi tên thì đích tính theo tên mới — thư mục chưa tồn tại nên
+    // lỗi "không tìm thấy file" và phải bấm Lưu 2 lần (Đạt gặp 19/11
+    // khi đổi (ac) thành (mod): copyfile ...(ac)... -> ...(mod)...).
+    // editModInfo bên dưới ghi đè this.preview bằng đường dẫn ảnh đã
+    // chọn nên phải đặt lại đường dẫn đích sau đó.
+    let newPreviewPath = null;
     if (needChangePreview) {
-      await props.mod.setPreviewByPath(tempModInfo.value.preview);
+      newPreviewPath = await props.mod.setPreviewByPath(tempModInfo.value.preview);
     }
 
     // 如果是通过粘贴操作更改的预览图片，则保存到本地
     if (changdPreviewByPaste) {
-      await props.mod.setPreviewByBase64(img.value);
+      newPreviewPath = await props.mod.setPreviewByBase64(img.value);
+    }
+
+    // 保存修改的 mod 信息
+    props.mod.editModInfo(tempModInfo.value);
+    if (newPreviewPath) {
+      props.mod.preview = newPreviewPath;
     }
 
     // TC23: chờ ghi đĩa thật + bắt lỗi — trước đây saveModInfo() không
