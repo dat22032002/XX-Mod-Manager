@@ -119,6 +119,10 @@ function initUpdater(mainWindow) {
         console.error('auto-updater error:', err);
         sendToRenderer('update-error', {
             message: err ? String(err.message || err) : 'unknown error',
+            // Mã lỗi để renderer phân biệt "chưa có bản chính thức"
+            // (ERR_UPDATER_LATEST_VERSION_NOT_FOUND /
+            // ERR_UPDATER_NO_PUBLISHED_VERSIONS) với lỗi mạng.
+            code: err && err.code ? String(err.code) : '',
         });
     });
     autoUpdater.on('download-progress', (progress) => {
@@ -132,10 +136,13 @@ function initUpdater(mainWindow) {
             await autoUpdater.checkForUpdates();
             return { supported: true };
         } catch (e) {
-            // Lỗi mạng lúc kiểm tra: báo cho renderer để hiện snack.
+            // Lỗi lúc kiểm tra: báo cho renderer để hiện snack.
+            // (Mạng lỗi hay GitHub chưa có bản chính thức đều đi qua đây;
+            // renderer phân biệt bằng mã lỗi kèm theo.)
             console.error('check-for-updates failed:', e);
             sendToRenderer('update-error', {
                 message: e ? String(e.message || e) : 'unknown error',
+                code: e && e.code ? String(e.code) : '',
             });
             return { supported: true, error: true };
         }
@@ -149,6 +156,7 @@ function initUpdater(mainWindow) {
             console.error('download-update failed:', e);
             sendToRenderer('update-error', {
                 message: e ? String(e.message || e) : 'unknown error',
+                code: e && e.code ? String(e.code) : '',
             });
             return { supported: true, error: true };
         }

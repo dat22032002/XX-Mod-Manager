@@ -33,8 +33,9 @@ export const updateState = reactive({
     // bấm tay mới hiện thông báo "đã là bản mới nhất" / "lỗi mạng".
     manualCheck: false,
     // Lỗi lần kiểm tra gần nhất: 'unsupported' (không phải bản cài đặt
-    // Windows) hay 'network' (lỗi mạng). Rỗng khi không lỗi.
-    checkError: '' as '' | 'unsupported' | 'network',
+    // Windows), 'network' (lỗi mạng) hay 'no-release' (GitHub chưa có bản
+    // chính thức nào để cập nhật). Rỗng khi không lỗi.
+    checkError: '' as '' | 'unsupported' | 'network' | 'no-release',
     // Người dùng đã bấm "Để sau" trong phiên này thì tự kiểm tra không
     // hỏi lại nữa; bấm tay kiểm tra thì vẫn hỏi lại (checkForUpdates
     // với manual=true sẽ xóa cờ này).
@@ -78,7 +79,14 @@ export function initUpdateListener() {
 
     ipcRenderer.on('update-error', (_event: any, error: any) => {
         console.error('update error:', (error && error.message) || error);
-        updateState.checkError = 'network';
+        // GitHub chưa có bản chính thức nào: electron-updater báo lỗi mã
+        // ERR_UPDATER_LATEST_VERSION_NOT_FOUND (không tìm được bản mới nhất)
+        // hoặc ERR_UPDATER_NO_PUBLISHED_VERSIONS (không có bản nào được đăng).
+        // Hai mã này nghĩa là "chưa có bản chính thức", khác với lỗi mạng.
+        const code = (error && error.code) || '';
+        updateState.checkError = (code === 'ERR_UPDATER_LATEST_VERSION_NOT_FOUND' || code === 'ERR_UPDATER_NO_PUBLISHED_VERSIONS')
+            ? 'no-release'
+            : 'network';
         updateState.status = 'error';
     });
 

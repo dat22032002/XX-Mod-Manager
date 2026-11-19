@@ -208,6 +208,7 @@
     "currentVersion": "Current version: {version}",
     "upToDate": "You are already on the latest version",
     "checkFailed": "Could not check for updates, please try again later",
+    "noRelease": "No official release is available yet",
     "notSupported": "Updates are only available in the installed Windows version",
     "availableTitle": "A new version is available",
     "newVersion": "New version: {version}",

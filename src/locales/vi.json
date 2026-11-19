@@ -208,6 +208,7 @@
     "currentVersion": "Phiên bản hiện tại: {version}",
     "upToDate": "Bạn đang dùng bản mới nhất",
     "checkFailed": "Không kiểm tra được, thử lại sau",
+    "noRelease": "Chưa có bản chính thức để cập nhật",
     "notSupported": "Chỉ bản cài đặt trên Windows mới cập nhật được",
     "availableTitle": "Có phiên bản mới",
     "newVersion": "Phiên bản mới: {version}",

@@ -254,7 +254,12 @@ watch(() => updateState.status, (newStatus) => {
         snack(t('update.upToDate'));
         updateState.manualCheck = false;
     } else if (newStatus === 'error') {
-        snack(updateState.checkError === 'unsupported' ? t('update.notSupported') : t('update.checkFailed'), SnackType.error);
+        snack(
+            updateState.checkError === 'unsupported' ? t('update.notSupported')
+            : updateState.checkError === 'no-release' ? t('update.noRelease')
+            : t('update.checkFailed'),
+            SnackType.error,
+        );
         updateState.manualCheck = false;
     } else if (newStatus === 'available') {
         // Hộp có-bản-mới đã mở, không cần hiện thêm thông báo.
