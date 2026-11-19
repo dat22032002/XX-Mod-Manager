@@ -17,13 +17,19 @@ enum DialogID {
 }
 
 class DialogHelper {
-    static async showDialog(dialogID: DialogID) {
-        // 因为会被js调用，所以说需要判断dialogID是否为DialogID之一
+    // Kiểm tra dialogID có nằm trong enum không (vì hàm này bị JS gọi trực
+    // tiếp nên phải tự kiểm tra). Thông báo lỗi dùng dialogID nguyên văn:
+    // DialogID là enum chuỗi nên tra ngược DialogID[dialogID] chỉ ra undefined.
+    private static validateDialogID(dialogID: DialogID) {
         if (!Object.values(DialogID).includes(dialogID)) {
-            // 如果是字符串的话，直接使用字符串，而不用枚举
-                console.error(`dialog ${DialogID[dialogID]} is not a valid DialogID`);
-                throw new Error(`dialog ${DialogID[dialogID]} is not a valid DialogID`);
+            // Nếu là chuỗi thì dùng trực tiếp, không qua enum
+            console.error(`dialog ${dialogID} is not a valid DialogID`);
+            throw new Error(`dialog ${dialogID} is not a valid DialogID`);
         }
+    }
+
+    static async showDialog(dialogID: DialogID) {
+        DialogHelper.validateDialogID(dialogID);
         const dialog = document.getElementById(dialogID) as HTMLDialogElement;
         if (!dialog) {
             console.log(`dialog ${dialogID} not found`);
@@ -33,12 +39,7 @@ class DialogHelper {
     }
 
     static async dismissDialog(dialogID: DialogID) {
-        // 因为会被js调用，所以说需要判断dialogID是否为DialogID之一
-        if (!Object.values(DialogID).includes(dialogID)) {
-            // 如果是字符串的话，直接使用字符串，而不用枚举
-                console.error(`dialog ${DialogID[dialogID]} is not a valid DialogID`);
-                throw new Error(`dialog ${DialogID[dialogID]} is not a valid DialogID`);
-        }
+        DialogHelper.validateDialogID(dialogID);
         const dialog = document.getElementById(dialogID) as HTMLDialogElement;
         if (!dialog) {
             console.log(`dialog ${dialogID} not found`);

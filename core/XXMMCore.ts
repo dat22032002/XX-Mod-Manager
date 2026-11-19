@@ -121,17 +121,6 @@ class XXMMCore{
         }
     }
     
-    public static saveCurrentConfigSync(config: any) {
-        // 同步的保存配置文件
-        try {
-            // debug
-            console.log(`saveCurrentConfigSync: ${JSON.stringify(config, null, 4)}`);
-            fs.writeFileSync(XXMMCore.getConfigFilePath(), JSON.stringify(config, null, 4), 'utf8');
-        } catch (e) {
-            console.error(`saveCurrentConfigSync error: ${e}`);
-        }
-    }
-
     // 读取 JSON 文件：文件不存在返回默认值；文件损坏时备份为 .bak 并返回默认值，不抛出异常
     static readJsonFileOrDefault(filePath: string, defaultValue: any, onCorrupt?: (filePath: string) => void) {
         if (!fs.existsSync(filePath)) {

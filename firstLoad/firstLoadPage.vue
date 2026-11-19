@@ -260,8 +260,8 @@
 
         </div>
         <div class="buttons">
-            <s-button type="text" @click="prev" id="prev" class="OO-button-box">{{ $t('buttons.nextPage') }}</s-button>
-            <s-button type="text" @click="next" id="next" class="OO-button-box">{{ $t('buttons.forePage') }}</s-button>
+            <s-button type="text" @click="prev" id="prev" class="OO-button-box">{{ $t('buttons.forePage') }}</s-button>
+            <s-button type="text" @click="next" id="next" class="OO-button-box">{{ $t('buttons.nextPage') }}</s-button>
         </div>
 
     </div>
@@ -277,7 +277,7 @@ import CssProxy from '../src/components/cssProxy.vue';
 import settingBar from '../src/components/settingBar.vue';
 import getData from '../src/section/settingSectionData.js';
 
-let { languageData, themeData, modTargetPathData, modSourcePathData, presetPathData, initAllDataButton } = getData();
+let { languageData, themeData } = getData();
 
 
 
@@ -292,12 +292,6 @@ const currentSection = ref('intro');
 const modTargetPath = ref('');
 const modSourcePath = ref('');
 const presetPath = ref('');
-const autoStartGame = ref(false);
-const modLoaderDir = ref('');
-const gameDir = ref('');
-const ifAutoApply = ref(false);
-const ifAutoRefreshInZZZ = ref(false);
-const ifUseAdmin = ref(false);
 
 // Gõ đường dẫn chỉ đồng bộ vào cài đặt trong RAM; ghi file khi rời ô nhập
 // (@change), khi chọn thư mục bằng hộp thoại, hoặc khi bấm nút xong — trước

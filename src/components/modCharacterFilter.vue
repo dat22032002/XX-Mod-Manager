@@ -31,14 +31,12 @@
 </template>
 
 <script setup lang="ts">
-import ChipRadioBar from './chipRadioBar.vue';
 import horizontalScrollBar from './horizontalScrollBar.vue';
-import { ref, reactive, onMounted, useTemplateRef, watch, Ref } from 'vue';
+import { ref, reactive, watch, Ref } from 'vue';
 import chipButton from './chipButton.vue';
 
 import { g_config_vue } from '../../electron/IManager';
 import { g_data_vue } from '../../electron/IManager';
-import { EventSystem, EventType } from '../../helper/EventSystem';
 
 const lastClickedElement = ref<HTMLElement | null>(null);
 const searchInput = ref<string>('');
@@ -47,8 +45,6 @@ const language = g_config_vue.language;
 const characterList = g_data_vue.characterList as Ref<string[]>;
 watch(language, (newValue) => {
     // 刷新一下滑块，因为不同语言的长度不一样
-    //debug
-    console.log(`g_config_vue.language changed: `, newValue)
     const elment = lastClickedElement.value;
     if (!elment) return;
     updateSlider(elment);
@@ -123,8 +119,6 @@ const updateSliderByEvent = (e) => {
 
 //-=============== 搜索按钮 ===============
 const handleSearchInput = (e) => {
-    //debug
-    console.log('search input', e.target.value)
     // 发送搜索请求
     const searchText = e.target.value;
     if (searchText) {

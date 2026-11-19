@@ -102,16 +102,14 @@
 
 <script setup>
 import modCardManager from '../components/modCardManager.vue';
-import modCardManager2 from '../components/modCardManager2.vue';
 import leftMenu from '../components/leftMenu.vue';
 import modInfo from '../components/modInfo.vue';
-import { ref, onMounted, onUnmounted, useTemplateRef, watch, computed } from 'vue';
+import { ref, onUnmounted, useTemplateRef, watch, computed } from 'vue';
 import IManager from '../../electron/IManager';
 import { g_temp_vue, g_config_vue, g_data_vue } from '../../electron/IManager';
 import fsProxy from '../../electron/fsProxy';
 const iManager = new IManager();
-import settingBar from '../components/settingBar.vue';
-import { EventType, EventSystem } from '../../helper/EventSystem';
+import { EventSystem } from '../../helper/EventSystem';
 import { SnackType, t_snack } from '../../helper/SnackHelper';
 import { selectedModIdSet } from '../../helper/SelectedMods';
 

@@ -1,5 +1,5 @@
 // main.js
-const { app, BrowserWindow, ipcMain, dialog, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('node:path')
 require('./fileSystem.js')
 const setMainWindow = require('./fileSystem.js').setMainWindow;
@@ -10,7 +10,6 @@ let currentMainWindow;
 let devMode = false;
 devMode = process.argv.includes('--dev');
 console.log('process.argv', process.argv);
-// console.log('process', process);
 
 let firstpage = false;
 firstpage = process.argv.includes('--firstpage');
@@ -80,6 +79,19 @@ ipcMain.on("set-custom-config-folder", (event, folder) => {
 });
 
 
+// Tuỳ chọn chung cho mọi cửa sổ của app: không khung, chạy Node trực tiếp
+// trong renderer (nodeIntegration, không cách ly) nên không cần preload.
+function baseWindowOptions() {
+  return {
+    frame: false,
+    webPreferences: {
+      sandbox: false,
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  };
+}
+
 // HP11: same fit-and-center rules as the 'set-bounds' handler, so the window
 // can be created at the exact bounds the renderer would apply after init
 // (and therefore never visibly jumps size on launch).
@@ -124,18 +136,12 @@ const createWindow = () => {
   );
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    frame: false,
+    ...baseWindowOptions(),
     show: false,
     width: initialBounds.width,
     height: initialBounds.height,
     x: initialBounds.x,
     y: initialBounds.y,
-    webPreferences: {
-      sandbox: false,
-      //preload: path.join(__dirname, '../preload.js'),
-      nodeIntegration: true,
-      contextIsolation: false
-    }
   })
   // 因为这里使用了 nodeIntegration: true, contextIsolation: false
   // 所以可以直接使用 node.js 的模块
@@ -145,14 +151,6 @@ const createWindow = () => {
   setMainWindow(mainWindow);
 
   //-==================== 监听窗口显隐 ====================
-  // currentMainWindow.on("minimize",()=>{
-  //   console.debug("window minimize");
-  // });
-
-  // currentMainWindow.on("restore",()=>{
-  //   console.debug("window restore");
-  // });
-
   currentMainWindow.on("blur", () => {
     console.debug("window blur");
     currentMainWindow.webContents.send('windowBlur')
@@ -166,10 +164,7 @@ const createWindow = () => {
 
   //debug
   console.log('===== createWindow =====');
-  //mainWindow.loadFile(path.resolve(__dirname,"../dist/index.html"))
 
-  // 加载 index.html(这里不管是什么路径，都是相对于你的项目根目录的路径)
-  //mainWindow.loadFile('./electron/index.html')
   // 因为现在是 使用 vite + vue3 开发的，所以这里加载的是 vite 启动的地址
   if (devMode) {
     // HP22: pick one URL and load it once — previously loadURL was called up
@@ -191,8 +186,6 @@ const createWindow = () => {
     mainWindow.loadFile('dist/index.html')
   }
 
-  // 打开开发工具
-  //mainWindow.webContents.openDevTools()
   // 隐藏菜单栏
   mainWindow.setMenuBarVisibility(false)
 
@@ -224,16 +217,6 @@ app.whenReady().then(() => {
     // 点击托盘图标时通常会重新创建一个新窗口
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
-
-  //! 这里因为 vite 的热更新问题，它的服务器 需要 先加载完毕，才能加载 electron 的窗口
-  //! 按理来说应该寻找一个更好的解决方案，而不是这样延迟加载
-  // setTimeout(() => {
-  //   console.log('===== createWindow end =====');
-  //   wakeUpCondition ++;
-  //   if (wakeUpCondition > 1) {
-  //     sendWakeUp()
-  //   }
-  // }, 1000);
 
   console.log('===== createWindow end =====');
   wakeUpCondition++;
@@ -294,17 +277,11 @@ ipcMain.on('open-new-window', (event, arg) => {
   console.log('open-new-window', arg);
 
   const newWindow = new BrowserWindow({
-    frame: false,
+    ...baseWindowOptions(),
     width: 800,
     height: 600,
-    webPreferences: {
-      sandbox: false,
-      nodeIntegration: true,
-      contextIsolation: false
-    }
   })
 
-  // newWindow.loadURL('http://localhost:3000/' + arg)
   if (devMode) {
     newWindow.loadURL('http://localhost:3000/' + arg + '/index.html')
   }
@@ -315,8 +292,6 @@ ipcMain.on('open-new-window', (event, arg) => {
 
     newWindow.loadFile(filePath)
   }
-
-  //newWindow.webContents.openDevTools()
 })
 
 
@@ -331,20 +306,6 @@ ipcMain.on('refresh-main-window', (event) => {
 
 ipcMain.handle('minimize-window', async () => {
   BrowserWindow.getFocusedWindow().minimize();
-});
-
-ipcMain.handle('maximize-window', async () => {
-  const win = BrowserWindow.getFocusedWindow();
-  if (win.isMaximized()) {
-    win.unmaximize();
-  }
-  else {
-    win.maximize();
-  }
-});
-
-ipcMain.handle('close-window', async () => {
-  BrowserWindow.getFocusedWindow().close();
 });
 
 ipcMain.handle('toggle-fullscreen', async () => {
@@ -386,39 +347,9 @@ ipcMain.handle('set-bounds', async (event, boundsStr) => {
     console.log('set-bounds', bounds, win == null);
 
     if (win && bounds) {
-      const screenArea = screen.getDisplayMatching(bounds).workArea;
-
-      // 如果bounds的x,y，为-1，表示居中
-      if (bounds.x === -1 || bounds.y === -1) {
-        const width = Math.min(bounds.width, screenArea.width);
-        const height = Math.min(bounds.height, screenArea.height);
-        const x = Math.floor((screenArea.width - width) / 2);
-        const y = Math.floor((screenArea.height - height) / 2);
-        //debug
-        console.log('set-bounds', { x: x, y: y, width: width, height: height });
-        win.setBounds({ x: x, y: y, width: width, height: height });
-      }
-      else
-        if (
-          (bounds.x + bounds.width) > (screenArea.x + screenArea.width) ||
-          bounds.x > (screenArea.x + screenArea.width) ||
-          bounds.x < screenArea.x ||
-          (bounds.y + bounds.height) > (screenArea.y + screenArea.height) ||
-          bounds.y > (screenArea.y + screenArea.height) ||
-          bounds.y < screenArea.y
-        ) {
-          // Fit and center window into the existing screenarea
-          const width = Math.min(bounds.width, screenArea.width);
-          const height = Math.min(bounds.height, screenArea.height);
-          const x = Math.floor((screenArea.width - width) / 2);
-          const y = Math.floor((screenArea.height - height) / 2);
-          //debug
-          console.log('set-bounds', { x: x, y: y, width: width, height: height });
-          win.setBounds({ x: x, y: y, width: width, height: height });
-        }
-        else {
-          win.setBounds(bounds);
-        }
+      // Dùng chung fitBoundsToScreen với lúc tạo cửa sổ (cùng quy tắc:
+      // x/y -1 thì căn giữa, vượt màn hình thì co lại rồi căn giữa).
+      win.setBounds(fitBoundsToScreen(bounds));
     }
   } catch (e) {
     console.error('set-bounds', e);

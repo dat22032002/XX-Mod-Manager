@@ -135,16 +135,6 @@
                         style="left: 5px;" />
                       <s-text-field :value="hotkey.key" @change="handleHotkeyInput(hotkey, $event.target.value)" />
                     </div>
-                    <div class="hotkey-item hotkey-add-row OO-setting-bar">
-
-                      <s-text-field v-model="newHotkeyDescription"
-                        :placeholder="$t('editDialog.mod-info-hotkeys-description')" />
-                      <s-text-field v-model="newHotkeyKey"
-                        :placeholder="$t('editDialog.mod-info-hotkeys-hotkey')" />
-                      <s-button class="OO-button font-hongmeng" @click="addNewHotkey">
-                        <p>{{ $t('buttons.add') }}</p>
-                      </s-button>
-                    </div>
                   </div>
 
                 </s-popup>
@@ -231,10 +221,6 @@ const tempModInfo = ref(ModData.fromJson({
 const editModInfoDialog = useTemplateRef('edit-mod-dialog');
 const img = ref(null);
 
-// Ô nhập phím tắt mới: chỉ tạo phím khi bấm nút Thêm, không tạo ở từng ô nữa.
-const newHotkeyDescription = ref('');
-const newHotkeyKey = ref('');
-
 // 需要显示的mod发生变化时，更新 临时mod信息
 watch(() => props.mod, async (newVal) => {
   console.log('[dialogModInfo2] watch props.mod changed', newVal.name);
@@ -285,19 +271,6 @@ const handleHotkeyInput = (hotkey, value) => {
     return;
   }
   hotkey.key = value;
-}
-
-const addNewHotkey = () => {
-  const key = newHotkeyKey.value.trim();
-  const description = newHotkeyDescription.value.trim();
-  // Phím là phần bắt buộc (phím không có nút bấm thì vô dụng); mô tả có thể trống.
-  if (!key) {
-    return;
-  }
-  console.log(`add hot key`, key, description, `to`, tempModInfo.value.id);
-  tempModInfo.value.addHotkey(key, description);
-  newHotkeyDescription.value = '';
-  newHotkeyKey.value = '';
 }
 
 const handleSelectImage = async () => {
@@ -404,20 +377,4 @@ onMounted(() => {
   border-radius: 20px;
 }
 
-/* Hàng thêm phím mới: 3 món (mô tả + phím + nút Thêm) nên xếp bằng flex thật.
-   (Luật chung .OO-setting-bar đặt mọi ô nhập ở vị trí tuyệt đối phải/trái nên
-   nút Thêm đè lên ô phím, ô phím bị che mất — hàng phím đã lưu giữ nguyên.) */
-.hotkey-item.hotkey-add-row s-text-field {
-  position: static;
-  flex: 1 1 0;
-  min-width: 0;
-  width: auto;
-  max-width: none;
-  height: calc(100% - 10px);
-}
-
-.hotkey-item.hotkey-add-row s-button {
-  position: static;
-  flex-shrink: 0;
-}
 </style>

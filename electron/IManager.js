@@ -5,6 +5,8 @@
 // 这个类应该 被划分到 渲染进程底下，但是 主进程也应该能够访问到这个类
 const { ipcRenderer } = require('electron');
 
+// require qua biến trung gian để Vite không phân tích tĩnh được tên module:
+// 'path' là module Node, phải để Node require lúc chạy thay vì để Vite đóng gói.
 const pathOsName = 'path'
 const path = require(pathOsName);
 
@@ -13,7 +15,6 @@ const fs = require('fs');
 
 // 导入 libarchivejs
 let Archive = window.Archive;
-// import Archive from 'libarchive.js';
 //! 下面两个变量是为了解决 vite 打包时，无法正确导入 wasm 文件的问题
 import ArchiveWASM from './lib/libarchive.wasm?url';
 import workerBound from './lib/worker-bundle.js?url';
@@ -39,6 +40,8 @@ import { ModData } from '../core/ModHelper';
 import { DialogID, DialogHelper } from '../helper/DialogHelper';
 
 // // 导入 hmc-win32
+// require qua biến trung gian như 'path' ở trên: hmc-win32 là module native,
+// để Node require lúc chạy thay vì để Vite đóng gói.
 const HMC_Name = 'hmc-win32';
 const HMC = require(HMC_Name);
 
@@ -250,7 +253,6 @@ class IManager {
         set: (target, key, value) => {
             if (target.hasOwnProperty(key)) {
                 target[key] = value;
-                // console.log(`data set: ${key}`, value);
                 // 不保存 modList，因为 modList 是一个对象数组，如果 传来传去，会导致内存占用过大
                 if (key === 'modList') {
                     // 打印 err
@@ -325,7 +327,6 @@ class IManager {
             return;
         }
 
-        // this.config = currentConfig;
         // 这样会导致 较新的配置项 丢失，所以需要逐个赋值
         for (const key in currentConfig) {
             try {
@@ -364,38 +365,6 @@ class IManager {
     }
 
     newMods = [];
-    async loadMods() {
-        const modSourcePath = this.config.modSourcePath;
-        //debug
-        console.log(`loadMods from ${modSourcePath}`);
-        const loadMods = await ipcRenderer.invoke('get-mods', modSourcePath);
-
-        if (loadMods == []) {
-            t_snack({ vi: 'Đường dẫn mod không tồn tại', en: 'Mod path does not exist' });
-            return;
-        }
-
-        //如果 loadMods 中的mod 的 newMod 为 true，则将其设置为 false，并触发addMod事件
-        this.newMods = loadMods.filter((mod) => mod.newMod);
-        //debug
-        console.log(`newMods:`, this.newMods);
-
-        // this.data.modList = loadMods;
-        // 将 mod 转换为 ModData, 并且保存到 data 中
-        this.data.modList = await Promise.all(loadMods.map(async (mod) => ModData.fromJson(mod).setModSourcePath(modSourcePath)));
-
-        // 刷新 characterList
-        await this.refreshCharacterList();
-
-        //debug
-        // console.log(loadMods);
-        // console.log(this.data.modList);
-        // console.log(this.data.characterList);
-
-        // debug,成功加载 n 个 mod，总共 m 个 角色
-        console.log(`Đã tải ${loadMods.length} mod, tổng cộng ${this.data.characterList.length} nhân vật`);
-        return loadMods;
-    }
 
     async newLoadMods(forceRescan = false) {
         //debug
@@ -514,7 +483,6 @@ class IManager {
     }
 
     async getModInfo(modName) {
-        // const data = await ipcRenderer.invoke('get-mod-info', this.config.modSourcePath, modName);
         // 改为直接从 data 中获取
         const data = this.data.modList.find((mod) => mod.name === modName);
 
@@ -586,44 +554,8 @@ class IManager {
         return modData;
     }
 
-    async loadModInfoOld(modName) {
-        const data = await ipcRenderer.invoke('get-mod-info', this.config.modSourcePath, modName);
-
-
-        if (data == null) {
-            const tt = TranslatedText.fromObject({
-                vi: `Tải thông tin mod thất bại`,
-                en: `Failed to load mod info`,
-            });
-            t_snack(tt, SnackType.error);
-            console.error(tt.get(), modName);
-            return null;
-        }
-
-        // 将其转换为 ModData
-        const mod = ModData.fromJson(data).setModSourcePath(this.config.modSourcePath);
-
-        // 如果 是新的 mod，则触发 addMod 事件
-        if (data.newMod) {
-            data.newMod = false;
-            await EventSystem.trigger('addMod', mod);
-        }
-
-        // 延时一下，等待 addMod 事件完成
-        // await new Promise((resolve) => setTimeout(resolve, 100));
-
-        // 将其添加到 modList 中
-        this.data.modList.push(mod);
-
-        // 刷新一下characterList (chỉ gán lại khi danh sách thật sự đổi)
-        await this.refreshCharacterList();
-
-        return mod;
-    }
 
     async getImageBase64(imagePath) {
-        //debug
-        // console.log(`get-image: ${imagePath}`);
         const data = await ipcRenderer.invoke('get-image', imagePath);
         return data;
     }
@@ -633,7 +565,6 @@ class IManager {
     //-==================== 生命周期 ====================
     // 初始化
     async init() {
-        // // 加载配置
         let startTime = new Date().getTime();
         console.log('⏳>> loadConfig');
         await this.loadConfig();
@@ -668,7 +599,6 @@ class IManager {
             // Chế độ nhẹ: cửa sổ này không cần danh sách mod hay preset.
             console.log('✅>> light init: skip loadMods + loadPresets');
         }
-
 
 
         //debug
@@ -880,7 +810,6 @@ class IManager {
     async changeUrl(url) {
         //debug
         console.log('change url from:', window.location.href, 'to:', url);
-        // const toUrl = window.location.href.replace(/\/[^/]*$/, '') + url + '/index.html';
         // url 截取掉最后的 /index.html
         let toUrl = window.location.href.replace(/\/index.html$/, '');
         // 再截取掉最后的 /switchConfig
@@ -1029,11 +958,7 @@ class IManager {
         const reader = new FileReader();
         reader.onload = (event) => {
             const imageUrl = event.target.result;
-            //debug
-            // console.log(`handle image drop: ${file.name}`,imageUrl);
-            //! updateModCardCover(imageUrl, modItem, mod);
             // 这里的 imageUrl 是一个 base64 字符串，可以直接用于显示图片
-            // this.setModPreviewBase64ByName(imageUrl, this.temp.lastClickedMod.name);
             this.setModPreviewBase64ByName(imageUrl, this.temp.currentMod.name);
         };
         reader.readAsDataURL(file);
@@ -1067,13 +992,6 @@ class IManager {
         const ifEncrypted = await archiveReader.hasEncryptedData();
 
         if (ifEncrypted) {
-            // snack(`文件加密，无法解压`);
-            // const t_message = {
-            //     zh_cn: `文件加密，无法解压`,
-            //     en: `File is encrypted and cannot be extracted`,
-            // }
-            // t_snack(t_message, 'error');
-            // return false;
 
             // 如果文件加密，则需要等待用户输入密码
             const password = await this.waitForPassword();
@@ -1081,7 +999,6 @@ class IManager {
             console.log(`get password: ${password}`);
             snack(`get password ${password}`);
             if (password === null) {
-                // snack(`密码不能为空`);
                 const t_message = {
                     vi: `Mật khẩu không được để trống`,
                     en: `Password cannot be empty`,
@@ -1133,19 +1050,13 @@ class IManager {
                 console.error(`Skipped entry escaping the mod folder: ${entry.path}`);
                 return;
             }
-            //debug
-            // console.log(`Converted: ${filePath}`, newFilePath);
             const dir = path.dirname(newFilePath);
 
 
             //检查文件夹是否存在，不存在则创建
             if (!fs.existsSync(dir) && dir !== '') {
                 fs.mkdirSync(dir, { recursive: true });
-                //debug
-                // console.log(`Created folder: ${dir}`);
             }
-            //debug
-            // console.log(`Extracted: ${filePath}`, entry.file);
 
             // 因为环境的问题，entry.file 是一个 Blob 对象，无法直接写入到磁盘，所以需要将其转换为 Buffer
             try {
@@ -1165,13 +1076,11 @@ class IManager {
                 reader.onloadend = () => {
                     //debug
                     callbackCount--;
-                    // console.log(`onloadend: ${newFilePath}`, callbackCount);
                 }
                 reader.onloadstart = () => {
                     //debug
                     callbackCount++;
                     startCallback = true;
-                    // console.log(`onloadstart: ${newFilePath}`, callbackCount);
                 }
                 reader.readAsArrayBuffer(entry.file);
             }
@@ -1254,7 +1163,6 @@ class IManager {
             setTimeout(() => {
                 fs.rmdirSync(destinationPath, { recursive: true });
                 console.log(`Deleted folder: ${destinationPath}`);
-                // this.loadMods();
             }, 1000);
             return false;
         }
@@ -1344,7 +1252,6 @@ class IManager {
     }
 
 
-
     async handleZipDrop(file) {
         //debug
         console.log(`handle zip drop: ${file.name}`);
@@ -1397,7 +1304,6 @@ class IManager {
         this.showDialog('edit-mod-dialog');
 
         // getModInfo 遇到新的 mod 会触发 addMod 事件，所以这里不需要再次触发
-        // this.trigger('addMod', mod);
     }
 
     async setFilter(character) {
@@ -1465,12 +1371,10 @@ class IManager {
     }
 
     async savePresetByModNames(presetName, modNames) {
-        // ipcRenderer.invoke('save-preset', presetName, data);
         PresetHelper.savePresetByName(presetName, modNames);
     }
 
     async savePresetByModIds(presetName,modIds){
-        // ipcRenderer.invoke('save-preset', presetName, data);
         PresetHelper.savePresetById(presetName,modIds);
     }
 
@@ -1497,9 +1401,6 @@ class IManager {
             }, 'error');
             return null;
         }
-        //debug
-        // await ipcRenderer.invoke('apply-mods', modList, modSourcePath, modTargetPath);
-        // await applyMods(modList, modSourcePath, modTargetPath);
         let result;
         try {
             if (this.config.ifUseTraditionalApply){
@@ -1528,7 +1429,6 @@ class IManager {
             this.temp.applyResult = result;
             this.showDialog('dialog-apply-result');
         } else {
-            // ipcRenderer.send('snack', '应用成功');
             t_snack({
                 vi: 'Áp dụng thành công',
                 en: 'Applied successfully',
@@ -1538,7 +1438,6 @@ class IManager {
     }
 
     async addPreset(presetName) {
-        // const newPresetPath = this.config.presetPath + '/' + presetName;
         const newPresetPath = path.join(this.config.presetPath, presetName + '.json');
         fs.writeFileSync(newPresetPath, JSON.stringify(this.data.modList));
 
@@ -1574,17 +1473,9 @@ class IManager {
     }
 
     async saveConfig() {
-        // await ipcRenderer.invoke('set-current-config', this._config);
         XXMMCore.saveCurrentConfig(this._config);
     }
 
-    // 同步的保存配置
-    saveConfigSync() {
-        //debug
-        console.log('saveConfig:', this._config);
-        // ipcRenderer.invoke('set-current-config', this._config);
-        XXMMCore.saveCurrentConfigSync(this._config);
-    }
 
     async getFilePath(fileName, fileType, defaultPath) {
         const filePath = await ipcRenderer.invoke('get-file-path', fileName, fileType, defaultPath);
@@ -1664,10 +1555,6 @@ class IManager {
         this.saveConfig();
     }
 
-    printModInfo(modInfo) {
-        console.log(ModData.fromJson(modInfo).print());
-        return;
-    }
 
     async moveAllFiles(sourcePath, targetPath) {
         const moveAllFiles = (srcDir, destDir) => {
@@ -1780,7 +1667,6 @@ ipcRenderer.on('windowBlur', () => {
     EventSystem.trigger('windowBlur');
 
     sleepTimer = setTimeout(() => {
-        // EventSystem.trigger("windowSleep");
         EventSystem.trigger('windowSleep');
         isSleeping = true;
         const tt2 = new TranslatedText("💤windowSleep", "💤Cửa sổ nghỉ");

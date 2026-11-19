@@ -52,7 +52,6 @@ enum EventType {
 }
 
 class EventSystem {
-    private static devMode = false; // 开发模式
     private static eventMap = new Map<EventType, Function[]>(); // 事件映射表
     // HP19: Object.values() built a fresh ~20-item array on every trigger()/on()
     // call; a prebuilt Set makes the validity check O(1) with no allocation.
@@ -75,18 +74,6 @@ class EventSystem {
         // console.log('eventMap:', EventSystem.eventMap);
     }
 
-    static async off(event: EventType, callback: Function) {
-        if (EventSystem.eventMap.has(event)) {
-            let callbacks = EventSystem.eventMap.get(event);
-            if (callbacks) {
-                let index = callbacks.indexOf(callback);
-                if (index !== -1) {
-                    callbacks.splice(index, 1);
-                }
-            }
-        }
-    }
-
     static async trigger(event: EventType, ...args: any[]) {
         // 因为会被js调用，所以说需要判断event是否为EventType之一
         if (!EventSystem.validEvents.has(event)) {
@@ -95,8 +82,6 @@ class EventSystem {
         if (EventSystem.eventMap.has(event)) {
             let callbacks = EventSystem.eventMap.get(event);
             if (callbacks) {
-                //debug
-                if (EventSystem.devMode) console.log('trigger:', event, args,new Error());
                 for (let callback of callbacks) {
                     callback(...args);
                 }
@@ -104,20 +89,6 @@ class EventSystem {
         }
     }
 
-    static async triggerSync(event: EventType, ...args: any[]) {
-        if (EventSystem.eventMap.has(event)) {
-            let callbacks = EventSystem.eventMap.get(event);
-            if (callbacks) {
-                for (let callback of callbacks) {
-                    await callback(...args);
-                }
-            }
-        }
-    }
-
-    static async clearAllEvents() {
-        EventSystem.eventMap.clear();
-    }
 }
 
 export { EventType, EventSystem };

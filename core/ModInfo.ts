@@ -1,4 +1,3 @@
-import ErrorHandler from "./ErrorHandler";
 import { SnackType, t_snack } from "../helper/SnackHelper";
 import { TranslatedText } from "../helper/Language";
 import type { CachedModEntry } from "./ModCache";

@@ -166,18 +166,6 @@ class Preset {
         return inheritedModIds;
     }
 
-    public getModNames() {
-        const adjustedModIds = this.getModIds();
-        const modNames = adjustedModIds.map(modId => {
-            const mod = ModLoader.mods.find(mod => mod.id === modId);
-            return mod?.name || modId;
-        }
-        );
-        // debug
-        console.log(`getModNames: ${modNames}`, this.modIds, adjustedModIds);
-        return modNames;
-    }
-
     setModsByNames(modNames: string[]) {
         // 这里的modNames是一个数组，包含了所有的mod的名称
         // 需要转换为mod的id

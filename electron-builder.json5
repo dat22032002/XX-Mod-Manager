@@ -23,7 +23,7 @@
     "publish": [
         {
             "provider": "github",
-            "owner": "XiaoLinXiaoZhu",
+            "owner": "dat22032002",
             "repo": "XX-Mod-Manager",
             "releaseType": "draft"
         }

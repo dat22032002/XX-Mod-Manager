@@ -110,28 +110,27 @@ const enterWindow = async () => {
 
 //===================== 动画效果 =====================//
 // Cards unmount when scrolled out of view (windowing) and mount again on the
-// way back, so the clicked state is read from the shared selection set
-// instead of always starting unclicked.
-const clicked = ref(selectedModIdSet.has(props.modRef.id));
+// way back, so the clicked state is a computed over the shared selection
+// set — the single source of truth — instead of a snapshot taken at mount.
+const clicked = computed(() => selectedModIdSet.has(props.modRef.id));
 const modItemRef = useTemplateRef('modItemRef');
 const emit = defineEmits(['click'])
 
 const click = (event) => {
-    const clickedAttr = modItemRef.value.getAttribute('clicked');
-    clicked.value = clickedAttr == 'true' ? false : true;
+    const newClicked = !clicked.value;
     // Keep the shared selection set in sync, so the selection survives
     // unmounting (scrolling away) and preset/Apply always see every
     // selected mod, mounted or not.
-    if (clicked.value) {
+    if (newClicked) {
         selectedModIdSet.add(props.modRef.id);
     } else {
         selectedModIdSet.delete(props.modRef.id);
     }
-    modItemRef.value.setAttribute('clicked', clicked.value);
+    // Đồng bộ thuộc tính DOM ngay để CSS [clicked="true"] và playClickAnim
+    // đọc đúng giá trị mới (binding :clicked của Vue chỉ cập nhật ở tick sau).
+    modItemRef.value.setAttribute('clicked', newClicked);
     if (event != null) {
         playClickAnim(modItemRef.value, event, modItemRef.value.getBoundingClientRect());
-        //debug
-        console.log(`click: ${props.mod},current clicked: ${clicked.value},attribute: ${modItemRef.value.getAttribute('clicked')}`);
         //emit('click', props.mod);
         // iManager.setLastClickedMod_ByName(props.mod);
         iManager.setCurrentMod(props.modRef);
@@ -174,7 +173,6 @@ function playClickAnim(modItem, event = null, rect = null) {
     }
     if (!modItem.inWindow) {
         //如果modItem不在视窗内，则不进行动画
-        console.log(`${modItem.name} | ${modItem.id} is not in window: prop inWindow is ${modItem.inWindow}`);
         return;
     }
 
@@ -185,7 +183,6 @@ function playClickAnim(modItem, event = null, rect = null) {
 
     if (modItem.inWindow == false) {
         //如果modItem不在视窗内，则不进行动画
-        console.log(`${modItem.name} | ${modItem.id} is not in window: prop inWindow is ${modItem.inWindow}`);
         return;
     }
 
@@ -315,7 +312,6 @@ watch(() => props.compactMode, (newVal, oldVal) => {
     }
     if (modItem.getAttribute('inWindow') != 'true') {
         //如果modItem不在视窗内，则不进行动画
-        console.log(`${modItem.name} | ${modItem.id} is not in window: prop inWindow is ${modItem.getAttribute('inWindow')}`);
         return;
     }
     if (newVal) {

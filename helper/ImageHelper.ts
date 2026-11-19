@@ -3,7 +3,6 @@ import ModCache from '../core/ModCache';
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { ipcRenderer } = require('electron');
 
 // Cover thumbnails (HP2).
 //
@@ -54,9 +53,6 @@ class ImageHelper {
     // The disk cache is pruned at most once per session.
     private static pruneDone = false;
 
-    public static async getImageBase64(imagePath: string) {
-        return "data:image/png;base64," + await ipcRenderer.invoke('get-image', imagePath);
-    }
     public static async getImageUrlFromLocalPath(imagePath: string, ifCache: boolean = true) {
         if (ifCache) {
             const cached = this.imageCache.get(imagePath);
