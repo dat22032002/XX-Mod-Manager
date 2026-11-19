@@ -15,6 +15,8 @@
 //   - modCardSection reads the set for savePreset / Apply / batch-set.
 import { reactive } from 'vue';
 import type { ModData } from '../core/ModHelper';
+import { TranslatedText } from './Language';
+import { SnackType, t_snack } from './SnackHelper';
 
 // Reactive so any computed that reads it stays up to date.
 export const selectedModIdSet = reactive(new Set<string>());
@@ -62,6 +64,42 @@ export function evictSameSlotMods(allMods: ModData[], mod: ModData): ModData[] {
         evicted.push(other);
     }
     return evicted;
+}
+
+//===================== hành động dùng chung (thẻ + hàng danh sách) =====================
+// Bấm chọn/bỏ chọn 1 mod: bật thì tắt mod cũ cùng nhân vật + cùng loại
+// trước rồi báo rõ đã tắt mod nào (luật 1 mod/1 loại); tắt thì chỉ xóa
+// khỏi tập chọn. Trả về trạng thái mới (true = đang bật). Thẻ lưới và
+// hàng danh sách dùng chung hàm này để hành vi giống hệt nhau.
+export function toggleModSelection(allMods: ModData[], mod: ModData): boolean {
+    if (selectedModIdSet.has(mod.id)) {
+        selectedModIdSet.delete(mod.id);
+        return false;
+    }
+    const evicted = evictSameSlotMods(allMods, mod);
+    selectedModIdSet.add(mod.id);
+    if (evicted.length > 0) {
+        const slotWords = { outfit: ['outfit', 'đồ'], weapon: ['weapon', 'vũ khí'], effect: ['effect', 'hiệu ứng'] };
+        const [slotEn, slotVi] = slotWords[getModSlot(mod)];
+        const names = evicted.map(m => m.name).join(', ');
+        t_snack(new TranslatedText(
+            `Turned off ${names} — only one ${slotEn} mod per character can be on`,
+            `Đã tắt ${names} — mỗi nhân vật chỉ bật 1 mod ${slotVi} cùng lúc`
+        ), SnackType.info);
+    }
+    return true;
+}
+
+// Ghim/bỏ ghim 1 mod, lưu ngay vào mod.json. Ghi lỗi thì trả lại trạng
+// thái cũ để màn hình không lệch với file.
+export async function toggleModPin(mod: ModData): Promise<void> {
+    mod.pinned = !mod.pinned;
+    try {
+        await mod.saveModInfo();
+    } catch (e) {
+        mod.pinned = !mod.pinned;
+        console.error('Failed to save pin state', e);
+    }
 }
 
 // Đặt lại tập chọn từ danh sách id (lúc tải preset), áp dụng cùng luật:

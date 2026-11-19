@@ -23,7 +23,8 @@
                 </s-tooltip>
             </template>
         </leftMenu>
-        <modCardManager id="mod-card-manager" :compactMode="compactMode" ref="modCardManagerRef">
+        <modCardManager id="mod-card-manager" :compactMode="compactMode" :viewMode="viewMode"
+            :cardWidth="cardWidth" ref="modCardManagerRef">
         </modCardManager>
         <modInfo :mod="displayModRef"></modInfo>
     </div>
@@ -43,11 +44,59 @@
                 </s-icon-button>
                 <p> {{ $t('buttons.refresh') }} </p>
             </s-tooltip>
-            <s-tooltip>
+            <s-tooltip v-if="viewMode === 'grid'">
                 <s-switch class="OO-color-gradient-word" v-model="compactMode" @change="handleCompactButtonClicked"
                     slot="trigger" />
                 <p> {{ $t('buttons.compactMode') }} </p>
             </s-tooltip>
+            <s-tooltip>
+                <s-icon-button @click="handleViewModeClicked('grid')" slot="trigger" class="OO-button"
+                    :style="{ color: viewMode === 'grid' ? 'var(--s-color-primary)' : 'var(--s-color-on-surface)' }">
+                    <s-icon>
+                        <svg viewBox="0 0 24 24">
+                            <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z" />
+                        </svg>
+                    </s-icon>
+                </s-icon-button>
+                <p> {{ $t('buttons.viewGrid') }} </p>
+            </s-tooltip>
+            <s-tooltip>
+                <s-icon-button @click="handleViewModeClicked('list')" slot="trigger" class="OO-button"
+                    :style="{ color: viewMode === 'list' ? 'var(--s-color-primary)' : 'var(--s-color-on-surface)' }">
+                    <s-icon>
+                        <svg viewBox="0 0 24 24">
+                            <path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z" />
+                        </svg>
+                    </s-icon>
+                </s-icon-button>
+                <p> {{ $t('buttons.viewList') }} </p>
+            </s-tooltip>
+            <template v-if="viewMode === 'grid'">
+                <s-tooltip>
+                    <s-icon-button @click="handleZoomOutClicked" slot="trigger" class="OO-button"
+                        :disabled="cardWidth <= ZOOM_LEVELS[0]" style="color: var(--s-color-on-surface);">
+                        <s-icon>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M19 13H5v-2h14v2z" />
+                            </svg>
+                        </s-icon>
+                    </s-icon-button>
+                    <p> {{ $t('buttons.zoomOut') }} </p>
+                </s-tooltip>
+                <span class="zoom-label">{{ zoomPercent }}%</span>
+                <s-tooltip>
+                    <s-icon-button @click="handleZoomInClicked" slot="trigger" class="OO-button"
+                        :disabled="cardWidth >= ZOOM_LEVELS[ZOOM_LEVELS.length - 1]"
+                        style="color: var(--s-color-on-surface);">
+                        <s-icon>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                            </svg>
+                        </s-icon>
+                    </s-icon-button>
+                    <p> {{ $t('buttons.zoomIn') }} </p>
+                </s-tooltip>
+            </template>
         </div>
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
@@ -239,6 +288,52 @@ function handleCompactButtonClicked() {
 }
 //#endregion
 
+//-============================== Kiểu hiển thị + phóng to ==============================
+//#region View mode + zoom
+// Mức phóng to (chiều rộng thẻ, px). 250 là cỡ gốc = 100%.
+const ZOOM_LEVELS = [200, 250, 300, 350];
+// Đọc qua g_config_vue (ref phản ứng): lúc mở app, loadConfig ghi giá trị
+// đã lưu vào đây, khung lưới tự cập nhật theo. Ghi thì đi qua Proxy
+// iManager.config để _config + ref cùng đổi (ghi thẳng vào ref thì file
+// config không đổi theo).
+const viewMode = g_config_vue.viewMode;
+const cardWidth = g_config_vue.cardWidth;
+const zoomPercent = computed(() => Math.round(cardWidth.value / 250 * 100));
+
+// Ghi config dồn: bấm +/− lia lịa thì chờ 300ms sau lần bấm cuối mới ghi
+// 1 lần (giống cách ghi preset dồn).
+let saveViewTimer = null;
+function saveViewSettings() {
+    if (saveViewTimer) clearTimeout(saveViewTimer);
+    saveViewTimer = setTimeout(() => {
+        saveViewTimer = null;
+        iManager.saveConfig();
+    }, 300);
+}
+
+function handleViewModeClicked(mode) {
+    if (viewMode.value === mode) return;
+    iManager.config.viewMode = mode;
+    saveViewSettings();
+}
+
+function handleZoomOutClicked() {
+    const i = ZOOM_LEVELS.indexOf(cardWidth.value);
+    if (i > 0) {
+        iManager.config.cardWidth = ZOOM_LEVELS[i - 1];
+        saveViewSettings();
+    }
+}
+
+function handleZoomInClicked() {
+    const i = ZOOM_LEVELS.indexOf(cardWidth.value);
+    if (i >= 0 && i < ZOOM_LEVELS.length - 1) {
+        iManager.config.cardWidth = ZOOM_LEVELS[i + 1];
+        saveViewSettings();
+    }
+}
+//#endregion
+
 //-============================= presets ==============================
 //#region presets
 // const presets = ref([]);
@@ -417,6 +512,14 @@ EventSystem.on('toggledMod', (mod) => {
     flex-direction: row;
     align-items: stretch;
     justify-content: flex-start;
+}
+
+.zoom-label {
+    min-width: 44px;
+    text-align: center;
+    color: var(--s-color-on-surface-variant);
+    font-size: 0.85em;
+    align-self: center;
 }
 
 .bottom {

@@ -6,10 +6,14 @@
             @filterChangeToSelected="handleFilterChangeToSelected" @filterChangeToSearch="handleFilterChangeToSearch" />
         <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
-            <div id="mod-container" :compact="compactMode" ref="modContainerRef"
-                :style="{ paddingTop: windowPaddingTop + 'px', paddingBottom: windowPaddingBottom + 'px' }">
-                <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true :compactMode="compactMode"
-                    :ref="setModCardRef(mod.id)" />
+            <div id="mod-container" :compact="compactMode" ref="modContainerRef" :style="containerStyle">
+                <template v-if="viewMode === 'list'">
+                    <modListRow v-for="mod in windowMods" :key="mod.id" :modRef="mod" />
+                </template>
+                <template v-else>
+                    <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true
+                        :compactMode="compactMode" :cardWidth="effectiveCardWidth" :ref="setModCardRef(mod.id)" />
+                </template>
             </div>
             <div class="placeholder"></div>
         </s-scroll-view>
@@ -21,19 +25,30 @@ import 'sober';
 import chipRadioBar from './chipRadioBar.vue';
 import { ref, onMounted, onUnmounted, computed, useTemplateRef, watch, reactive, nextTick } from 'vue';
 import modCard from './modCard.vue';
+import modListRow from './modListRow.vue';
 import { Tween, Group } from "@tweenjs/tween.js";
 import IManager, { g_data_vue } from '../../electron/IManager';
 import { g_config_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 import ModCharacterFilter from './modCharacterFilter.vue';
-import { computeColumns, computeWindow, CARD_WIDTH, CARD_GAP, OVERSCAN_ROWS } from './modWindowing.js';
+import { computeColumns, computeWindow, CARD_GAP, OVERSCAN_ROWS } from './modWindowing.js';
 import { selectedModIdSet, setSelectedModIdsExclusive } from '../../helper/SelectedMods';
 
 const iManager = new IManager();
 
 // 接受参数
 const props = defineProps({
-    compactMode: Boolean
+    compactMode: Boolean,
+    // Kiểu hiển thị: 'grid' (lưới) hoặc 'list' (danh sách).
+    viewMode: {
+        type: String,
+        default: 'grid'
+    },
+    // Chiều rộng thẻ ở dạng lưới (200/250/300/350).
+    cardWidth: {
+        type: Number,
+        default: 250
+    }
 });
 
 // 定义 mods 变量
@@ -166,12 +181,38 @@ function scheduleWindowUpdate() {
     });
 }
 
+// Rộng thẻ hợp lệ: chỉ nhận 1 trong 4 nấc (200/250/300/350); giá trị lạ
+// trong config cũ thì về 250 để lưới không vỡ.
+const ZOOM_LEVELS = [200, 250, 300, 350];
+const effectiveCardWidth = computed(() =>
+    ZOOM_LEVELS.includes(props.cardWidth) ? props.cardWidth : 250
+);
+
+// Kiểu của khung lưới: khoảng đệm vẽ từng phần + biến rộng thẻ (lưới)
+// hoặc 1 cột duy nhất (danh sách). Thẻ lưới đọc --card-width để tự co
+// giãn theo mức phóng to.
+const containerStyle = computed(() => {
+    const style = {
+        paddingTop: windowPaddingTop.value + 'px',
+        paddingBottom: windowPaddingBottom.value + 'px',
+    };
+    if (props.viewMode === 'list') {
+        style.gridTemplateColumns = '1fr';
+    } else {
+        style['--card-width'] = effectiveCardWidth.value + 'px';
+    }
+    return style;
+});
+
 function updateWindow() {
     const container = modContainerRef.value;
     const scrollView = scrollViewRef.value;
     if (!container || !scrollView) return;
     const list = filteredMods.value;
-    const columns = computeColumns(container.clientWidth, CARD_WIDTH, CARD_GAP);
+    // Danh sách: 1 cột; lưới: số cột theo chiều rộng thẻ hiện tại.
+    const columns = props.viewMode === 'list'
+        ? 1
+        : computeColumns(container.clientWidth, effectiveCardWidth.value, CARD_GAP);
     const rowHeight = readRowHeight();
     const viewRect = scrollView.getBoundingClientRect();
     const contRect = container.getBoundingClientRect();
@@ -379,47 +420,65 @@ EventSystem.on('currentPresetChanged', (preset) => {
 
 const animate = new Group();
 const modContainerRef = useTemplateRef('modContainerRef');
-// 监控 compactMode 变量，为其的 grid-auto-rows 添加过渡效果
+
+// Chiều cao 1 hàng theo kiểu hiển thị + mức phóng to: danh sách cố định
+// 72px; lưới thường = rộng × 1.4; lưới gọn = rộng × 0.6.
+function targetRowHeight() {
+    if (props.viewMode === 'list') return 72;
+    return props.compactMode ? effectiveCardWidth.value * 0.6 : effectiveCardWidth.value * 1.4;
+}
+
+// Đặt chiều cao hàng ngay (lúc đổi mức phóng to / đổi kiểu hiển thị).
+function syncRowHeight() {
+    const el = modContainerRef.value;
+    if (el) el.style.gridAutoRows = `${targetRowHeight()}px`;
+}
+
 let isAnimating = false;
-// 两个动画效果：从 350px 到 150px，从 150px 到 350px
-const compactAnimation = new Tween({ height: 350 }).to({ height: 150 }, 200).onComplete(isAnimating = false);
-compactAnimation.onUpdate((object) => {
-    modContainerRef.value.style.gridAutoRows = `${object.height}px`;
-    // Row height is animating: keep the windowing padding in sync with it.
-    updateWindow();
-});
-const expandAnimation = new Tween({ height: 150 }).to({ height: 350 }, 200).onComplete(isAnimating = false);
-expandAnimation.onUpdate((object) => {
-    modContainerRef.value.style.gridAutoRows = `${object.height}px`;
-    // Row height is animating: keep the windowing padding in sync with it.
-    updateWindow();
-});
-
-animate.add(compactAnimation);
-animate.add(expandAnimation);
-
-watch(() => props.compactMode, (newVal) => {
-    if (newVal) {
-        modContainerRef.value.style.gridAutoRows = '150px';
-        isAnimating = true;
-        compactAnimation.start();
-        updateAnimate();
-    } else {
-        modContainerRef.value.style.gridAutoRows = '350px';
-        isAnimating = true;
-        expandAnimation.start();
-        updateAnimate();
-    }
-    // The row height finishes animating after 200ms; recompute the mounted
-    // rows once it has settled.
-    setTimeout(updateWindow, 250);
-});
-
 function updateAnimate() {
     if (!isAnimating) return;
     requestAnimationFrame(updateAnimate)
     animate.update()
 }
+
+// Chuyển chế độ gọn/thường: tạo hiệu ứng mới mỗi lần với chiều cao đích
+// theo mức phóng to hiện tại (không dùng giá trị cố định 350/150 nữa).
+watch(() => props.compactMode, () => {
+    const el = modContainerRef.value;
+    if (!el) return;
+    const from = readRowHeight();
+    const to = targetRowHeight();
+    if (from === to) return;
+    const tween = new Tween({ height: from }).to({ height: to }, 200)
+        .onUpdate((object) => {
+            el.style.gridAutoRows = `${object.height}px`;
+            // Row height is animating: keep the windowing padding in sync.
+            updateWindow();
+        })
+        .onComplete(() => { isAnimating = false; });
+    animate.add(tween);
+    isAnimating = true;
+    tween.start();
+    updateAnimate();
+    // The row height finishes animating after 200ms; recompute the mounted
+    // rows once it has settled.
+    setTimeout(updateWindow, 250);
+});
+
+// Đổi mức phóng to: đặt lại chiều cao hàng + tính lại hàng đang gắn.
+watch(() => props.cardWidth, () => {
+    syncRowHeight();
+    updateWindow();
+});
+
+// Đổi kiểu hiển thị: về đầu danh sách (vị trí cuộn cũ không còn ý nghĩa
+// khi số hàng thay đổi) rồi đặt lại chiều cao hàng + tính lại hàng gắn.
+watch(() => props.viewMode, () => {
+    const scrollView = scrollViewRef.value;
+    if (scrollView) scrollView.scrollTop = 0;
+    syncRowHeight();
+    updateWindow();
+});
 
 // 定义 observer 变量
 const observer = new IntersectionObserver((entries) => {
@@ -480,6 +539,9 @@ onMounted(async () => {
         if (modContainerRef.value) windowResizeObserver.observe(modContainerRef.value);
         if (scrollView) windowResizeObserver.observe(scrollView);
     }
+    // Đặt chiều cao hàng theo mức phóng to/kiểu hiển thị đã lưu ngay từ đầu
+    // (không thì lần đầu mở app vẫn dùng cỡ mặc định của CSS).
+    syncRowHeight();
     updateWindow();
 
     // 接受文件拖拽事件，可以直接通过拖拽文件到窗口中导入 mod，或者拖拽图片到窗口中为 mod 添加预览图
@@ -533,9 +595,9 @@ defineExpose({
     /* grid-column: span 4;
     grid-column-start: span 4; */
     grid-column-end: auto;
-    grid-template-columns: repeat(auto-fill, 250px);
+    grid-template-columns: repeat(auto-fill, var(--card-width, 250px));
     grid-row-end: auto;
-    grid-auto-rows: 350px;
+    grid-auto-rows: calc(var(--card-width, 250px) * 1.4);
     gap: 12px;
     justify-content: start;
     justify-items: center;
