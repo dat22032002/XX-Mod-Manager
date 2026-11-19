@@ -33,7 +33,7 @@ const iManager = new IManager();
 // 接受参数
 const props = defineProps({
     compactMode: Boolean,
-    // Chiều rộng thẻ ở dạng lưới (200/250/300/350).
+    // Chiều rộng thẻ ở dạng lưới (100/150/200/250/300/350).
     cardWidth: {
         type: Number,
         default: 250
@@ -170,9 +170,9 @@ function scheduleWindowUpdate() {
     });
 }
 
-// Rộng thẻ hợp lệ: chỉ nhận 1 trong 4 nấc (200/250/300/350); giá trị lạ
-// trong config cũ thì về 250 để lưới không vỡ.
-const ZOOM_LEVELS = [200, 250, 300, 350];
+// Rộng thẻ hợp lệ: chỉ nhận 1 trong 6 nấc (100/150/200/250/300/350);
+// giá trị lạ trong config cũ thì về 250 để lưới không vỡ.
+const ZOOM_LEVELS = [100, 150, 200, 250, 300, 350];
 const effectiveCardWidth = computed(() =>
     ZOOM_LEVELS.includes(props.cardWidth) ? props.cardWidth : 250
 );

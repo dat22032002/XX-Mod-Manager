@@ -34,7 +34,7 @@
             <s-tooltip>
                 <!-- -刷新按钮 -->
                 <s-icon-button @click="handleRefreshButtonClicked" slot="trigger" class="OO-button"
-                    style="color: var(--s-color-on-surface);margin: 0 10px 0 0;transform: scale(0.95);">
+                    style="color: var(--s-color-on-surface);transform: scale(0.95);">
                     <s-icon>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
                             <path
@@ -267,7 +267,7 @@ function handleCompactButtonClicked() {
 //-============================== Phóng to ==============================
 //#region Zoom
 // Mức phóng to (chiều rộng thẻ, px). 250 là cỡ gốc = 100%.
-const ZOOM_LEVELS = [200, 250, 300, 350];
+const ZOOM_LEVELS = [100, 150, 200, 250, 300, 350];
 // Đọc qua g_config_vue (ref phản ứng): lúc mở app, loadConfig ghi giá trị
 // đã lưu vào đây, khung lưới tự cập nhật theo. Ghi thì đi qua Proxy
 // iManager.config để _config + ref cùng đổi (ghi thẳng vào ref thì file
@@ -500,6 +500,12 @@ EventSystem.on('toggledMod', (mod) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.bottom-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .bottom-right {

@@ -213,7 +213,7 @@ class IManager {
         },
         ifKeepModNameAsModFolderName: false, // 是否保持 mod 名称和文件夹名称一致
         ifUseTraditionalApply: false, // 是否使用传统的应用方式
-        cardWidth: 250, // Chiều rộng thẻ ở dạng lưới (200/250/300/350)
+        cardWidth: 250, // Chiều rộng thẻ ở dạng lưới (100/150/200/250/300/350)
     };
 
     // 程序运行时的数据
