@@ -289,7 +289,16 @@ class ModInfo {
             // debug
             console.log(`Đổi tên mod: ${this.modName} -> ${newName} in folder ${this.location}`);
             const newModFolderPath = path.join(path.dirname(this.location), newFolderName);
-            if (fs.existsSync(newModFolderPath)) {
+            // Trùng tên chỉ tính khi thư mục đích đã tồn tại VÀ không
+            // phải là chính thư mục hiện tại: đổi tên chỉ khác chữ
+            // hoa/thường trên Windows (ổ không phân biệt hoa/thường)
+            // thì đường dẫn mới trỏ đúng vào thư mục hiện tại — đó là
+            // đổi tên hợp lệ, không phải trùng (Đạt đổi (ACC) thành
+            // (ac) bị chặn oan, 19/11).
+            const sameFolder = process.platform === 'win32'
+                ? newFolderName.toLowerCase() === folderName.toLowerCase()
+                : newFolderName === folderName;
+            if (!sameFolder && fs.existsSync(newModFolderPath)) {
                 throw new Error(`Tên mod trùng lặp: ${newFolderName} đã tồn tại`);
             }
             try {
