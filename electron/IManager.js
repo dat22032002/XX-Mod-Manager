@@ -1459,7 +1459,11 @@ class IManager {
         }
         //debug
         console.log(`update mod card cover of`, modInfo);
-        const modImageDest = modInfo.setPreviewByBase64(previewBase64);
+        // Phải chờ ghi xong mới báo đổi: setPreviewByBase64 là async (nó
+        // await checkModSourcePath trước khi ghi file + cập nhật base64
+        // trong bộ nhớ). Không await thì triggerChanged() chạy trước khi
+        // ảnh mới được ghi, thẻ đọc lại vẫn thấy ảnh cũ.
+        const modImageDest = await modInfo.setPreviewByBase64(previewBase64);
 
         // 保存到本地
         modInfo.saveModInfo();
