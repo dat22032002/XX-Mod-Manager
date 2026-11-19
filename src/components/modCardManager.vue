@@ -7,13 +7,8 @@
         <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
             <div id="mod-container" :compact="compactMode" ref="modContainerRef" :style="containerStyle">
-                <template v-if="viewMode === 'list'">
-                    <modListRow v-for="mod in windowMods" :key="mod.id" :modRef="mod" />
-                </template>
-                <template v-else>
-                    <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true
-                        :compactMode="compactMode" :cardWidth="effectiveCardWidth" :ref="setModCardRef(mod.id)" />
-                </template>
+                <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true
+                    :compactMode="compactMode" :cardWidth="effectiveCardWidth" :ref="setModCardRef(mod.id)" />
             </div>
             <div class="placeholder"></div>
         </s-scroll-view>
@@ -25,7 +20,6 @@ import 'sober';
 import chipRadioBar from './chipRadioBar.vue';
 import { ref, onMounted, onUnmounted, computed, useTemplateRef, watch, reactive, nextTick } from 'vue';
 import modCard from './modCard.vue';
-import modListRow from './modListRow.vue';
 import { Tween, Group } from "@tweenjs/tween.js";
 import IManager, { g_data_vue } from '../../electron/IManager';
 import { g_config_vue, g_temp_vue } from '../../electron/IManager';
@@ -39,12 +33,7 @@ const iManager = new IManager();
 // 接受参数
 const props = defineProps({
     compactMode: Boolean,
-    // Kiểu hiển thị: 'grid' (lưới) hoặc 'list' (danh sách).
-    viewMode: {
-        type: String,
-        default: 'grid'
-    },
-    // Chiều rộng thẻ ở dạng lưới (200/250/300/350).
+    // Chiều rộng thẻ ở dạng lưới (100/150/200/250/300/350).
     cardWidth: {
         type: Number,
         default: 250
@@ -181,27 +170,21 @@ function scheduleWindowUpdate() {
     });
 }
 
-// Rộng thẻ hợp lệ: chỉ nhận 1 trong 4 nấc (200/250/300/350); giá trị lạ
-// trong config cũ thì về 250 để lưới không vỡ.
-const ZOOM_LEVELS = [200, 250, 300, 350];
+// Rộng thẻ hợp lệ: chỉ nhận 1 trong 6 nấc (100/150/200/250/300/350);
+// giá trị lạ trong config cũ thì về 250 để lưới không vỡ.
+const ZOOM_LEVELS = [100, 150, 200, 250, 300, 350];
 const effectiveCardWidth = computed(() =>
     ZOOM_LEVELS.includes(props.cardWidth) ? props.cardWidth : 250
 );
 
-// Kiểu của khung lưới: khoảng đệm vẽ từng phần + biến rộng thẻ (lưới)
-// hoặc 1 cột duy nhất (danh sách). Thẻ lưới đọc --card-width để tự co
-// giãn theo mức phóng to.
+// Kiểu của khung lưới: khoảng đệm vẽ từng phần + biến rộng thẻ. Thẻ lưới
+// đọc --card-width để tự co giãn theo mức phóng to.
 const containerStyle = computed(() => {
-    const style = {
+    return {
         paddingTop: windowPaddingTop.value + 'px',
         paddingBottom: windowPaddingBottom.value + 'px',
+        '--card-width': effectiveCardWidth.value + 'px',
     };
-    if (props.viewMode === 'list') {
-        style.gridTemplateColumns = '1fr';
-    } else {
-        style['--card-width'] = effectiveCardWidth.value + 'px';
-    }
-    return style;
 });
 
 function updateWindow() {
@@ -209,10 +192,8 @@ function updateWindow() {
     const scrollView = scrollViewRef.value;
     if (!container || !scrollView) return;
     const list = filteredMods.value;
-    // Danh sách: 1 cột; lưới: số cột theo chiều rộng thẻ hiện tại.
-    const columns = props.viewMode === 'list'
-        ? 1
-        : computeColumns(container.clientWidth, effectiveCardWidth.value, CARD_GAP);
+    // Số cột theo chiều rộng thẻ hiện tại.
+    const columns = computeColumns(container.clientWidth, effectiveCardWidth.value, CARD_GAP);
     const rowHeight = readRowHeight();
     const viewRect = scrollView.getBoundingClientRect();
     const contRect = container.getBoundingClientRect();
@@ -421,14 +402,12 @@ EventSystem.on('currentPresetChanged', (preset) => {
 const animate = new Group();
 const modContainerRef = useTemplateRef('modContainerRef');
 
-// Chiều cao 1 hàng theo kiểu hiển thị + mức phóng to: danh sách cố định
-// 72px; lưới thường = rộng × 1.4; lưới gọn = rộng × 0.6.
+// Chiều cao 1 hàng theo mức phóng to: thường = rộng × 1.4; gọn = rộng × 0.6.
 function targetRowHeight() {
-    if (props.viewMode === 'list') return 72;
     return props.compactMode ? effectiveCardWidth.value * 0.6 : effectiveCardWidth.value * 1.4;
 }
 
-// Đặt chiều cao hàng ngay (lúc đổi mức phóng to / đổi kiểu hiển thị).
+// Đặt chiều cao hàng ngay (lúc đổi mức phóng to).
 function syncRowHeight() {
     const el = modContainerRef.value;
     if (el) el.style.gridAutoRows = `${targetRowHeight()}px`;
@@ -467,15 +446,6 @@ watch(() => props.compactMode, () => {
 
 // Đổi mức phóng to: đặt lại chiều cao hàng + tính lại hàng đang gắn.
 watch(() => props.cardWidth, () => {
-    syncRowHeight();
-    updateWindow();
-});
-
-// Đổi kiểu hiển thị: về đầu danh sách (vị trí cuộn cũ không còn ý nghĩa
-// khi số hàng thay đổi) rồi đặt lại chiều cao hàng + tính lại hàng gắn.
-watch(() => props.viewMode, () => {
-    const scrollView = scrollViewRef.value;
-    if (scrollView) scrollView.scrollTop = 0;
     syncRowHeight();
     updateWindow();
 });

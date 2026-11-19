@@ -76,7 +76,6 @@ let g_config = {
     },
     ifKeepModNameAsModFolderName: false,
     ifUseTraditionalApply: false,
-    viewMode: 'grid',
     cardWidth: 250,
 };
 let g_data = {
@@ -118,7 +117,6 @@ const g_config_vue = {
     }),
     ifKeepModNameAsModFolderName: ref(false),
     ifUseTraditionalApply: ref(false),
-    viewMode: ref('grid'),
     cardWidth: ref(250),
 };
 
@@ -215,8 +213,7 @@ class IManager {
         },
         ifKeepModNameAsModFolderName: false, // 是否保持 mod 名称和文件夹名称一致
         ifUseTraditionalApply: false, // 是否使用传统的应用方式
-        viewMode: 'grid', // Kiểu hiển thị: 'grid' (lưới) hoặc 'list' (danh sách)
-        cardWidth: 250, // Chiều rộng thẻ ở dạng lưới (200/250/300/350)
+        cardWidth: 250, // Chiều rộng thẻ ở dạng lưới (100/150/200/250/300/350)
     };
 
     // 程序运行时的数据
