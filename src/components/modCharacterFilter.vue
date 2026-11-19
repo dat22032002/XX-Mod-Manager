@@ -254,7 +254,9 @@ defineExpose({
 }
 
 .search-box-fixed {
-    width: 200px;
+    /* Rộng 160px (Đạt dặn 19:23 19/11: ngắn lại xíu cho gọn; trước đây
+       200px). Ngắn ô thì thanh tag có thêm chỗ, đỡ phải lăn. */
+    width: 160px;
     min-width: 0;
     flex-shrink: 0;
     height: 35px;
