@@ -120,6 +120,9 @@
     "failedMods": "Mod thất bại",
     "close": "Đóng"
   },
+  "stats": {
+    "line": "{total} mod · {enabled} đang bật · {characters} nhân vật"
+  },
   "author": "tác giả",
   "caimogu": "Caimogu",
   "firstLoad": {

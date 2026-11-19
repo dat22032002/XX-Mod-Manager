@@ -74,6 +74,9 @@
                 <p> {{ $t('buttons.zoomIn') }} </p>
             </s-tooltip>
         </div>
+        <div class="bottom-center">
+            <span class="mod-stats">{{ $t('stats.line', { total: statsTotal, enabled: selectedModIdSet.size, characters: statsCharacters }) }}</span>
+        </div>
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
             <s-popup align="top">
@@ -148,7 +151,7 @@
 import modCardManager from '../components/modCardManager.vue';
 import leftMenu from '../components/leftMenu.vue';
 import modInfo from '../components/modInfo.vue';
-import { ref, onUnmounted, useTemplateRef, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, useTemplateRef, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dialogTemplate from '../dialogs/dialogTemplate.vue';
 import IManager from '../../electron/IManager';
@@ -302,6 +305,28 @@ function handleZoomInClicked() {
     }
 }
 //#endregion
+
+//-============================= thống kê kho mod ==============================
+// Dòng thống kê ở giữa thanh dưới: tổng số mod, số mod đang bật, số nhân
+// vật. modList không phải reactive (chỉ bắn sự kiện modListChanged khi
+// gán lại) nên đọc lại mỗi khi có sự kiện modListChanged / modInfoChanged
+// (đổi nhân vật của mod cũng đổi số nhân vật); số mod đang bật đọc thẳng
+// từ selectedModIdSet (reactive) trong template nên tự cập nhật khi bấm
+// chọn/bỏ chọn. "Unknown" không phải nhân vật nên không tính.
+const statsTotal = ref(0);
+const statsCharacters = ref(0);
+const refreshStats = () => {
+    const list = iManager.data.modList || [];
+    statsTotal.value = list.length;
+    const characters = new Set(list.map(mod => (mod.character || '').trim()).filter(c => c && c !== 'Unknown'));
+    statsCharacters.value = characters.size;
+};
+
+onMounted(() => {
+    refreshStats();
+    EventSystem.on(EventType.modListChanged, refreshStats);
+    EventSystem.on(EventType.modInfoChanged, refreshStats);
+});
 
 //-============================= presets ==============================
 //#region presets
@@ -506,6 +531,22 @@ EventSystem.on('toggledMod', (mod) => {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.bottom-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.mod-stats {
+    font-size: 14px;
+    color: var(--s-color-on-surface-variant);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .bottom-right {

@@ -120,6 +120,9 @@
     "failedMods": "Failed mods",
     "close": "Close"
   },
+  "stats": {
+    "line": "{total} mods · {enabled} enabled · {characters} characters"
+  },
   "author": "author",
   "caimogu": "Caimogu",
   "firstLoad": {
