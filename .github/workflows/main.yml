@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest  # 或者你可以选择使用 linux-latest
+    permissions:
+      contents: write  # robot đăng bản cần quyền ghi để tạo bản phát hành (mặc định của repo đang là chỉ đọc)
 
     steps:
       - name: Checkout code
@@ -38,4 +40,5 @@ jobs:
       - name: Publish Electron App to GitHub
         run: npx electron-builder --win --linux --publish always  # Package and publish to GitHub Releases
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # 需要配置 GitHub Token
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
