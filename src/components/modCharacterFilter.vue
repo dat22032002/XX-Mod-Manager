@@ -245,7 +245,11 @@ defineExpose({
     display: flex;
     align-items: center;
     width: 100%;
-    gap: 5px;
+    /* Khe giữa ô tìm kiếm và thanh tag phải rộng hơn độ lệch của góc
+    nghiêng (ô cao 35px nghiêng 20° lệch ~13px): khi kéo thanh tag, tag
+    đầu bị cắt phẳng ở mép thanh rồi dí sát vào viền vàng ô tìm kiếm,
+    trông như chèn lên nhau. 18px để cả lúc bị cắt vẫn còn khe thoáng. */
+    gap: 18px;
 }
 
 .search-box-fixed {
