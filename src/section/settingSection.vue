@@ -12,8 +12,6 @@
                 <s-divider></s-divider>
                 <settingBar :data="ifStartWithLastPresetData"></settingBar>
                 <s-divider></s-divider>
-                <settingBar :data="ifKeepModNameAsModFolderName"></settingBar>
-                <s-divider></s-divider>
                 <settingBar :data="openFirstLoadButton"></settingBar>
                 <div class="placeholder" style="flex: 1;min-height: 150px;"></div>
             </div>
@@ -445,23 +443,6 @@ const createShortOfCurrentConfig = {
     }
 }
 
-const ifKeepModNameAsModFolderName = {
-    name: 'ifKeepModNameAsModFolderName',
-    data: iManager.config.ifKeepModNameAsModFolderName,
-    type: 'boolean',
-    displayName: 'Keep Mod Name As Mod Folder Name',
-    t_displayName: {
-        vi: 'Giữ tên mod giống tên thư mục mod',
-        en: 'Keep Mod Name As Mod Folder Name'
-    },
-    onChange: (value) => {
-        console.log('ifKeepModNameAsModFolderName changed:', value);
-        ifKeepModNameAsModFolderName.data = value;
-
-        iManager.config.ifKeepModNameAsModFolderName = value;
-    }
-}
-
 const ifUseTraditionalApply = {
     name: 'ifUseTraditionalApply',
     data: iManager.config.ifUseTraditionalApply,
@@ -477,27 +458,18 @@ const ifUseTraditionalApply = {
         en: 'If true, the mod will be applied in a traditional way, using the traditional mode, the mod application status will be changed by changing the folder name'
     },
     onChange: (value) => {
-        // 检查：
-        // 1. modTarget和 modSource 需要是同一个文件夹
-        // 2. ifKeepModNameAsModFolderName 需要是 false
+        // 检查：modTarget和 modSource 需要是同一个文件夹
+        // (Trước đây còn chặn khi bật "giữ tên mod giống tên thư mục" —
+        // cài đặt đó đã bỏ, tên mod giờ luôn đồng bộ với tên thư mục và
+        // tiền tố "disabled_" được nhận biết riêng nên không xung đột.)
 
         if (value) {
             if (iManager.config.modTargetPath !== iManager.config.modSourcePath) {
                 iManager.config.ifUseTraditionalApply = false;
-                iManager.config.ifKeepModNameAsModFolderName = false;
                 console.log('ifUseTraditionalApply changed:', value, 'modTarget and modSource need to be the same folder');
                 t_snack({
                     vi: 'Ở chế độ truyền thống, thư mục đích và thư mục nguồn của mod phải là cùng một thư mục',
                     en: 'modTarget and modSource need to be the same folder'
-                }, SnackType.error)
-                return false;
-            }
-            if (iManager.config.ifKeepModNameAsModFolderName) {
-                iManager.config.ifUseTraditionalApply = false;
-                console.log('ifUseTraditionalApply changed:', value, 'ifKeepModNameAsModFolderName need to be false');
-                t_snack({
-                    vi: 'Muốn dùng chức năng này cần TẮT giữ tên mod giống tên thư mục mod, hãy tắt trong Cài đặt/Cài đặt chung',
-                    en: 'ifKeepModNameAsModFolderName need to be false, please turn it off in the setting/normal setting'
                 }, SnackType.error)
                 return false;
             }

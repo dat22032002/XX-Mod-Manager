@@ -44,7 +44,6 @@ export interface CachedModEntry {
 
 export interface ModCacheFile {
     version: number;
-    keepModNameAsFolder: boolean;
     // source folder path -> mod folder name -> cached entry
     sources: Record<string, Record<string, CachedModEntry>>;
 }
@@ -68,10 +67,9 @@ class ModCache {
     // recreate the file after it was deleted.
     private static writeEpoch: number = 0;
 
-    public static fresh(keepModNameAsFolder: boolean = false): ModCacheFile {
+    public static fresh(): ModCacheFile {
         return {
             version: CACHE_VERSION,
-            keepModNameAsFolder: keepModNameAsFolder,
             sources: {},
         };
     }
@@ -90,16 +88,16 @@ class ModCache {
         return this.cacheFilePathCache;
     }
 
-    // Returns the in-memory cache when one is already loaded for this
-    // setting (no disk read); otherwise reads the file once and keeps it.
-    // The returned object is the shared live copy: callers may mutate it
-    // (ModLoader does) and then call save() to persist it.
-    public static load(keepModNameAsFolder: boolean): ModCacheFile {
-        if (this.memoryCache && this.memoryCache.keepModNameAsFolder === keepModNameAsFolder) {
+    // Returns the in-memory cache when one is already loaded (no disk
+    // read); otherwise reads the file once and keeps it. The returned
+    // object is the shared live copy: callers may mutate it (ModLoader
+    // does) and then call save() to persist it.
+    public static load(): ModCacheFile {
+        if (this.memoryCache) {
             return this.memoryCache;
         }
         const cachePath = this.getCacheFilePath();
-        const fresh = this.fresh(keepModNameAsFolder);
+        const fresh = this.fresh();
         if (!cachePath) {
             this.memoryCache = fresh;
             return fresh;
@@ -117,13 +115,10 @@ class ModCache {
                 this.memoryCache = fresh;
                 return fresh;
             }
-            // The "keep mod name = folder name" setting changes resolved names,
-            // so a cache written under the other setting is not reusable.
-            if (parsed.keepModNameAsFolder !== keepModNameAsFolder) {
-                console.log('ModCache: ifKeepModNameAsModFolderName changed, ignoring cache');
-                this.memoryCache = fresh;
-                return fresh;
-            }
+            // File cache cũ có thể còn khóa keepModNameAsFolder (cài đặt đã
+            // bỏ) — cứ dùng bình thường: tên mod luôn lấy từ tên thư mục
+            // lúc tải (ModInfo.fromCache), tên lệch trong mục cache không
+            // còn tác dụng.
             this.memoryCache = parsed as ModCacheFile;
             return this.memoryCache;
         } catch (e) {

@@ -78,7 +78,22 @@ class ModMetaData {
 //- 2. 将确认图片到底是哪个文件
 //- 3. 将图片转化为 缓存url 或者 base64
 class ModInfo {
-    public static ifKeepModNameAsModFolderName: boolean = false; // 是否保持 mod 名称和文件夹名称一致
+    // Chế độ áp dụng truyền thống (đổi tên thư mục để tắt/bật mod) hay
+    // không — IManager ghi giá trị này từ config lúc mở app và mỗi khi
+    // đổi cài đặt. Chỉ dùng để nhận biết tiền tố "disabled_" là trạng
+    // thái tắt mod, không phải tên (xem folderNameToModName).
+    public static ifUseTraditionalApply: boolean = false;
+
+    // Tên mod lấy từ tên thư mục: ở chế độ thường thì tên mod CHÍNH LÀ
+    // tên thư mục; ở chế độ truyền thống, tiền tố "disabled_" là trạng
+    // thái tắt mod (do Apply tự thêm/bớt), không phải tên — bỏ ra trước
+    // khi so sánh hay hiển thị.
+    public static folderNameToModName(folderName: string): string {
+        if (ModInfo.ifUseTraditionalApply && folderName.startsWith('disabled_')) {
+            return folderName.slice('disabled_'.length);
+        }
+        return folderName;
+    }
 
     public static modDataTemplate: ModMetaData = new ModMetaData();
     public static setModDataTemplate(template: ModMetaData) {
@@ -107,7 +122,11 @@ class ModInfo {
     public static fromCache(location: string, entry: CachedModEntry): ModInfo {
         const modInfo = Object.create(ModInfo.prototype) as ModInfo;
         modInfo.location = location;
-        modInfo.modName = entry.modName;
+        // Tên mod lấy từ tên thư mục (như lúc quét mới) — mục cache cũ có
+        // thể còn tên lệch từ trước khi có đồng bộ 2 chiều. Ghi lại vào
+        // mục cache trong bộ nhớ để lần lưu cache sau khớp luôn.
+        modInfo.modName = ModInfo.folderNameToModName(path.basename(location));
+        entry.modName = modInfo.modName;
         modInfo.id = entry.id;
         // A cached mod was already seen on an earlier launch, so it is
         // no longer new. (Fresh loads still report newMod in memory.)
@@ -129,6 +148,13 @@ class ModInfo {
 
     private init(location: string) {
         let needSave = false;
+        // Tên mod luôn đồng bộ với tên thư mục: đổi tên thư mục ngoài
+        // Explorer thì lần tải sau app hiện tên mới (chiều ngược lại —
+        // đổi tên trong app thì thư mục trên đĩa đổi theo — ở
+        // setMetaDataFromJson). Trước đây 2 chiều này nằm sau cài đặt
+        // "giữ tên mod giống tên thư mục" (mặc định tắt) nên tên hay lệch
+        // nhau; giờ luôn bật, cài đặt đó đã bỏ.
+        this.modName = ModInfo.folderNameToModName(path.basename(location));
         // 读取模块元数据
         const metaDataPath = path.join(location, 'mod.json');
         if (fs.existsSync(metaDataPath)) {
@@ -158,14 +184,10 @@ class ModInfo {
                 needSave = true;
             }
 
-            // 对于modName，如果开启了保持一致，则需要保持一致，否则如果为空，则使用文件夹名称
-            const modFolderName = path.basename(location);
-            if (ModInfo.ifKeepModNameAsModFolderName && this.modName !== modFolderName) {
-                this.modName = modFolderName;
+            // Tên lưu trong mod.json chỉ để so sánh: khác tên thư mục (vd
+            // vừa đổi tên thư mục ngoài Explorer) thì ghi lại cho khớp.
+            if (metaData['modName'] && metaData['modName'] !== this.modName) {
                 needSave = true;
-            }
-            if (!ModInfo.ifKeepModNameAsModFolderName) {
-                this.modName = metaData['modName'] || this.modName;
             }
 
             // 读取模板中定义的数据
@@ -253,31 +275,31 @@ class ModInfo {
             metaData["id"] = this.generateID();
         }
 
-        // 保存modName 和 location
-        // 如果开启了保持mod名称和文件夹名称，那么当更改 modName 时，文件夹名称需要随着更改
-        if (ModInfo.ifKeepModNameAsModFolderName && metaData['name'] !== this.modName) {
-            // 更改文件夹名称
-            // 确认有无重复的文件夹名称
-            const newModFolderName = metaData['name'];
+        // Đổi tên mod trong app thì đổi luôn tên thư mục trên đĩa (đồng bộ
+        // 2 chiều — chiều ngược lại ở init()). Ở chế độ truyền thống, mod
+        // đang tắt giữ nguyên tiền tố "disabled_" (đổi tên không được làm
+        // mod bật lại). Đổi tên thất bại (trùng tên, ổ lỗi) thì báo lỗi
+        // để hộp sửa hiện "lưu thất bại" thay vì im lặng mất tên mới như
+        // trước đây (bản cũ chỉ return, hộp vẫn tưởng đã lưu).
+        if (metaData['name'] && metaData['name'] !== this.modName) {
+            const newName = metaData['name'];
+            const folderName = path.basename(this.location);
+            const disabled = ModInfo.ifUseTraditionalApply && folderName.startsWith('disabled_');
+            const newFolderName = disabled ? `disabled_${newName}` : newName;
             // debug
-            console.log(`Đổi tên mod: ${this.modName} -> ${newModFolderName} in folder ${this.location}`);
-            const newModFolderPath = path.join(path.dirname(this.location), newModFolderName);
+            console.log(`Đổi tên mod: ${this.modName} -> ${newName} in folder ${this.location}`);
+            const newModFolderPath = path.join(path.dirname(this.location), newFolderName);
             if (fs.existsSync(newModFolderPath)) {
-                console.error(`Tên mod trùng lặp: ${newModFolderName} đã tồn tại`);
-                return;
+                throw new Error(`Tên mod trùng lặp: ${newFolderName} đã tồn tại`);
             }
-            // 重命名文件夹
-            fs.renameSync(this.location, newModFolderPath);
-            // 更新文件夹名称
-            this.modName = newModFolderName;
-            // 更新文件路径
+            try {
+                fs.renameSync(this.location, newModFolderPath);
+            } catch (e: any) {
+                throw new Error(`Đổi tên thư mục mod thất bại: ${e.message}`);
+            }
+            this.modName = newName;
             this.location = newModFolderPath;
             // id保持不变
-        } 
-        if (!ModInfo.ifKeepModNameAsModFolderName) {
-            // 两个格式不一样，一个是 name，而metadata 是 modName
-            this.modName = metaData['name'] || this.modName;
-            this.location = metaData['location'] || this.location;
         }
 
         // 读取模板中定义的数据
@@ -370,11 +392,9 @@ class ModInfo {
             callback(err);
             return false;
         }
-        // 更新文件夹名称
-        if (ModInfo.ifKeepModNameAsModFolderName) {
-            this.modName = newModFolderName;
-        }
-        // 更新文件路径
+        // Chỉ đổi đường dẫn, KHÔNG đổi modName theo tên thư mục: rename()
+        // chỉ dùng cho cách áp dụng truyền thống (thêm/bớt tiền tố
+        // "disabled_" để tắt/bật mod) — tên mod vẫn giữ nguyên.
         this.location = newModFolderPath;
         // TC11: id KHÔNG đổi khi đổi tên (id lưu trong mod.json, chỉ sinh từ
         // đường dẫn khi chưa có id) nên mod không rơi khỏi preset. Nhưng phải
