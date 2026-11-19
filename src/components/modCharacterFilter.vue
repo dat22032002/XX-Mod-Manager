@@ -245,11 +245,12 @@ defineExpose({
     display: flex;
     align-items: center;
     width: 100%;
-    /* Khe giữa ô tìm kiếm và thanh tag phải rộng hơn độ lệch của góc
-    nghiêng (ô cao 35px nghiêng 20° lệch ~13px): khi kéo thanh tag, tag
-    đầu bị cắt phẳng ở mép thanh rồi dí sát vào viền vàng ô tìm kiếm,
-    trông như chèn lên nhau. 18px để cả lúc bị cắt vẫn còn khe thoáng. */
-    gap: 18px;
+    /* Không để khe: mép trái thanh tag đã nghiêng cùng góc 20° với ô
+    tìm kiếm (xem .chip-radio-bar) nên hai mép song song, thanh tag có
+    thể dí sát ô tìm kiếm mà không chèn lên nhau — Đạt muốn sát vào
+    (19/11). Thanh tag còn lấn trái thêm 7px bằng margin để tag đầu
+    ngồi sát ô tìm kiếm (~5px khe nhìn thấy được). */
+    gap: 0;
 }
 
 .search-box-fixed {
@@ -319,6 +320,10 @@ defineExpose({
     flex: 1;
     min-width: 0;
     min-height: 35px;
+    /* Lấn trái 7px vào ô tìm kiếm: cùng với gap 0 ở .filter-row, tag
+       đầu ngồi cách ô tìm kiếm ~5px. Mép cắt nghiêng vẫn song song với
+       mép phải ô tìm kiếm nên không chèn lên nhau. */
+    margin-left: -7px;
     /* Mép trái nghiêng theo ô tìm kiếm: ô nghiêng 20° nên mép phải của
        nó lệch trái dần xuống dưới, trong khi mép trái thẳng đứng của
        thanh tag làm khe giữa hai bên thành hình nêm (trên hẹp ~14px,
