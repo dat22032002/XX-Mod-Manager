@@ -18,6 +18,7 @@ enum DialogID {
     dialogConfirmBatchCharacter = 'dialog-confirm-batch-character',
     dialogUpdateAvailable = 'dialog-update-available',
     dialogUpdateDownloaded = 'dialog-update-downloaded',
+    dialogConfirmConflict = 'dialog-confirm-conflict',
 }
 
 class DialogHelper {

@@ -56,6 +56,7 @@ let g_temp = {
     wakeUped: false,
     ifDontSaveOnClose: false,
     applyResult: null,
+    pendingConflicts: null,
 };
 let g_config = {
     firstLoad: true,
@@ -94,6 +95,7 @@ const g_temp_vue = {
     wakeUped: ref(false),
     ifDontSaveOnClose: ref(false),
     applyResult: ref(null),
+    pendingConflicts: ref(null),
 };
 
 const g_config_vue = {
@@ -229,6 +231,7 @@ class IManager {
         wakeUped: false, // 是否 在唤醒状态
         ifDontSaveOnClose: false, // 是否在关闭时不保存配置
         applyResult: null, // 最后一次应用的结果，用于显示结果汇总对话框
+        pendingConflicts: null, // Mod đụng nhau chờ xác nhận, hộp dialogConfirmConflict đọc lúc mở
     };
 
     //-==================== 设置数据 ====================

@@ -130,9 +130,11 @@ import IManager from '../../electron/IManager';
 import { g_temp_vue, g_config_vue, g_data_vue } from '../../electron/IManager';
 import fsProxy from '../../electron/fsProxy';
 const iManager = new IManager();
-import { EventSystem } from '../../helper/EventSystem';
+import { EventSystem, EventType } from '../../helper/EventSystem';
 import { SnackType, t_snack, snack } from '../../helper/SnackHelper';
 import { selectedModIdSet } from '../../helper/SelectedMods';
+import { DialogHelper, DialogID } from '../../helper/DialogHelper';
+import { checkConflicts } from '../../helper/ConflictCheck';
 
 const displayModRef = g_temp_vue.currentMod;
 
@@ -324,10 +326,8 @@ const applyDone = ref(0);
 const applyTotal = ref(0);
 const applyPercent = computed(() => applyTotal.value > 0 ? Math.round(applyDone.value / applyTotal.value * 100) : 0);
 
-async function handleApplyButtonClicked() {
-    if (applying.value) {
-        return;
-    }
+// Phần áp dụng thật (tách riêng để nút Apply và hộp cảnh báo cùng gọi).
+async function runApply() {
     applying.value = true;
     applyDone.value = 0;
     applyTotal.value = 0;
@@ -340,6 +340,52 @@ async function handleApplyButtonClicked() {
     } finally {
         applying.value = false;
     }
+}
+
+async function handleApplyButtonClicked() {
+    if (applying.value) {
+        return;
+    }
+    // Cảnh báo mod đụng nhau: quét các mod đang bật, nếu 2 mod cùng thay
+    // 1 thứ của game thì hỏi trước khi áp dụng. Kiểm tra lỗi thì bỏ qua
+    // lặng, không chặn Apply.
+    let conflicts = [];
+    try {
+        const selectedMods = (iManager.data.modList || []).filter(m => selectedModIdSet.has(m.id));
+        conflicts = await checkConflicts(selectedMods);
+    } catch (e) {
+        console.error('conflict check failed, applying anyway', e);
+    }
+    if (conflicts.length === 0) {
+        await runApply();
+        return;
+    }
+    const dialog = document.getElementById('dialog-confirm-conflict');
+    if (!dialog) {
+        // Hộp cảnh báo không có (lỗi lạ): áp dụng thẳng, không chặn user.
+        await runApply();
+        return;
+    }
+    // Có đụng nhau: ghi danh sách cho hộp đọc, rồi chờ người dùng chọn.
+    // Bấm "Vẫn áp dụng" thì hộp bắn sự kiện applyConflictsConfirmed;
+    // bấm Hủy thì hộp đóng, bộ nghe được gỡ để lần bấm Apply sau không
+    // bị chạy 2 lần.
+    iManager.temp.pendingConflicts = conflicts;
+    let confirmed = false;
+    const onConfirmed = async () => {
+        confirmed = true;
+        await EventSystem.off(EventType.applyConflictsConfirmed, onConfirmed);
+        await runApply();
+    };
+    const onDismiss = async () => {
+        dialog.removeEventListener('dismiss', onDismiss);
+        if (!confirmed) {
+            await EventSystem.off(EventType.applyConflictsConfirmed, onConfirmed);
+        }
+    };
+    dialog.addEventListener('dismiss', onDismiss);
+    await EventSystem.on(EventType.applyConflictsConfirmed, onConfirmed);
+    DialogHelper.showDialog(DialogID.dialogConfirmConflict);
 }
 
 EventSystem.on('toggledMod', (mod) => {

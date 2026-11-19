@@ -58,6 +58,7 @@
     <dialogConfirmReset />
     <dialogConfirmClose />
     <dialogConfirmDeleteMod />
+    <dialogConfirmConflict />
     <dialogUpdateAvailable />
     <dialogUpdateDownloaded />
 </template>
@@ -78,6 +79,7 @@ import dialogApplyResult from './dialogs/dialogApplyResult.vue';
 import dialogConfirmReset from './dialogs/dialogConfirmReset.vue';
 import dialogConfirmClose from './dialogs/dialogConfirmClose.vue';
 import dialogConfirmDeleteMod from './dialogs/dialogConfirmDeleteMod.vue';
+import dialogConfirmConflict from './dialogs/dialogConfirmConflict.vue';
 import dialogUpdateAvailable from './dialogs/dialogUpdateAvailable.vue';
 import dialogUpdateDownloaded from './dialogs/dialogUpdateDownloaded.vue';
 

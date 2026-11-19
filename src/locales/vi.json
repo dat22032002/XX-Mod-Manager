@@ -195,6 +195,13 @@
     "messageRecycle": "Chuyển mod “{name}” vào thùng rác? Bạn vẫn khôi phục được từ thư mục recycleBin trong kho mod.",
     "messagePermanent": "Xóa vĩnh viễn mod “{name}”? Không thể hoàn tác."
   },
+  "conflictDialog": {
+    "title": "Mod đụng nhau",
+    "message": "Các mod này cùng thay 1 thứ của game. Áp dụng cả hai có thể làm 1 mod không còn tác dụng.",
+    "itemTexture": "“{modA}” và “{modB}” cùng thay 1 hình (mã {hash})",
+    "itemShader": "“{modA}” và “{modB}” cùng thay 1 bộ tô (mã {hash})",
+    "applyAnyway": "Vẫn áp dụng"
+  },
   "batchCharacter": {
     "title": "Đặt nhân vật cho nhiều mod",
     "message": "Đổi nhân vật thành “{name}” cho {count} mod đã chọn?",
