@@ -3,7 +3,8 @@
         :name="props.modRef.name" :character="props.modRef.character" @click="click" :compact="props.compactMode"
         @contextmenu.prevent.stop="openEditModDialog">
 
-        <div slot="image" style="height: calc(var(--card-width, 250px) * 0.8);" v-if="ifDisplayImage">
+        <div slot="image" style="height: calc(var(--card-width, 250px) * 0.8);" v-if="ifDisplayImage"
+            @mouseenter="onImageHoverStart" @mouseleave="onImageHoverEnd">
             <img id="editDialog-mod-info-image"
                 style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;" alt="Mod Image"
                 :src="img || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D'" @load="enterWindow" />
@@ -48,11 +49,19 @@
             </horizontalScrollBar>
         </div>
     </s-card>
+    <!-- Xem trước ảnh gốc khi di chuột lên ảnh thẻ 2 giây: hiện đúng file
+         gốc (không phóng to), vừa trong cửa sổ app. Lớp phủ không bắt
+         chuột (pointer-events: none) nên di chuột khỏi ảnh thẻ là tắt. -->
+    <Teleport to="body">
+        <div v-if="hoverPreviewUrl" class="hover-preview-overlay">
+            <img :src="hoverPreviewUrl" alt="" />
+        </div>
+    </Teleport>
 </template>
 
 <script setup>
 import 'sober'
-import { useTemplateRef, computed, defineProps, onMounted, ref, watch } from 'vue'
+import { useTemplateRef, computed, defineProps, onMounted, onUnmounted, ref, watch } from 'vue'
 import IManager from '../../electron/IManager';
 const iManager = new IManager();
 
@@ -164,6 +173,49 @@ const pinTitle = computed(() => props.modRef.pinned
 const togglePin = async () => {
     await toggleModPin(props.modRef);
 };
+
+//===================== xem trước ảnh gốc khi di chuột =====================//
+// Di chuột lên ảnh thẻ, giữ yên 2 giây → hiện ảnh preview gốc (file gốc,
+// kích thước thật, không phóng to) ở giữa màn hình, vừa trong cửa sổ app.
+// Di chuột khỏi ảnh là tắt. Mod không có ảnh preview thì không hiện gì.
+const hoverPreviewUrl = ref(null);
+let hoverPreviewTimer = null;
+
+const HOVER_PREVIEW_DELAY_MS = 2000;
+
+const hideHoverPreview = () => {
+    if (hoverPreviewTimer !== null) {
+        clearTimeout(hoverPreviewTimer);
+        hoverPreviewTimer = null;
+    }
+    hoverPreviewUrl.value = null;
+};
+
+const onImageHoverStart = () => {
+    if (props.modRef.preview == null) {
+        return;
+    }
+    hideHoverPreview();
+    hoverPreviewTimer = setTimeout(async () => {
+        hoverPreviewTimer = null;
+        // Ảnh gốc đầy đủ (thẻ chỉ dùng bản thu nhỏ 250px).
+        hoverPreviewUrl.value = await props.modRef.getPreviewBase64(true, true);
+    }, HOVER_PREVIEW_DELAY_MS);
+};
+
+const onImageHoverEnd = () => {
+    hideHoverPreview();
+};
+
+onMounted(() => {
+    // Cuộn lưới cũng tắt xem trước (thẻ đã chạy khỏi chỗ chuột đang để).
+    window.addEventListener('scroll', hideHoverPreview, true);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('scroll', hideHoverPreview, true);
+    hideHoverPreview();
+});
 
 function playClickAnim(modItem, event = null, rect = null) {
     //获取鼠标相对于卡片的位置（百分比）
@@ -537,5 +589,26 @@ defineExpose({
     bottom: 5px;
     left: 10px;
     right: 5px;
+}
+
+/* Lớp phủ xem trước ảnh gốc: giữa màn hình, không bắt chuột để di chuột
+   khỏi ảnh thẻ là tắt ngay. Ảnh giữ kích thước thật, chỉ thu lại khi
+   vượt quá cửa sổ (không bao giờ phóng to). */
+.hover-preview-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.hover-preview-overlay img {
+    max-width: calc(100vw - 48px);
+    max-height: calc(100vh - 48px);
+    object-fit: contain;
+    border-radius: 8px;
 }
 </style>
