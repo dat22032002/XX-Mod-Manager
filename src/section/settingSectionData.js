@@ -42,21 +42,21 @@ function getData() {
         displayName: 'Language',
         description: '',
         t_displayName: {
-            zh_cn: '语言',
+            vi: 'Ngôn ngữ',
             en: 'Language'
         },
         options: [{
             value: 'en',
             t_value: {
-                zh_cn: 'English',
+                vi: 'English',
                 en: 'English'
             }
         },
         {
-            value: 'zh_cn',
+            value: 'vi',
             t_value: {
-                zh_cn: '简体中文',
-                en: '简体中文'
+                vi: 'Tiếng Việt',
+                en: 'Tiếng Việt'
             }
         }
         ],
@@ -73,27 +73,27 @@ function getData() {
         displayName: 'Theme',
         description: '',
         t_displayName: {
-            zh_cn: '主题',
+            vi: 'Giao diện',
             en: 'Theme'
         },
         options: [{
             value: 'auto',
             t_value: {
-                zh_cn: '自动',
+                vi: 'Tự động',
                 en: 'Auto'
             }
         },
         {
             value: 'dark',
             t_value: {
-                zh_cn: '暗色',
+                vi: 'Tối',
                 en: 'Dark'
             }
         },
         {
             value: 'light',
             t_value: {
-                zh_cn: '亮色',
+                vi: 'Sáng',
                 en: 'Light'
             }
         }
@@ -112,11 +112,11 @@ function getData() {
         displayName: 'Start With Last Preset',
         description: 'Whether to start with the last preset used',
         t_displayName: {
-            zh_cn: '使用上次预设',
+            vi: 'Dùng preset lần trước',
             en: 'Start With Last Preset'
         },
         t_description: {
-            zh_cn: '程序启动时是否使用上次使用的预设',
+            vi: 'Khi mở chương trình có dùng preset đã dùng lần trước không',
             en: 'Whether to use the last preset used when the program starts'
         },
         onChange: (value) => {
@@ -133,11 +133,11 @@ function getData() {
         displayName: 'Mod Target Path',
         description: 'The path of the mod target',
         t_displayName: {
-            zh_cn: 'mod 目标文件夹',
+            vi: 'Thư mục đích của mod',
             en: 'Mod Target Folder'
         },
         t_description: {
-            zh_cn: 'mod目标文件夹为modLoader读取mod的位置，一般为Mods文件夹',
+            vi: 'Thư mục đích là nơi trình tải mod đọc mod, thường là thư mục Mods',
             en: 'Mod target directory is the location where modLoader reads mod, usually the Mods folder'
         },
         onChange: (value) => {
@@ -153,11 +153,11 @@ function getData() {
         displayName: 'Mod Source Path',
         description: 'The path of the mod source',
         t_displayName: {
-            zh_cn: 'mod来源文件夹',
+            vi: 'Thư mục nguồn của mod',
             en: 'Mod Source Folder'
         },
         t_description: {
-            zh_cn: 'mod来源文件夹为程序存储mod的位置，当mod被启用时，会从这里创建链接到mod目标文件夹。',
+            vi: 'Thư mục nguồn là nơi chương trình lưu mod, khi mod được bật sẽ tạo liên kết từ đây tới thư mục đích.',
             en: 'Mod Source directory is the location where the program stores mod. When the mod is enabled, a link will be created from here to the mod target directory.'
         },
         onChange: (value) => {
@@ -173,11 +173,11 @@ function getData() {
         displayName: 'Preset Path',
         description: 'The path of the preset',
         t_displayName: {
-            zh_cn: '预设文件夹',
+            vi: 'Thư mục preset',
             en: 'Preset Folder'
         },
         t_description: {
-            zh_cn: '预设文件夹为存储预设的位置，预设是一组mod的集合，可以通过预设一键启用多个mod',
+            vi: 'Thư mục preset là nơi lưu preset, preset là một nhóm mod có thể bật cùng lúc chỉ với một lần bấm',
             en: 'The preset path is the location where the preset is stored. The preset is a collection of mods that can be enabled with one click.'
         },
         onChange: (value) => {
@@ -193,16 +193,16 @@ function getData() {
         displayName: 'Init All Data',
         description: 'Initialize all data',
         t_displayName: {
-            zh_cn: '初始化所有数据',
+            vi: 'Khởi tạo lại toàn bộ dữ liệu',
             en: 'Init All Data'
         },
         t_description: {
-            zh_cn: '初始化所有数据',
+            vi: 'Khởi tạo lại toàn bộ dữ liệu',
             en: 'Initialize all data'
         },
         buttonName: 'Init All Data',
         t_buttonName: {
-            zh_cn: '初始化所有数据',
+            vi: 'Khởi tạo lại toàn bộ dữ liệu',
             en: 'Init All Data'
         },
         onChange: () => {
@@ -219,16 +219,16 @@ function getData() {
         displayName: 'Rescan All Mods',
         description: 'Clear the mod cache and rescan all mods',
         t_displayName: {
-            zh_cn: '重新扫描全部mod',
+            vi: 'Quét lại toàn bộ mod',
             en: 'Rescan All Mods'
         },
         t_description: {
-            zh_cn: '清除mod缓存并重新扫描全部mod（缓存损坏、列表显示不对时使用）',
+            vi: 'Xóa bộ nhớ đệm của mod và quét lại toàn bộ mod (dùng khi bộ nhớ đệm hỏng, danh sách hiện sai)',
             en: 'Clear the mod cache and rescan all mods (use when the cache is broken or the list looks wrong)'
         },
         buttonName: 'Rescan All Mods',
         t_buttonName: {
-            zh_cn: '重新扫描',
+            vi: 'Quét lại',
             en: 'Rescan'
         },
         onChange: () => {
@@ -243,16 +243,16 @@ function getData() {
         displayName: 'Open First Load',
         description: 'Open First Load',
         t_displayName: {
-            zh_cn: '新手引导',
+            vi: 'Hướng dẫn cho người mới',
             en: 'New User Guide'
         },
         t_description: {
-            zh_cn: '打开 新手引导 页面',
+            vi: 'Mở trang hướng dẫn cho người mới',
             en: 'Open New User Guide Page'
         },
         buttonName: 'First Load',
         t_buttonName: {
-            zh_cn: '打开 新手引导',
+            vi: 'Mở hướng dẫn cho người mới',
             en: 'Open New User Guide'
         },
         onChange: () => {

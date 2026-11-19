@@ -61,7 +61,7 @@ function removeModLink(mod: ModInfo, modTargetPath: string, result: ApplyResult)
             modName: mod.modName,
             reason: new TranslatedText(
                 `Could not check ${dest}: ${e.message}`,
-                `无法检查 ${dest}：${e.message}`),
+                `Không kiểm tra được ${dest}: ${e.message}`),
         });
         return;
     }
@@ -71,7 +71,7 @@ function removeModLink(mod: ModInfo, modTargetPath: string, result: ApplyResult)
             modName: mod.modName,
             reason: new TranslatedText(
                 `A real folder named "${mod.modName}" is in the target folder, not a link created by the app — left untouched, so the mod may still load in game.`,
-                `目标文件夹中有一个名为“${mod.modName}”的真实文件夹，而不是本程序创建的链接，已保留不动，该 Mod 可能仍会在游戏中生效。`),
+                `Trong thư mục đích có một thư mục thật tên "${mod.modName}", không phải liên kết do chương trình tạo — đã giữ nguyên, nên mod vẫn có thể chạy trong game.`),
         });
         return;
     }
@@ -83,7 +83,7 @@ function removeModLink(mod: ModInfo, modTargetPath: string, result: ApplyResult)
             modName: mod.modName,
             reason: new TranslatedText(
                 `Could not remove the link: ${e.message}`,
-                `无法删除链接：${e.message}`),
+                `Không xóa được liên kết: ${e.message}`),
         });
     }
 }
@@ -100,7 +100,7 @@ function createModLink(mod: ModInfo, modSourcePath: string, modTargetPath: strin
             modName: mod.modName,
             reason: new TranslatedText(
                 `Source folder not found: ${src}`,
-                `找不到源文件夹：${src}`),
+                `Không tìm thấy thư mục nguồn: ${src}`),
         });
         return;
     }
@@ -113,7 +113,7 @@ function createModLink(mod: ModInfo, modSourcePath: string, modTargetPath: strin
                 modName: mod.modName,
                 reason: new TranslatedText(
                     `Could not check ${dest}: ${e.message}`,
-                    `无法检查 ${dest}：${e.message}`),
+                    `Không kiểm tra được ${dest}: ${e.message}`),
             });
             return;
         }
@@ -125,7 +125,7 @@ function createModLink(mod: ModInfo, modSourcePath: string, modTargetPath: strin
                 modName: mod.modName,
                 reason: new TranslatedText(
                     `A real folder named "${mod.modName}" is already in the target folder — left untouched, mod not applied.`,
-                    `目标文件夹中已有一个名为“${mod.modName}”的真实文件夹，已保留不动，该 Mod 未应用。`),
+                    `Trong thư mục đích đã có một thư mục thật tên "${mod.modName}", đã giữ nguyên, mod này chưa được áp dụng.`),
             });
             return;
         }
@@ -147,7 +147,7 @@ function createModLink(mod: ModInfo, modSourcePath: string, modTargetPath: strin
                 modName: mod.modName,
                 reason: new TranslatedText(
                     `Could not remove the old link: ${e.message}`,
-                    `无法删除旧链接：${e.message}`),
+                    `Không xóa được liên kết cũ: ${e.message}`),
             });
             return;
         }
@@ -160,7 +160,7 @@ function createModLink(mod: ModInfo, modSourcePath: string, modTargetPath: strin
             modName: mod.modName,
             reason: new TranslatedText(
                 `Could not create the link: ${e.message}. Please check permissions or confirm if your disk type supports creating links. Or you can use the traditional way to apply mod.`,
-                `无法创建链接：${e.message}。请检查权限或是确认您的磁盘类型是否支持创建链接。或者您可以换用传统方式应用 Mod。`),
+                `Không tạo được liên kết: ${e.message}. Hãy kiểm tra quyền hoặc xem ổ đĩa của bạn có hỗ trợ tạo liên kết không. Hoặc bạn có thể dùng cách áp dụng truyền thống.`),
         });
     }
 }
@@ -177,7 +177,7 @@ function renameModFolder(mod: ModInfo, newName: string, result: ApplyResult, cou
             modName: mod.modName,
             reason: new TranslatedText(
                 `Could not rename the mod folder: ${detail}`,
-                `重命名 Mod 文件夹失败：${detail}`),
+                `Đổi tên thư mục mod thất bại: ${detail}`),
         });
     }
 }
@@ -196,43 +196,43 @@ async function applyMods(
     if (modSourcePath === undefined || modSourcePath === null || modSourcePath === '') {
         const errorMessage = 'modSourcePath is empty. Please check your configuration in Settings/Advanced Settings.';
         console.error(errorMessage);
-        t_snack(new TranslatedText(errorMessage, 'modSourcePath 为空，请在 设置/高级设置 检查你的配置'), SnackType.error);
+        t_snack(new TranslatedText(errorMessage, 'modSourcePath trống, hãy kiểm tra cấu hình trong Cài đặt/Cài đặt nâng cao'), SnackType.error);
         return null;
     }
     if (modTargetPath === undefined || modTargetPath === null || modTargetPath === '') {
         const errorMessage = 'modTargetPath is empty. Please check your configuration in Settings/Advanced Settings.';
         console.error(errorMessage);
-        t_snack(new TranslatedText(errorMessage, 'modTargetPath 为空，请在 设置/高级设置 检查你的配置'), SnackType.error);
+        t_snack(new TranslatedText(errorMessage, 'modTargetPath trống, hãy kiểm tra cấu hình trong Cài đặt/Cài đặt nâng cao'), SnackType.error);
         return null;
     }
     if (modSourcePath === modTargetPath) {
         const errorMessage = 'modSourcePath and modTargetPath are the same. Please check your configuration in Settings/Advanced Settings.';
         console.error(errorMessage);
-        t_snack(new TranslatedText(errorMessage, '在非传统模式下，modSourcePath 和 modTargetPath 不能是相同的，请在 设置/高级设置 检查你的配置，或者选择使用传统模式'), SnackType.error);
+        t_snack(new TranslatedText(errorMessage, 'Ở chế độ không truyền thống, modSourcePath và modTargetPath không được trùng nhau, hãy kiểm tra cấu hình trong Cài đặt/Cài đặt nâng cao, hoặc chọn dùng chế độ truyền thống'), SnackType.error);
         return null;
     }
     if (!fs.existsSync(modSourcePath)) {
         const errorMessage = `modSourcePath does not exist: ${modSourcePath}. Please check your configuration in Settings/Advanced Settings.`;
         console.error(errorMessage);
-        t_snack(new TranslatedText(errorMessage, `modSourcePath 不存在: ${modSourcePath}，请在 设置/高级设置 检查你的配置`), SnackType.error);
+        t_snack(new TranslatedText(errorMessage, `modSourcePath không tồn tại: ${modSourcePath}, hãy kiểm tra cấu hình trong Cài đặt/Cài đặt nâng cao`), SnackType.error);
         return null;
     }
     if (!fs.existsSync(modTargetPath)) {
         const errorMessage = `modTargetPath does not exist: ${modTargetPath}. Please check your configuration in Settings/Advanced Settings.`;
         console.error(errorMessage);
-        t_snack(new TranslatedText(errorMessage, `modTargetPath 不存在: ${modTargetPath}，请在 设置/高级设置 检查你的配置`), SnackType.error);
+        t_snack(new TranslatedText(errorMessage, `modTargetPath không tồn tại: ${modTargetPath}, hãy kiểm tra cấu hình trong Cài đặt/Cài đặt nâng cao`), SnackType.error);
         return null;
     }
     if (!fs.statSync(modSourcePath).isDirectory()) {
         const errorMessage = `modSourcePath is not a directory: ${modSourcePath}. Please check your configuration in Settings/Advanced Settings.`;
         console.error(errorMessage);
-        t_snack(new TranslatedText(errorMessage, `modSourcePath 不是一个目录: ${modSourcePath}，请在 设置/高级设置 检查你的配置`), SnackType.error);
+        t_snack(new TranslatedText(errorMessage, `modSourcePath không phải là thư mục: ${modSourcePath}, hãy kiểm tra cấu hình trong Cài đặt/Cài đặt nâng cao`), SnackType.error);
         return null;
     }
     if (!fs.statSync(modTargetPath).isDirectory()) {
         const errorMessage = `modTargetPath is not a directory: ${modTargetPath}. Please check your configuration in Settings/Advanced Settings.`;
         console.error(errorMessage);
-        t_snack(new TranslatedText(errorMessage, `modTargetPath 不是一个目录: ${modTargetPath}，请在 设置/高级设置 检查你的配置`), SnackType.error);
+        t_snack(new TranslatedText(errorMessage, `modTargetPath không phải là thư mục: ${modTargetPath}, hãy kiểm tra cấu hình trong Cài đặt/Cài đặt nâng cao`), SnackType.error);
         return null;
     }
 
@@ -317,7 +317,7 @@ async function applyModsTranditional(
     if (ModInfo.ifKeepModNameAsModFolderName) {
         t_snack(new TranslatedText(
             `Mod name and mod folder name are the same, unable to use the traditional way to apply mod.`,
-            `mod名称和mod文件夹名称一致，无法使用传统方式应用mod。`
+            `Tên mod và tên thư mục mod giống nhau, không dùng được cách áp dụng truyền thống.`
         ),SnackType.error);
         return null;
     }

@@ -135,7 +135,7 @@ class ModInfo {
             try {
                 metaData = JSON.parse(rawData);
             } catch (e) {
-                console.error(`解析模块元数据失败：${metaDataPath}`, rawData);
+                console.error(`Không đọc được metadata của mod: ${metaDataPath}`, rawData);
             }
 
             // id 为必须的字段，如果没有则生成一个
@@ -168,7 +168,7 @@ class ModInfo {
                             this.metaData.set(item.key, value, item.type);
                         }
                         else {
-                            console.error(`模块元数据错误：${item.key} 不是数组`);
+                            console.error(`Lỗi metadata của mod: ${item.key} không phải mảng`);
                             needSave = true;
                         }
                     }
@@ -178,7 +178,7 @@ class ModInfo {
                             this.metaData.set(item.key, value, item.type);
                         }
                         else {
-                            console.error(`模块元数据错误：${item.key} 不是对象`);
+                            console.error(`Lỗi metadata của mod: ${item.key} không phải đối tượng`);
                             needSave = true;
                         }
                     }
@@ -197,7 +197,7 @@ class ModInfo {
             // 生成一个 id
             this.generateID();
 
-            console.warn(`未找到模块元数据文件：${metaDataPath}`);
+            console.warn(`Không tìm thấy file metadata của mod: ${metaDataPath}`);
             needSave = true;
         }
 
@@ -228,11 +228,11 @@ class ModInfo {
         try {
             metaData = JSON.parse(JSON.stringify(json));
         } catch (e) {
-            console.error(`解析模块元数据失败：${this.location}`, json);
+            console.error(`Không đọc được metadata của mod: ${this.location}`, json);
         }
 
         //debug
-        console.log(`设置模块元数据：${this.location}`, metaData);
+        console.log(`Đặt metadata của mod: ${this.location}`, metaData);
 
         // id 为必须的字段，如果没有则生成一个
         this.id = metaData['id'] || '';
@@ -247,10 +247,10 @@ class ModInfo {
             // 确认有无重复的文件夹名称
             const newModFolderName = metaData['name'];
             // debug
-            console.log(`更改模块名称：${this.modName} -> ${newModFolderName} in folder ${this.location}`);
+            console.log(`Đổi tên mod: ${this.modName} -> ${newModFolderName} in folder ${this.location}`);
             const newModFolderPath = path.join(path.dirname(this.location), newModFolderName);
             if (fs.existsSync(newModFolderPath)) {
-                console.error(`模块名称重复：${newModFolderName} 已存在`);
+                console.error(`Tên mod trùng lặp: ${newModFolderName} đã tồn tại`);
                 return;
             }
             // 重命名文件夹
@@ -277,7 +277,7 @@ class ModInfo {
 
 
         // debug
-        console.log(`模块元数据：${this.location} from`, json, this);
+        console.log(`Metadata của mod: ${this.location} from`, json, this);
     }
 
     public saveMetaData() {
@@ -336,23 +336,23 @@ class ModInfo {
         // 重命名mod
         // 确认location是否存在
         if (!fs.existsSync(this.location)) {
-            console.error(`模块不存在：${this.location}`);
-            callback(new Error(`模块不存在：${this.location}`));
+            console.error(`Mod không tồn tại: ${this.location}`);
+            callback(new Error(`Mod không tồn tại: ${this.location}`));
             return false;
         }
         // 确认有无重复的文件夹名称
         const newModFolderName = newName;
         const newModFolderPath = path.join(path.dirname(this.location), newModFolderName);
         if (fs.existsSync(newModFolderPath)) {
-            console.error(`模块名称重复：${newModFolderName} 已存在`);
-            callback(new Error(`模块名称重复：${newModFolderName} 已存在`));
+            console.error(`Tên mod trùng lặp: ${newModFolderName} đã tồn tại`);
+            callback(new Error(`Tên mod trùng lặp: ${newModFolderName} đã tồn tại`));
             return false;
         }
         // 重命名文件夹
         try{
             fs.renameSync(this.location, newModFolderPath);
         } catch (err) {
-            console.error(`重命名模块失败：${this.location} -> ${newModFolderPath}`, err);
+            console.error(`Đổi tên mod thất bại: ${this.location} -> ${newModFolderPath}`, err);
             callback(err);
             return false;
         }

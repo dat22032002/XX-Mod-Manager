@@ -248,15 +248,15 @@ const refreshDuleToPlugin = {
     description: 'Application needs to be refreshed to apply plugin changes',
     buttonName: 'Refresh',
     t_displayName: {
-        zh_cn: '刷新以应用更改',
+        vi: 'Làm mới để áp dụng thay đổi',
         en: 'Refresh to apply plugin'
     },
     t_description: {
-        zh_cn: '应用更改需要刷新',
+        vi: 'Cần làm mới để áp dụng thay đổi',
         en: 'Application needs to be refreshed to apply plugin changes'
     },
     t_buttonName: {
-        zh_cn: '刷新',
+        vi: 'Làm mới',
         en: 'Refresh'
     },
     icon: `                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
@@ -276,7 +276,7 @@ const newConfigName = {
     type: 'string',
     displayName: 'New Config Name',
     t_displayName: {
-        zh_cn: '新配置名称',
+        vi: 'Tên cấu hình mới',
         en: 'New Config Name'
     },
     onChange: (value) => {
@@ -292,11 +292,11 @@ const addConfig = {
     displayName: 'Add Config',
     buttonName: 'Add',
     t_displayName: {
-        zh_cn: '添加配置',
+        vi: 'Thêm cấu hình',
         en: 'Add Config'
     },
     t_buttonName: {
-        zh_cn: '添加',
+        vi: 'Thêm',
         en: 'Add'
     },
     onChange: (value) => {
@@ -318,11 +318,11 @@ const openConfigFolder = {
     displayName: 'Open Config Folder',
     buttonName: 'Open',
     t_displayName: {
-        zh_cn: '打开配置文件夹',
+        vi: 'Mở thư mục cấu hình',
         en: 'Open Config Folder'
     },
     t_buttonName: {
-        zh_cn: '打开',
+        vi: 'Mở',
         en: 'Open'
     },
     onChange: (value) => {
@@ -342,11 +342,11 @@ const openSwitchConfigPage = {
     displayName: 'Open Switch Config Page',
     buttonName: 'Open',
     t_displayName: {
-        zh_cn: '打开配置切换页面',
+        vi: 'Mở trang đổi cấu hình',
         en: 'Open Switch Config Page'
     },
     t_buttonName: {
-        zh_cn: '打开',
+        vi: 'Mở',
         en: 'Open'
     },
     onChange: (value) => {
@@ -361,7 +361,7 @@ const changeConfig = {
     type: 'dir',
     displayName: 'Change Config',
     t_displayName: {
-        zh_cn: '配置另存为',
+        vi: 'Lưu cấu hình thành',
         en: 'Save Config To'
     },
     onChange: (value) => {
@@ -378,15 +378,15 @@ const createShortOfCurrentConfig = {
     description: 'Create Short Of Custom Config',
     buttonName: 'Create',
     t_displayName: {
-        zh_cn: '创建使用本地配置的快捷方式',
+        vi: 'Tạo shortcut dùng cấu hình hiện tại',
         en: 'Create Short Of Current Config'
     },
     t_description: {
-        zh_cn: '创建使用本地配置的快捷方式',
+        vi: 'Tạo shortcut dùng cấu hình hiện tại',
         en: 'Create Short Of Current Config'
     },
     t_buttonName: {
-        zh_cn: '创建快捷方式',
+        vi: 'Tạo shortcut',
         en: 'Create Short Cut'
     },
     onChange: (value) => {
@@ -407,7 +407,7 @@ const ifKeepModNameAsModFolderName = {
     type: 'boolean',
     displayName: 'Keep Mod Name As Mod Folder Name',
     t_displayName: {
-        zh_cn: '保持mod名称与mod文件夹名称一致',
+        vi: 'Giữ tên mod giống tên thư mục mod',
         en: 'Keep Mod Name As Mod Folder Name'
     },
     onChange: (value) => {
@@ -424,12 +424,12 @@ const ifUseTraditionalApply = {
     type: 'boolean',
     displayName: 'Use Traditional Apply',
     t_displayName: {
-        zh_cn: '使用传统应用方式',
+        vi: 'Dùng cách áp dụng truyền thống',
         en: 'Use Traditional Apply'
     },
     description: 'If true, the mod will be applied in a traditional way',
     t_description: {
-        zh_cn: '开启后，mod将以传统方式应用，使用传统模式时，将会通过更改文件夹名称来变更mod应用状态',
+        vi: 'Khi bật, mod sẽ được áp dụng theo cách truyền thống, trạng thái áp dụng của mod sẽ đổi bằng cách đổi tên thư mục',
         en: 'If true, the mod will be applied in a traditional way, using the traditional mode, the mod application status will be changed by changing the folder name'
     },
     onChange: (value) => {
@@ -443,7 +443,7 @@ const ifUseTraditionalApply = {
                 iManager.config.ifKeepModNameAsModFolderName = false;
                 console.log('ifUseTraditionalApply changed:', value, 'modTarget and modSource need to be the same folder');
                 t_snack({
-                    zh_cn: '在传统模式下，mod目标和源文件夹需要是同一个文件夹',
+                    vi: 'Ở chế độ truyền thống, thư mục đích và thư mục nguồn của mod phải là cùng một thư mục',
                     en: 'modTarget and modSource need to be the same folder'
                 }, SnackType.error)
                 return false;
@@ -452,7 +452,7 @@ const ifUseTraditionalApply = {
                 iManager.config.ifUseTraditionalApply = false;
                 console.log('ifUseTraditionalApply changed:', value, 'ifKeepModNameAsModFolderName need to be false');
                 t_snack({
-                    zh_cn: '使用该功能需要 关闭 保持mod名称与mod文件夹名称一致，请在 设置/常规设置 中关闭',
+                    vi: 'Muốn dùng chức năng này cần TẮT giữ tên mod giống tên thư mục mod, hãy tắt trong Cài đặt/Cài đặt chung',
                     en: 'ifKeepModNameAsModFolderName need to be false, please turn it off in the setting/normal setting'
                 }, SnackType.error)
                 return false;

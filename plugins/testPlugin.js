@@ -27,26 +27,26 @@
 //     }
 // }
 const pluginName = 'testPlugin';
-const markdown_cn = `# 测试插件
-这是一个简单的测试插件，用于测试插件的功能和显示效果，对于 用户来说，你可以将该插件在 设置-插件 中关闭，以取消该插件的显示。
-# 声明配置项
-插件可以通过声明数据来在设置页面中显示配置项，用户可以通过设置页面来配置插件的功能：
-- boolean 类型的数据可以通过开关来控制
-- number 类型的数据可以通过输入框来控制
-- path 类型的数据可以通过文件夹选择器来控制
-- select 类型的数据可以通过选择器来控制
-- button 类型的数据可以通过按钮来触发事件
-- markdown 类型的数据可以展示 markdown 格式的文本
+const markdown_vi = `# Plugin thử nghiệm
+Đây là một plugin thử nghiệm đơn giản, dùng để kiểm tra chức năng và cách hiển thị của plugin, với người dùng, bạn có thể tắt plugin trong cài đặt-plugin để ẩn plugin này.
+# Khai báo mục cấu hình
+Plugin có thể hiển thị các mục cấu hình bằng cách khai báo dữ liệu, và người dùng có thể cấu hình chức năng của plugin qua trang cài đặt:
+- dữ liệu kiểu boolean có thể điều khiển bằng công tắc
+- dữ liệu kiểu number có thể điều khiển bằng ô nhập
+- dữ liệu kiểu path có thể điều khiển bằng trình chọn thư mục
+- dữ liệu kiểu select có thể điều khiển bằng trình chọn
+- dữ liệu kiểu button có thể kích hoạt sự kiện bằng nút bấm
+- dữ liệu kiểu markdown có thể hiển thị văn bản định dạng markdown
 
-# 监听数据变化
-插件可以通过声明 onChange 方法来监听数据的变化，当数据发生变化时，onChange 方法会被触发。
-# 保存数据
-插件可以通过调用 iManager.savePluginConfig() 方法来手动保存数据，当然程序在关闭时会自动保存数据。
-# 事件监听
-插件可以通过 iManager.on() 方法来监听事件，从而实现插件的功能。
+# Lắng nghe thay đổi dữ liệu
+Plugin có thể lắng nghe thay đổi dữ liệu bằng cách khai báo phương thức onChange, phương thức này sẽ được gọi khi dữ liệu thay đổi.
+# Lưu dữ liệu
+Plugin có thể lưu dữ liệu thủ công bằng cách gọi phương thức iManager.savePluginConfig(), tất nhiên chương trình sẽ tự động lưu dữ liệu khi đóng.
+# Lắng nghe sự kiện
+Plugin có thể lắng nghe sự kiện qua phương thức iManager.on() để thực hiện chức năng của plugin.
 ---
-# 配置项展示：
-下面是一些配置项的展示：`;
+# Hiển thị mục cấu hình:
+Dưới đây là một số mục cấu hình mẫu:`;
 const markdown_en = `# Test Plugin
 This is a simple test plugin, used to test the function and display effect of the plugin, for users, you can turn off the plugin in settings-plugin to cancel the display of the plugin.
 # Declare configuration items
@@ -71,16 +71,16 @@ Here are some configuration items display:`;
 module.exports = {
     name: pluginName,
     t_displayName: {
-        zh_cn: '测试插件',
+        vi: 'Plugin thử nghiệm',
         en: 'Test Plugin'
     },
     init(iManager) {
         iManager.t_snack({
-            zh_cn: '测试插件从该路径加载：' + __dirname,
+            vi: 'Plugin thử nghiệm được tải từ đường dẫn: ' + __dirname,
             en: 'Test Plugin loaded from path: ' + __dirname    
         });
         iManager.t_snack({
-            zh_cn: '测试插件用以展示插件功能，提供插件编写参考，对于普通用户，你可以在设置>插件中关闭该插件，以取消该插件的显示。',  
+            vi: 'Plugin thử nghiệm dùng để trình bày chức năng của plugin, cung cấp tài liệu tham khảo cho việc viết plugin, với người dùng thông thường, bạn có thể tắt plugin trong cài đặt>plugin để ẩn plugin này.',  
             en: 'Test Plugin is used to show the function of the plugin, provide reference for plugin writing, for ordinary users, you can close the plugin in settings>plugin to cancel the display of the plugin.'      
         });
 
@@ -89,7 +89,7 @@ module.exports = {
             const ifLog2File = iManager.getPluginData(pluginName, 'ifLog2File');
             if (ifLog2File) {
                 iManager.t_snack({
-                    zh_cn: '日志将会被打印到文件中',
+                    vi: 'Nhật ký sẽ được ghi vào file',
                     en: 'Log will be printed to file'
                 });
                 iManager.LogHandler.init();
@@ -106,11 +106,11 @@ module.exports = {
             displayName: 'If Log To File',
             description: 'If true, the plugin will log to file',
             t_displayName: {
-                zh_cn: '是否打印日志到文件',
+                vi: 'Ghi nhật ký vào file',
                 en: 'Log To File'
             },
             t_description: {
-                zh_cn: '如果为真，插件将打印日志到文件',
+                vi: 'Nếu bật, plugin sẽ ghi nhật ký vào file',
                 en: 'If true, the plugin will log to file'
             },
             onChange: (value) => {
@@ -130,11 +130,11 @@ module.exports = {
             displayName: 'Test Markdown',
             description: 'Test Markdown',
             t_displayName: {
-                zh_cn: '测试 Markdown',
+                vi: 'Thử nghiệm Markdown',
                 en: 'Test Markdown'
             },
             t_description: {
-                zh_cn: markdown_cn,
+                vi: markdown_vi,
                 en: markdown_en
             },
             onChange: (value) => {
@@ -151,11 +151,11 @@ module.exports = {
             displayName: 'If Able Plugin',
             description: 'If true, the plugin will be enabled',
             t_displayName: {
-                zh_cn: '是否启用插件',
+                vi: 'Bật plugin',
                 en: 'Enable Plugin'
             },
             t_description: {
-                zh_cn: '如果为真，插件将被启用',
+                vi: 'Nếu bật, plugin sẽ được bật',
                 en: 'If true, the plugin will be enabled'
             },
             onChange: (value) => {
@@ -175,11 +175,11 @@ module.exports = {
             displayName: 'Mod Loader Path',
             description: 'The path of the mod loader',
             t_displayName: {
-                zh_cn: 'Mod Loader 路径',
+                vi: 'Đường dẫn Mod Loader',
                 en: 'Mod Loader Path'
             },
             t_description: {
-                zh_cn: 'Mod Loader 的路径',
+                vi: 'Đường dẫn của mod loader',
                 en: 'The path of the mod loader'
             },
             onChange: (value) => {
@@ -199,11 +199,11 @@ module.exports = {
             displayName: 'Test Number',
             description: 'Test Number',
             t_displayName: {
-                zh_cn: '测试数字',
+                vi: 'Số thử nghiệm',
                 en: 'test Number'
             },
             t_description: {
-                zh_cn: '测试数字',
+                vi: 'Số thử nghiệm',
                 en: 'test Number'
             },
             onChange: (value) => {
@@ -220,16 +220,16 @@ module.exports = {
             displayName: 'Test Button',
             description: 'Test Button',
             t_displayName: {
-                zh_cn: '测试按钮',
+                vi: 'Nút thử nghiệm',
                 en: 'Test Button'
             },
             t_description: {
-                zh_cn: '测试按钮',
+                vi: 'Nút thử nghiệm',
                 en: 'Test Button'
             },
             buttonName: 'Test Button',
             t_buttonName: {
-                zh_cn: '测试按钮',
+                vi: 'Nút thử nghiệm',
                 en: 'Test Button'
             },
             onChange: (value) => {
@@ -245,11 +245,11 @@ module.exports = {
             displayName: 'Test IconButton',
             description: 'Test IconButton',
             t_displayName: {
-                zh_cn: '测试图标按钮',
+                vi: 'Nút biểu tượng thử nghiệm',
                 en: 'Test IconButton'
             },
             t_description: {
-                zh_cn: '测试图标按钮',
+                vi: 'Nút biểu tượng thử nghiệm',
                 en: 'Test IconButton'
             },
             icon: `  <svg viewBox="0 -960 960 960">
@@ -257,7 +257,7 @@ module.exports = {
   </svg>`,
             buttonName: 'Test IconButton',
             t_buttonName: {
-                zh_cn: '测试图标',
+                vi: 'Biểu tượng thử nghiệm',
                 en: 'Test Icon'
             },
             onChange: (value) => {
@@ -274,24 +274,24 @@ module.exports = {
             displayName: 'Test Select',
             description: 'Test Select',
             t_displayName: {
-                zh_cn: '测试选择',
+                vi: 'Lựa chọn thử nghiệm',
                 en: 'Test Select'
             },
             t_description: {
-                zh_cn: '测试选择',
+                vi: 'Lựa chọn thử nghiệm',
                 en: 'Test Select'
             },
             options: [{
                 value: 'a',
                 t_value: {
-                    zh_cn: '选项A',
+                    vi: 'Lựa chọn A',
                     en: 'Option A'
                 }
             },
             {
                 value: 'b',
                 t_value: {
-                    zh_cn: '选项B',
+                    vi: 'Lựa chọn B',
                     en: 'Option B'
                 }
             }],

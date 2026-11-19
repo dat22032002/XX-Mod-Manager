@@ -53,7 +53,7 @@ function removeModFromList(iManager, modName) {
     iManager.dismissDialog('edit-mod-dialog');
 }
 function deleteMod(iManager, modName) {
-    iManager.snack('删除mod: '+modName, 'error');
+    iManager.snack((iManager.config.language === 'vi' ? 'Đang xóa mod: ' : 'Deleting mod: ') + modName, 'error');
 
     // 删除mod
     // 删除mod文件夹
@@ -66,10 +66,10 @@ function deleteMod(iManager, modName) {
             // 直接删除
             fs.rmdir(modPath, {recursive: true}, (err) => {
                 if (err) {
-                    iManager.snack('删除mod失败: '+modName, 'error');
+                    iManager.snack((iManager.config.language === 'vi' ? 'Xóa mod thất bại: ' : 'Failed to delete mod: ') + modName, 'error');
                     console.error(err);
                 } else {
-                    iManager.snack('已删除mod: '+modName, 'info');
+                    iManager.snack((iManager.config.language === 'vi' ? 'Đã xóa mod: ' : 'Deleted mod: ') + modName, 'info');
                     removeModFromList(iManager, modName);
                 }
             });
@@ -85,7 +85,7 @@ function deleteMod(iManager, modName) {
         }
         // 如果回收站已经存在，判断是否有同名文件夹
         if (fs.existsSync(recycleBinPath)) {
-            iManager.snack('回收站已存在同名mod, 将当前时间加到mod名字后面', 'info');
+            iManager.snack(iManager.config.language === 'vi' ? 'Thùng rác đã có mod trùng tên, thời gian hiện tại sẽ được thêm vào tên mod' : 'Recycle bin already has a mod with the same name, current time will be added to the mod name', 'info');
             // 将当前时间加到mod名字后面
             const now = new Date();
             const nowStr = now.toISOString().replace(/:/g, '-').replace(/\./g, '-');
@@ -95,15 +95,15 @@ function deleteMod(iManager, modName) {
         console.log('modPath:', modPath, 'recycleBinPath:', recycleBinPath);
         fs.rename(modPath, recycleBinPath, (err) => {
             if (err) {
-                iManager.snack('删除mod失败: '+modName, 'error');
+                iManager.snack((iManager.config.language === 'vi' ? 'Xóa mod thất bại: ' : 'Failed to delete mod: ') + modName, 'error');
                 console.error(err);
             } else {
-                iManager.snack('已将mod移动到回收站: '+modName, 'info');
+                iManager.snack((iManager.config.language === 'vi' ? 'Đã chuyển mod vào thùng rác: ' : 'Moved mod to recycle bin: ') + modName, 'info');
                 removeModFromList(iManager, modName);
             }
         });
     } else {
-        iManager.snack('mod文件夹不存在: '+modPath, 'error');
+        iManager.snack((iManager.config.language === 'vi' ? 'Thư mục mod không tồn tại: ' : 'Mod folder does not exist: ') + modPath, 'error');
     }
 }
 
@@ -124,7 +124,7 @@ function addDeleteButton(iManager){
     // 单击时弹出提示
     deleteButton.onclick = () => {
         const modName = document.getElementById('editDialog-mod-info-name').innerHTML;
-        iManager.snack('双击以删除mod: '+modName, 'info');
+        iManager.snack((iManager.config.language === 'vi' ? 'Bấm đúp để xóa mod: ' : 'Double-click to delete mod: ') + modName, 'info');
     }
 
     // 双击时删除mod
@@ -155,7 +155,7 @@ function addDeleteButton(iManager){
 module.exports = {
     name: pluginName,
     t_displayName:{
-        zh_cn:'删除mod插件',
+        vi:'Plugin xóa mod',
         en:'Delete Mod Plugin'
     },
     init(iManager){
@@ -181,11 +181,11 @@ module.exports = {
             displayName: 'Delete Mod',
             description: 'Delete the mod',
             t_displayName:{
-                zh_cn:'删除mod',
+                vi:'Xóa mod',
                 en:'Delete Mod'
             },
             t_description:{
-                zh_cn:'# 在编辑mod信息页面增加一个删除mod的按钮\n点击按钮后，会删除mod',
+                vi:'# Thêm nút xóa mod vào trang chỉnh sửa thông tin mod\nBấm nút, mod sẽ bị xóa',
                 en:'# Add a delete mod button on the edit mod info page\nClick the button, it will delete the mod'
             },
             onChange: (value) => {
@@ -200,7 +200,7 @@ module.exports = {
             type: 'boolean',
             displayName: 'If Able Plugin',
             t_displayName:{
-                zh_cn:'是否启用插件',
+                vi:'Bật plugin',
                 en:'Enable Plugin'
             },
             onChange: (value) => {
@@ -223,12 +223,12 @@ module.exports = {
             type: 'boolean',
             displayName: 'Use Recycle Bin',
             t_displayName:{
-                zh_cn:'使用回收站',
+                vi:'Dùng thùng rác',
                 en:'Use Recycle Bin'
             },
             description: 'If true, the mod will be moved to a recycle bin under the mod source path',
             t_description:{
-                zh_cn:'如果为真，mod将被移动到mod源路径下的回收站',
+                vi:'Nếu bật, mod sẽ được chuyển vào thùng rác trong thư mục nguồn mod',
                 en:'If true, the mod will be moved to a recycle bin under the mod source path'
             },
             onChange: (value) => {

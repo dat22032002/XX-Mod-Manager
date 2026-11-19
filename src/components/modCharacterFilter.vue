@@ -2,7 +2,10 @@
 <template>
     <div class="filter-row">
         <!-- 搜索框固定在过滤行左侧，不随横向滚动条滚动，始终可见 -->
-        <chipButton id="search-filter-chip" class="search-chip-fixed">
+        <!-- Search box is a plain straight container, NOT a chipButton: the chip is
+             skewed -20deg and only its <p> text is counter-skewed, so an input
+             inside it renders slanted with clipped text. -->
+        <div id="search-filter-chip" class="search-box-fixed">
             <s-icon>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
                     <path
@@ -10,12 +13,12 @@
                     </path>
                 </svg>
             </s-icon>
-            <div id="search-input-container" style="display: flex;align-items: center;flex: 1; margin-left: 8px;">
-                <s-text-field id="search-input" class="OO-shade-box" style="min-height: 25px;flex: 1;background-color:var(--s-color-surface);border-radius: 5px;" @input="handleSearchInput" v-model="searchInput">
+            <div id="search-input-container" style="display: flex;align-items: center;flex: 1;min-width: 0;margin-left: 8px;">
+                <s-text-field id="search-input" class="OO-shade-box" style="min-height: 25px;flex: 1;width: 100%;min-width: 0;background-color:var(--s-color-surface);border-radius: 5px;" @input="handleSearchInput" v-model="searchInput">
 
                 </s-text-field>
             </div>
-        </chipButton>
+        </div>
         <horizontalScrollBar class="chip-radio-bar" id="character-filter-bar" style="height: fit-content;">
             <chipButton :text="$t('buttons.all')" id="all-filter-chip" @click="updateSliderByEvent($event)"></chipButton>
             <chipButton :text="$t('buttons.selected')" id="selected-filter-chip" @click="updateSliderByEvent($event)"></chipButton>
@@ -204,8 +207,22 @@ defineExpose({
     gap: 5px;
 }
 
-.search-chip-fixed {
+.search-box-fixed {
     width: 200px;
+    min-width: 0;
+    flex-shrink: 0;
+    height: 35px;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0px 12px;
+    border-radius: 8px;
+    background-color: var(--s-color-surface-container);
+    border: 1px solid var(--s-color-outline-variant);
+    overflow: hidden;
+}
+
+#search-filter-chip s-icon {
     flex-shrink: 0;
 }
 

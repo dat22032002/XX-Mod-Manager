@@ -222,7 +222,7 @@ const getModKeySwap = async (iManager, mod) => {
         // 增加双语支持
         const tt = new iManager.TranslatedText(
             'No ini file found in mod【' + mod.name + '】',
-            '在mod【' + mod.name + '】中没有找到ini文件'
+            'Không tìm thấy file ini trong mod【' + mod.name + '】'
         );
         iManager.t_snack(tt, 'error');
         console.log(tt.get(), tt);
@@ -231,7 +231,7 @@ const getModKeySwap = async (iManager, mod) => {
 
     const successTT = new iManager.TranslatedText(
         'Found ini files in mod【' + mod.name + '】',
-        '在mod【' + mod.name + '】中找到了ini文件'
+        'Đã tìm thấy file ini trong mod【' + mod.name + '】'
     );
     iManager.t_snack(successTT, 'info');
     console.log(successTT.get());
@@ -267,26 +267,26 @@ const getSwapkeyFromIni = (iniFilePath, iManager) => {
 
     // 英文到中文的翻译字典
     const t_description = {
-        'swap': '切换',
-        'Swap': '切换',
-        'toggle': '切换',
-        'Toggle': '切换',
-        'glow': '发光',
-        'Glow': '发光',
-        'help': '帮助',
-        'Help': '帮助',
-        'show': '显示',
-        'Show': '显示',
-        'hide': '隐藏',
-        'Hide': '隐藏',
-        'on': '开启',
-        'On': '开启',
-        'off': '关闭',
-        'Off': '关闭',
-        'enable': '启用',
-        'Enable': '启用',
-        'disable': '禁用',
-        'Disable': '禁用'
+        'swap': 'Chuyển đổi',
+        'Swap': 'Chuyển đổi',
+        'toggle': 'Chuyển đổi',
+        'Toggle': 'Chuyển đổi',
+        'glow': 'Phát sáng',
+        'Glow': 'Phát sáng',
+        'help': 'Trợ giúp',
+        'Help': 'Trợ giúp',
+        'show': 'Hiển thị',
+        'Show': 'Hiển thị',
+        'hide': 'Ẩn',
+        'Hide': 'Ẩn',
+        'on': 'Bật',
+        'On': 'Bật',
+        'off': 'Tắt',
+        'Off': 'Tắt',
+        'enable': 'Bật',
+        'Enable': 'Bật',
+        'disable': 'Tắt',
+        'Disable': 'Tắt'
     };
 
     const SECTION_PATTERN = /\[(.*?)\]/;
@@ -407,7 +407,7 @@ const getSwapkeyFromIni = (iniFilePath, iManager) => {
             
             // 如果是中文的话，尝试将 description 转化为中文
             let translatedKeyType = keyType;
-            if (iManager && iManager.config && iManager.config.language === 'zh_cn') {
+            if (iManager && iManager.config && iManager.config.language === 'vi') {
                 translatedKeyType = t_description[keyType] || keyType;
             }
             
@@ -431,7 +431,7 @@ const getSwapkeyFromIni = (iniFilePath, iManager) => {
 module.exports = {
     name: pluginName,
     t_displayName: {
-        zh_cn: '识别mod信息',
+        vi: 'Nhận diện thông tin mod',
         en: 'Recognize Mod Info'
     },
     init(iManager) {
@@ -452,7 +452,7 @@ module.exports = {
 
         iManager.on('pluginLoaded', async () => {
             if (iManager.getPluginData(pluginName, "ifAddKeySwap")) {
-                console.log("添加mod时将会尝试获取切换键");
+                console.log("Khi thêm mod, chương trình sẽ thử lấy phím chuyển đổi");
             }
         });
 
@@ -464,7 +464,7 @@ module.exports = {
             type: 'markdown',
             description: 'Info',
             t_description: {
-                zh_cn: '感谢 [Jank8](https://github.com/Jank8) 对该插件的贡献',
+                vi: 'Cảm ơn [Jank8](https://github.com/Jank8) đã đóng góp cho plugin này',
                 en: 'Thanks to [Jank8](https://github.com/Jank8) for contributing to this plugin'
             }
         });
@@ -477,11 +477,11 @@ module.exports = {
             displayName: 'If Add Key Swap',
             description: 'If true, add key swap information when importing mod',
             t_displayName: {
-                zh_cn: '是否添加切换键',
+                vi: 'Thêm phím chuyển đổi',
                 en: 'If Add Key Swap'
             },
             t_description: {
-                zh_cn: '开启后，导入mod时添加切换键信息,它只用来识别按键，并不能知道按键的具体功能',
+                vi: 'Nếu bật, thêm thông tin phím chuyển đổi khi nhập mod, nó chỉ dùng để nhận diện phím, không biết được chức năng cụ thể của phím',
                 en: 'If true, add key swap information when importing mod, it is only used to recognize the key, and cannot know the specific function of the key'
             },
             onChange: (value) => {
@@ -497,7 +497,7 @@ module.exports = {
             displayName: 'Divider',
             description: '---',
             t_displayName: {
-                zh_cn: '分割线',
+                vi: 'Đường phân cách',
                 en: 'Divider'
             }
         });
@@ -510,11 +510,11 @@ module.exports = {
             displayName: 'If Refresh All Mod',
             description: 'If true, refresh all mod',
             t_displayName: {
-                zh_cn: '刷新所有mod - 二次确认',
+                vi: 'Làm mới tất cả mod - Xác nhận',
                 en: 'Refresh All Mod - Confirm'
             },
             t_description: {
-                zh_cn: '你需要先将此开关打开才能刷新所有mod',
+                vi: 'Bạn cần bật tùy chọn này trước để làm mới tất cả mod',
                 en: 'You need to set this option to true first to refresh all mod'
             },
             onChange: (value) => {
@@ -523,7 +523,7 @@ module.exports = {
 
                 if (value) {
                     const snackMessage = {
-                        zh_cn: '刷新全部的mod的切换键可能会需要一些时间，这取决于你的mod数量，请坐和放宽，不要关闭程序',
+                        vi: 'Làm mới phím chuyển đổi của tất cả mod có thể mất một lúc, tùy vào số lượng mod của bạn, xin kiên nhẫn và đừng đóng chương trình',
                         en: 'Refreshing all mod keyswap may take some time, depending on the number of mods you have, please be patient and do not close the program'
                     };
                     iManager.t_snack(snackMessage);
@@ -540,16 +540,16 @@ module.exports = {
             displayName: 'Refresh All Mod',
             description: 'Refresh all mod',
             t_displayName: {
-                zh_cn: '刷新所有mod',
+                vi: 'Làm mới tất cả mod',
                 en: 'Refresh All Mod'
             },
             t_description: {
-                zh_cn: '刷新所有mod',
+                vi: 'Làm mới tất cả mod',
                 en: 'Refresh all mod'
             },
             buttonName: 'refresh',
             t_buttonName: {
-                zh_cn: '刷新',
+                vi: 'Làm mới',
                 en: 'Refresh'
             },
             onChange: async () => {
@@ -560,7 +560,7 @@ module.exports = {
                     
                     iManager.t_snack({
                         en: "Refreshing all mods...",
-                        zh_cn: "正在刷新所有mod..."
+                        vi: "Đang làm mới tất cả mod..."
                     });
 
                     try {
@@ -574,13 +574,13 @@ module.exports = {
 
                         iManager.t_snack({
                             en: "Successfully refreshed all mods",
-                            zh_cn: "成功刷新所有mod"
+                            vi: "Đã làm mới tất cả mod thành công"
                         }, 'success');
                     } catch (error) {
                         console.error('Error refreshing mods:', error);
                         iManager.t_snack({
                             en: "Error refreshing mods: " + error.message,
-                            zh_cn: "刷新mod时出错: " + error.message
+                            vi: "Lỗi khi làm mới mod: " + error.message
                         }, 'error');
                     } finally {
                         iManager.dismissDialog('loading-dialog');
@@ -589,7 +589,7 @@ module.exports = {
                 } else {
                     iManager.t_snack({
                         en: "Please enable the confirmation toggle above first",
-                        zh_cn: "请先打开上方的确认开关"
+                        vi: "Hãy bật công tắc xác nhận ở trên trước"
                     }, 'warning');
                 }
             }

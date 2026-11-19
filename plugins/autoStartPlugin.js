@@ -29,12 +29,12 @@ const fs = require('fs');
 function startGame(iManager, gamePath) {
     // 检查游戏路径是否存在
     if (!gamePath) {
-        const snackMessage = iManager.config.language === 'zh_cn' ? '游戏路径未设置' : 'Game Path not set';
+        const snackMessage = iManager.config.language === 'vi' ? 'Chưa đặt đường dẫn game' : 'Game Path not set';
         iManager.snack(snackMessage, "error");
         return false;
     }
     if (!fs.existsSync(gamePath)) {
-        const snackMessage = iManager.config.language === 'zh_cn' ? '游戏路径不存在' : 'Game Path not exist';
+        const snackMessage = iManager.config.language === 'vi' ? 'Đường dẫn game không tồn tại' : 'Game Path not exist';
         iManager.snack(snackMessage, "error");
         return false;
     }
@@ -45,12 +45,12 @@ function startGame(iManager, gamePath) {
 function startModLoader(iManager, modLoaderPath) {
     // 检查 mod 加载器路径是否存在
     if (!modLoaderPath) {
-        const snackMessage = iManager.config.language === 'zh_cn' ? 'Mod加载器路径未设置' : 'Mod Loader Path not set';
+        const snackMessage = iManager.config.language === 'vi' ? 'Chưa đặt đường dẫn mod loader' : 'Mod Loader Path not set';
         iManager.snack(snackMessage, "error");
         return false;
     }
     if (!fs.existsSync(modLoaderPath)) {
-        const snackMessage = iManager.config.language === 'zh_cn' ? 'Mod加载器路径不存在' : 'Mod Loader Path not exist';
+        const snackMessage = iManager.config.language === 'vi' ? 'Đường dẫn mod loader không tồn tại' : 'Mod Loader Path not exist';
         iManager.snack(snackMessage, "error");
         return false;
     }
@@ -62,7 +62,7 @@ function runCommand(iManager, command) {
     //debug
     console.log('runCommand:', command);
     if (!command) {
-        const snackMessage = iManager.config.language === 'zh_cn' ? '命令未设置' : 'Command not set';
+        const snackMessage = iManager.config.language === 'vi' ? 'Chưa đặt lệnh' : 'Command not set';
         iManager.snack(snackMessage, "error");
         return false;
     }
@@ -108,7 +108,7 @@ const ignoredState = 'ignoreSwitchConfig,waiting for switchConfig';
 module.exports = {
     name: pluginName,
     t_displayName: {
-        zh_cn: '自动启动插件',
+        vi: 'Plugin tự động khởi động',
         en: 'Auto Start Plugin'
     },
     init(iManager) {
@@ -143,11 +143,11 @@ module.exports = {
             displayName: 'Mod Loader',
             description: 'The path of the mod loader',
             t_displayName: {
-                zh_cn: 'Mod加载器',
+                vi: 'Mod Loader',
                 en: 'Mod Loader'
             },
             t_description: {
-                zh_cn: '# 在程序启动时自动启动mod加载器\n请确保mod加载器的路径正确,并且将开关打开。\n你可以通过手动点击按钮测试程序是否正常启动。',
+                vi: '# Tự động khởi động mod loader khi chương trình mở\nHãy đảm bảo đường dẫn mod loader đúng và bật công tắc. \nBạn có thể bấm nút thủ công để kiểm tra chương trình có khởi động bình thường không.',
                 en: '# Auto Start Mod Loader on Program Start\nPlease make sure the path of the mod loader is correct and turn on the switch. \nYou can test if the program starts normally by manually clicking the button.'
             },
             onChange: (value) => {
@@ -163,20 +163,20 @@ module.exports = {
             type: 'boolean',
             displayName: 'Auto Start Mod Loader',
             t_displayName: {
-                zh_cn: '自动启动mod加载器',
+                vi: 'Tự động khởi động mod loader',
                 en: 'Auto Start Mod Loader'
             },
             onChange: (value) => {
                 // 检查 mod 加载器路径是否存在
                 const modLoaderPath = iManager.getPluginData(pluginName, 'modLoaderPath');
                 if (value && !modLoaderPath && !fs.existsSync(modLoaderPath)) {
-                    const snackMessage = iManager.config.language === 'zh_cn' ? 'Mod加载器路径未设置或不存在' : 'Mod Loader Path not set or not exist';
+                    const snackMessage = iManager.config.language === 'vi' ? 'Chưa đặt đường dẫn mod loader hoặc đường dẫn không tồn tại' : 'Mod Loader Path not set or not exist';
                     iManager.snack(snackMessage, "error");
                     return false;
                 }
                 console.log('autoStartModLoader changed:', value);
                 autoStartModLoader.data = value;
-                const snackMessage = iManager.config.language === 'zh_cn' ? '自动启动mod加载器已更改为' : 'autoStartModLoader changed to';
+                const snackMessage = iManager.config.language === 'vi' ? 'Tự động khởi động mod loader đã đổi thành' : 'autoStartModLoader changed to';
                 iManager.snack(snackMessage + value);
                 iManager.savePluginConfig();
             }
@@ -189,7 +189,7 @@ module.exports = {
             type: 'exePath',
             displayName: 'Mod Loader Path',
             t_displayName: {
-                zh_cn: 'mod加载器路径',
+                vi: 'Đường dẫn mod loader',
                 en: 'Mod Loader Path'
             },
             onChange: (value) => {
@@ -207,19 +207,19 @@ module.exports = {
             type: 'iconbutton',
             displayName: 'Test Start Mod Loader',
             t_displayName: {
-                zh_cn: '测试启动mod加载器',
+                vi: 'Thử khởi động mod loader',
                 en: 'Test Start Mod Loader'
             },
             buttonName: 'Start Mod Loader',
             t_buttonName: {
-                zh_cn: '启动mod加载器',
+                vi: 'Khởi động mod loader',
                 en: 'Start Mod Loader'
             },
             onChange: () => {
                 // 检查 mod 加载器路径是否存在
                 const modLoaderPath = iManager.getPluginData(pluginName, 'modLoaderPath');
                 if (!modLoaderPath || !fs.existsSync(modLoaderPath)) {
-                    const snackMessage = iManager.config.language === 'zh_cn' ? 'Mod加载器路径未设置或不存在' : 'Mod Loader Path not set or not exist';
+                    const snackMessage = iManager.config.language === 'vi' ? 'Chưa đặt đường dẫn mod loader hoặc đường dẫn không tồn tại' : 'Mod Loader Path not set or not exist';
                     iManager.snack(snackMessage, "error");
                     return false;
                 }
@@ -239,7 +239,7 @@ module.exports = {
             displayName: 'Divider',
             description: '---',
             t_displayName: {
-                zh_cn: '分割线',
+                vi: 'Đường phân cách',
                 en: 'Divider'
             }
         }
@@ -252,11 +252,11 @@ module.exports = {
             displayName: 'Game',
             description: 'The path of the game',
             t_displayName: {
-                zh_cn: '游戏',
+                vi: 'Game',
                 en: 'Game'
             },
             t_description: {
-                zh_cn: '# 在程序启动时自动启动游戏\n请确保游戏的路径正确,并且将开关打开。\n你可以通过手动点击按钮测试程序是否正常启动。',
+                vi: '# Tự động khởi động game khi chương trình mở\nHãy đảm bảo đường dẫn game đúng và bật công tắc. \nBạn có thể bấm nút thủ công để kiểm tra chương trình có khởi động bình thường không.',
                 en: '# Auto Start Game on Program Start\nPlease make sure the path of the game is correct and turn on the switch. \nYou can test if the program starts normally by manually clicking the button.'
             },
             onChange: (value) => {
@@ -273,14 +273,14 @@ module.exports = {
             type: 'boolean',
             displayName: 'Auto Start Game',
             t_displayName: {
-                zh_cn: '自动启动游戏',
+                vi: 'Tự động khởi động game',
                 en: 'Auto Start Game'
             },
             onChange: (value) => {
                 // 检查游戏路径是否存在
                 const gamePath = iManager.getPluginData(pluginName, 'gamePath');
                 if (value && !gamePath && !fs.existsSync(gamePath)) {
-                    const snackMessage = iManager.config.language === 'zh_cn' ? '游戏路径未设置或不存在' : 'Game Path not set or not exist';
+                    const snackMessage = iManager.config.language === 'vi' ? 'Chưa đặt đường dẫn game hoặc đường dẫn không tồn tại' : 'Game Path not set or not exist';
                     iManager.snack(snackMessage, "error");
                     return false;
                 }
@@ -297,7 +297,7 @@ module.exports = {
             type: 'exePath',
             displayName: 'Game Path',
             t_displayName: {
-                zh_cn: '游戏路径',
+                vi: 'Đường dẫn game',
                 en: 'Game Path'
             },
             onChange: (value) => {
@@ -315,19 +315,19 @@ module.exports = {
             type: 'iconbutton',
             displayName: 'Test Start Game',
             t_displayName: {
-                zh_cn: '测试启动游戏',
+                vi: 'Thử khởi động game',
                 en: 'Test Start Game'
             },
             buttonName: 'Start Game',
             t_buttonName: {
-                zh_cn: '启动游戏',
+                vi: 'Khởi động game',
                 en: 'Start Game'
             },
             onChange: () => {
                 // 检查游戏路径是否存在
                 const gamePath = iManager.getPluginData(pluginName, 'gamePath');
                 if (!gamePath || !fs.existsSync(gamePath)) {
-                    const snackMessage = iManager.config.language === 'zh_cn' ? '游戏路径未设置或不存在' : 'Game Path not set or not exist';
+                    const snackMessage = iManager.config.language === 'vi' ? 'Chưa đặt đường dẫn game hoặc đường dẫn không tồn tại' : 'Game Path not set or not exist';
                     iManager.snack(snackMessage, "error");
                     return false;
                 }
@@ -343,7 +343,7 @@ module.exports = {
             displayName: 'Divider',
             description: '---',
             t_displayName: {
-                zh_cn: '分割线',
+                vi: 'Đường phân cách',
                 en: 'Divider'
             }
         }
@@ -356,11 +356,11 @@ module.exports = {
             displayName: 'Command',
             description: 'Run command when program start',
             t_displayName: {
-                zh_cn: '命令',
+                vi: 'Lệnh',
                 en: 'Command'
             },
             t_description: {
-                zh_cn: '# 在程序启动时运行自定义命令\n比如你想要在XXMM启动时，也启动当前配置对应的游戏的XXMI，你可以在这里设置运行命令行为：\n "XXMI Launcher.exe" --nogui --xxmi ZZMI \n-\n注意将其中的XXMI替换为你的XXMI所在的位置，ZZMI为其所启动的模组加载器的类型，有ZZMI/WWMI/HSMI等\n请确保命令正确，并且将开关打开。',
+                vi: '# Chạy lệnh tùy chỉnh khi chương trình mở\nVí dụ, nếu bạn muốn khởi động XXMI tương ứng với cấu hình hiện tại khi XXMM mở, bạn có thể đặt lệnh chạy ở đây: \n "XXMI Launcher.exe" --nogui --xxmi ZZMI \n-\nThay XXMI bằng vị trí của XXMI của bạn, và ZZMI bằng loại mod loader mà nó khởi động, ví dụ ZZMI/WWMI/HSMI, v.v. \nHãy đảm bảo lệnh đúng và bật công tắc.',
                 en: '# Run custom command when program start\nFor example, if you want to start the XXMI corresponding to the current configuration when XXMM starts, you can set the command to run here: \n "XXMI Launcher.exe" --nogui --xxmi ZZMI \n-\nReplace XXMI with the location of your XXMI, and ZZMI with the type of mod loader it starts, such as ZZMI/WWMI/HSMI, etc. \nPlease make sure the command is correct and turn on the switch.'
             },
             onChange: (value) => {
@@ -376,7 +376,7 @@ module.exports = {
             type: 'boolean',
             displayName: 'Run Command',
             t_displayName: {
-                zh_cn: '运行命令',
+                vi: 'Chạy lệnh',
                 en: 'Run Command'
             },
             onChange: (value) => {
@@ -393,7 +393,7 @@ module.exports = {
             type: 'boolean',
             displayName: 'Ignore Switch Config',
             t_displayName: {
-                zh_cn: '忽略切换配置界面',
+                vi: 'Bỏ qua màn hình chuyển cấu hình',
                 en: 'Ignore Switch Config'
             },
             onChange: (value) => {
@@ -410,7 +410,7 @@ module.exports = {
             type: 'string',
             displayName: 'Command',
             t_displayName: {
-                zh_cn: '命令',
+                vi: 'Lệnh',
                 en: 'Command'
             },
             onChange: (value) => {
@@ -427,7 +427,7 @@ module.exports = {
             type: 'hidden',
             displayName: 'Command Status',
             t_displayName: {
-                zh_cn: '命令执行状态',
+                vi: 'Trạng thái chạy lệnh',
                 en: 'Command Status'
             },
             onChange: (value) => {
@@ -443,18 +443,18 @@ module.exports = {
             type: 'iconbutton',
             displayName: 'Test Run Command',
             t_displayName: {
-                zh_cn: '测试运行命令',
+                vi: 'Thử chạy lệnh',
                 en: 'Test Run Command'
             },
             buttonName: 'Run Command',
             t_buttonName: {
-                zh_cn: '运行命令',
+                vi: 'Chạy lệnh',
                 en: 'Run Command'
             },
             onChange: () => {
                 const command = iManager.getPluginData(pluginName, 'command');
                 if (!command) {
-                    const snackMessage = iManager.config.language === 'zh_cn' ? '命令未设置' : 'Command not set';
+                    const snackMessage = iManager.config.language === 'vi' ? 'Chưa đặt lệnh' : 'Command not set';
                     iManager.snack(snackMessage, "error");
                     return false;
                 }

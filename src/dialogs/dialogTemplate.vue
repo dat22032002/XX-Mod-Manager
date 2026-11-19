@@ -2,17 +2,17 @@
     <s-dialog ref="componentRef" :id="props.id">
         <div slot="headline" :style="{maxWidth: props.maxWidth?props.maxWidth:'500px'}" style="font-size: 15px;">
             <slot name="content">
-                <p data-translate-key="ask-preset-name">请输入预设名称</p>
+                <p data-translate-key="ask-preset-name">{{ $t('presetDialog.requireName') }}</p>
                 <div class="OO-setting-bar">
-                    <h3>预设名称</h3>
-                    <s-text-field v-model="presetName" placeholder="请输入预设名称" id="preset-name">
+                    <h3>{{ $t('presetDialog.name') }}</h3>
+                    <s-text-field v-model="presetName" :placeholder="$t('presetDialog.requireName')" id="preset-name">
 
                     </s-text-field>
                 </div>
             </slot>
         </div>
         <slot name="action" class="action">
-            <s-button slot="action" type="text" class="OO-button font-hongmeng">确认</s-button>
+            <s-button slot="action" type="text" class="OO-button font-hongmeng">{{ $t('buttons.confirm') }}</s-button>
         </slot>
     </s-dialog>
 </template>

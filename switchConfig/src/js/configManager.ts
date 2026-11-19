@@ -41,7 +41,7 @@ class TapeConfig{
         this.tape_back = ['jpg', 'jpeg', 'png', 'gif'].map(ext => path.join(this._dir, `back.${ext}`)).find(fs.existsSync) || '';
         this.tape_spine = ['jpg', 'jpeg', 'png', 'gif'].map(ext => path.join(this._dir, `spine.${ext}`)).find(fs.existsSync) || '';
         const descriptionPath = path.join(this._dir, 'description.txt');
-        this.desc = fs.existsSync(descriptionPath) ? fs.readFileSync(descriptionPath, 'utf-8') : new TranslatedText('No Description','没有描述').get();
+        this.desc = fs.existsSync(descriptionPath) ? fs.readFileSync(descriptionPath, 'utf-8') : new TranslatedText('No Description','Không có mô tả').get();
 
         // debug
         console.log(this);
@@ -54,7 +54,7 @@ class TapeConfig{
         const configRootDir = await TapeConfig.getConfigRootPath()
         // 如果不存在config文件夹，创建一个
         if(!fs.existsSync(configRootDir)){
-            t_snack(new TranslatedText('Config folder not found, creating a new one', '未找到配置文件夹，正在创建一个'), SnackType.info);
+            t_snack(new TranslatedText('Config folder not found, creating a new one', 'Không tìm thấy thư mục cấu hình, đang tạo mới'), SnackType.info);
             fs.mkdirSync(configRootDir);
             // 打开文件夹
             fsProxy.openDir(configRootDir);
@@ -63,7 +63,7 @@ class TapeConfig{
         const configDirs: string[] = fs.readdirSync(configRootDir).filter((file: string): boolean => fs.statSync(path.join(configRootDir, file)).isDirectory());
         // 如果没有配置文件夹，创建一个
         if(configDirs.length === 0){
-            t_snack(new TranslatedText('No config found', '未找到配置文件'), SnackType.error);
+            t_snack(new TranslatedText('No config found', 'Không tìm thấy file cấu hình'), SnackType.error);
             return [];
         }
         const configList: TapeConfig[] = configDirs.map((dir: string): TapeConfig => {
@@ -102,18 +102,18 @@ class TapeConfig{
 
     static async createConfig(name: string){
         if (name === ''){
-            t_snack(new TranslatedText('Name cannot be empty', '名称不能为空'), SnackType.error);
+            t_snack(new TranslatedText('Name cannot be empty', 'Tên không được để trống'), SnackType.error);
             return;
         }
         const configRootDir = await this.getConfigRootPath();
         const newConfigDir = path.join(configRootDir, name);
         console.log(newConfigDir);
         if(fs.existsSync(newConfigDir)){
-            t_snack(new TranslatedText('Config already exists', '配置已存在'), SnackType.error);
+            t_snack(new TranslatedText('Config already exists', 'Cấu hình đã tồn tại'), SnackType.error);
             return;
         }
         fs.mkdirSync(newConfigDir);
-        t_snack(new TranslatedText('Config created', '配置已创建'), SnackType.info);
+        t_snack(new TranslatedText('Config created', 'Đã tạo cấu hình'), SnackType.info);
         this.reloadAllConfig();
     }
 }
