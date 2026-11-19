@@ -135,10 +135,10 @@
                         style="left: 5px;" />
                       <s-text-field :value="hotkey.key" @change="handleHotkeyInput(hotkey, $event.target.value)" />
                     </div>
-                    <div class="hotkey-item OO-setting-bar">
+                    <div class="hotkey-item hotkey-add-row OO-setting-bar">
 
                       <s-text-field v-model="newHotkeyDescription"
-                        style="left: 5px;" :placeholder="$t('editDialog.mod-info-hotkeys-description')" />
+                        :placeholder="$t('editDialog.mod-info-hotkeys-description')" />
                       <s-text-field v-model="newHotkeyKey"
                         :placeholder="$t('editDialog.mod-info-hotkeys-hotkey')" />
                       <s-button class="OO-button font-hongmeng" @click="addNewHotkey">
@@ -402,5 +402,22 @@ onMounted(() => {
   max-width: 450px;
   padding: 0 10px;
   border-radius: 20px;
+}
+
+/* Hàng thêm phím mới: 3 món (mô tả + phím + nút Thêm) nên xếp bằng flex thật.
+   (Luật chung .OO-setting-bar đặt mọi ô nhập ở vị trí tuyệt đối phải/trái nên
+   nút Thêm đè lên ô phím, ô phím bị che mất — hàng phím đã lưu giữ nguyên.) */
+.hotkey-item.hotkey-add-row s-text-field {
+  position: static;
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+  max-width: none;
+  height: calc(100% - 10px);
+}
+
+.hotkey-item.hotkey-add-row s-button {
+  position: static;
+  flex-shrink: 0;
 }
 </style>
