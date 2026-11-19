@@ -4,7 +4,15 @@
         <!-- Search box is slanted like the filter chips (outer skew -20deg),
              with the icon + input counter-skewed back so the text stays
              straight. (Skewing the input itself would slant/clip the text,
-             which is why round 3 kept this box straight.) -->
+             which is why round 3 kept this box straight.)
+             The input is a PLAIN <input>, not Sober s-text-field: Sober's
+             field paints its own yellow border inside its shadow DOM (it
+             ignores the border-color var when focused, and theming the
+             primary color transparent would also hide the text caret), so
+             the only way to have NO inner box at all — just the slanted
+             outer frame — is a native input with transparent background
+             and no border/outline. Focus is shown on the outer frame
+             instead (:focus-within below). -->
         <div id="search-filter-chip" class="search-box-fixed">
           <div class="search-box-inner">
             <s-icon>
@@ -15,9 +23,7 @@
                 </svg>
             </s-icon>
             <div id="search-input-container" style="display: flex;align-items: center;flex: 1;min-width: 0;margin-left: 8px;">
-                <s-text-field id="search-input" class="OO-shade-box" style="min-height: 25px;flex: 1;width: 100%;min-width: 0;background-color:var(--s-color-surface);border-radius: 5px;" @input="handleSearchInput" v-model="searchInput">
-
-                </s-text-field>
+                <input id="search-input" type="text" class="search-input-field" @input="handleSearchInput" v-model="searchInput" />
             </div>
           </div>
         </div>
@@ -258,6 +264,27 @@ defineExpose({
     /* Nghiêng như tag chip (-20deg); nội dung bên trong nghiêng ngược lại
        để chữ và ô nhập vẫn thẳng. */
     transform: skew(-20deg);
+}
+
+/* Ô nhập đang gõ thì VIỀN MÉO bên ngoài sáng lên (thay cho viền của ô
+   nhập đã bỏ): chỉ còn đúng 1 viền là khung méo. */
+.search-box-fixed:focus-within {
+    border-color: var(--s-color-primary);
+}
+
+.search-input-field {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    min-height: 25px;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    box-shadow: none;
+    color: var(--s-color-on-surface);
+    font: inherit;
+    caret-color: var(--s-color-on-surface);
 }
 
 .search-box-inner {
