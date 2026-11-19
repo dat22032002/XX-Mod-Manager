@@ -1,8 +1,12 @@
 <!-- Hộp hỏi khi có bản mới: ghi version hiện tại + version mới + ghi chú
      phát hành; bấm "Cập nhật ngay" thì tải (hiện % trong hộp), bấm "Để sau"
      thì đóng và không hỏi lại trong phiên này.
-     Nút đặt ở phần nội dung (không dùng khe action): Sober tự đóng hộp khi
-     bấm nút ở khe action, mà lúc đang tải cần giữ hộp mở để hiện tiến độ. -->
+     Nút đặt ở khe action như mọi hộp khác (để hộp ôm sát nội dung, không
+     thừa khoảng đen dưới nút). Sober tự đóng hộp khi bấm nút ở khe action,
+     nên có bộ nghe dismiss chặn lại khi đang tải (pattern TC23): bấm
+     "Cập nhật ngay" thì cờ downloading bật đồng bộ trước khi sự kiện
+     dismiss tới, hộp ở lại để hiện tiến độ; tải xong thì helper đóng hộp
+     bằng code. -->
 <template>
     <dialogTemplate id="dialog-update-available" type="block">
         <template v-slot:content>
@@ -23,25 +27,26 @@
                     <div class="progress-fill" :style="{ width: updateState.downloadPercent + '%' }"></div>
                 </div>
             </div>
-            <div v-if="updateState.status !== 'downloading'" class="update-actions" style="z-index: 1;">
-                <s-button type="text" id="update-later" @click="handleLater"
-                    class="OO-button font-hongmeng" style="margin-left: 20px; margin-right: 20px;">
-                    <p>{{ $t('update.later') }}</p>
-                </s-button>
-                <s-button type="text" id="update-now" @click="handleUpdateNow"
-                    class="OO-button font-hongmeng OO-color-gradient"
-                    style="color: var(--s-color-dark-surface); margin-left: 20px; margin-right: 20px;">
-                    <p>{{ $t('update.updateNow') }}</p>
-                </s-button>
-            </div>
         </template>
-        <template v-slot:action><span style="display: none;"></span></template>
+        <template v-slot:action>
+            <span style="display: none;"></span>
+            <s-button v-if="updateState.status !== 'downloading'" slot="action" type="text" id="update-later"
+                @click="handleLater" class="OO-button font-hongmeng"
+                style="margin-left: 20px; margin-right: 20px;">
+                <p>{{ $t('update.later') }}</p>
+            </s-button>
+            <s-button v-if="updateState.status !== 'downloading'" slot="action" type="text" id="update-now"
+                @click="handleUpdateNow" class="OO-button font-hongmeng OO-color-gradient"
+                style="color: var(--s-color-dark-surface); margin-left: 20px; margin-right: 20px;">
+                <p>{{ $t('update.updateNow') }}</p>
+            </s-button>
+        </template>
     </dialogTemplate>
 </template>
 
 <script setup>
 import dialogTemplate from './dialogTemplate.vue';
-import { watch } from 'vue';
+import { watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { updateState, downloadUpdate, dismissUpdateAvailable } from '../../helper/UpdateHelper';
 import { snack, SnackType } from '../../helper/SnackHelper';
@@ -53,6 +58,20 @@ watch(() => updateState.status, (newStatus, oldStatus) => {
     if (newStatus === 'error' && oldStatus === 'downloading') {
         snack(t('update.downloadFailed'), SnackType.error);
     }
+});
+
+// Nút "Cập nhật ngay" nằm ở khe action nên Sober tự đóng hộp khi bấm —
+// chặn lại khi đang tải để hộp ở lại hiện tiến độ (pattern TC23 ở
+// dialogModInfo2: sự kiện dismiss là cancelable, cờ bật đồng bộ trong
+// click handler trước khi dismiss tới). Chỉ chặn nguồn ACTION để bấm ra
+// ngoài vùng hộp vẫn đóng được.
+onMounted(() => {
+    document.getElementById('dialog-update-available')?.addEventListener('dismiss', (event) => {
+        const source = event.detail && event.detail.source;
+        if (updateState.status === 'downloading' && source === 'ACTION') {
+            event.preventDefault();
+        }
+    });
 });
 
 function handleUpdateNow() {
@@ -97,12 +116,5 @@ function handleLater() {
     height: 100%;
     background: var(--s-color-primary);
     transition: width 0.2s;
-}
-
-.update-actions {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    margin-top: 10px;
 }
 </style>
