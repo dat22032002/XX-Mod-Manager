@@ -1,8 +1,14 @@
 <template>
     <div class="main-container" ref="modCardState">
         <div class="head">
-            <backbutton @click="handleBackButtomClick" />
             <div class="window-controls">
+                <s-icon-button class="OO-icon-button window-control-btn" :title="$t('buttons.close')" @click="handleCloseClick">
+                    <s-icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                            <path d="M480-424 284-228q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536-480l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-424Z" />
+                        </svg>
+                    </s-icon>
+                </s-icon-button>
                 <s-icon-button class="OO-icon-button window-control-btn" :title="$t('buttons.minimize')" @click="handleMinimizeClick">
                     <s-icon>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
@@ -50,36 +56,48 @@
     <dialogEnterPassword/>
     <dialogApplyResult />
     <dialogConfirmReset />
+    <dialogConfirmClose />
+    <dialogConfirmDeleteMod />
+    <dialogUpdateAvailable />
+    <dialogUpdateDownloaded />
 </template>
 
 <script setup>
 import { ref} from 'vue';
 
-import modCardSection from '../section/modCardSection.vue';
-import backbutton from '../components/backButton.vue';
-import sectionSelector from '../components/sectionSelector.vue';
-import dialogAddPreset from '../dialogs/dialogAddPreset.vue';
-import settingSection from '../section/settingSection.vue'; 
-import CssProxy from '../components/cssProxy.vue';
-import dialogModInfo2 from '../dialogs/dialogModInfo2.vue';
-import helpSection from '../section/helpSection.vue';
-import dialogLoading from '../dialogs/dialogLoading.vue';
-import dialogEnterPassword from '../dialogs/dialogEnterPassword.vue';
-import dialogApplyResult from '../dialogs/dialogApplyResult.vue';
-import dialogConfirmReset from '../dialogs/dialogConfirmReset.vue';
+import modCardSection from './section/modCardSection.vue';
+import sectionSelector from './components/sectionSelector.vue';
+import dialogAddPreset from './dialogs/dialogAddPreset.vue';
+import settingSection from './section/settingSection.vue'; 
+import CssProxy from './components/cssProxy.vue';
+import dialogModInfo2 from './dialogs/dialogModInfo2.vue';
+import helpSection from './section/helpSection.vue';
+import dialogLoading from './dialogs/dialogLoading.vue';
+import dialogEnterPassword from './dialogs/dialogEnterPassword.vue';
+import dialogApplyResult from './dialogs/dialogApplyResult.vue';
+import dialogConfirmReset from './dialogs/dialogConfirmReset.vue';
+import dialogConfirmClose from './dialogs/dialogConfirmClose.vue';
+import dialogConfirmDeleteMod from './dialogs/dialogConfirmDeleteMod.vue';
+import dialogUpdateAvailable from './dialogs/dialogUpdateAvailable.vue';
+import dialogUpdateDownloaded from './dialogs/dialogUpdateDownloaded.vue';
 
-import DialogNeedRefresh from '../dialogs/dialogNeedRefresh.vue';
-import { EventSystem } from '../../helper/EventSystem';
+import DialogNeedRefresh from './dialogs/dialogNeedRefresh.vue';
+import { EventSystem } from '../helper/EventSystem';
+
+// Nghe sự kiện cập nhật từ tiến trình chính (có bản mới -> mở hộp hỏi).
+import { initUpdateListener } from '../helper/UpdateHelper';
+initUpdateListener();
 
 const loaded = ref(false);
 
-// import IManager from '../../electron/IManager';
+// import IManager from '../electron/IManager';
 // const iManager = new IManager();
 // 这里不需要 iManager 实例，直接通过waitInit 获取
 
-import { waitInitIManager } from '../../electron/IManager';
+import { waitInitIManager } from '../electron/IManager';
+import IManager from '../electron/IManager';
 
-import { g_temp_vue } from '../../electron/IManager';
+import { g_temp_vue } from '../electron/IManager';
 const currentMod = g_temp_vue.currentMod;
 
 const sections = ref(['mod', 'help', 'settings']);
@@ -91,9 +109,11 @@ const handleSectionChange = (section) => {
     console.log('handleSectionChange', section);
 };
 
-const closeApp = () => {
-    //关闭当前窗口
-    window.close();
+const iManager = new IManager();
+
+// Nút X chỉ mở hộp hỏi xác nhận; chỉ khi bấm Xác nhận mới tắt app.
+const handleCloseClick = () => {
+    iManager.showDialog('dialog-confirm-close');
 };
 
 // 窗口控制按钮：最小化 / 全屏（主进程已有对应的 IPC 处理）
@@ -110,10 +130,6 @@ const handleFullscreenClick = async () => {
     const { ipcRenderer } = require('electron');
     const result = await ipcRenderer.invoke('toggle-fullscreen');
     isFullscreen.value = result === true;
-};
-
-const handleBackButtomClick = () => {
-    closeApp();
 };
 
 waitInitIManager().then((iManager) => {

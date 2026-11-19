@@ -35,8 +35,6 @@ const handleClick = (event: MouseEvent, ifToggle: boolean = true) => {
         return;
     }
 
-    console.log('clicked:', clicked.value, cardElement.getBoundingClientRect());
-
     if (clicked.value) {
         playSelectedAnim(cardElement, event, cardElement.getBoundingClientRect());
     } else {

@@ -114,12 +114,12 @@ Lưu ý rằng ba thư mục sau không được trùng nhau, nếu không chư�
 Nếu vẫn chưa hiểu, bạn có thể đặt trước thành một thư mục trống, quan sát chương trình hoạt động, rồi mới cài đặt.
 
 Tôi sẽ dùng hình ảnh để giúp bạn hiểu rõ hơn:<br>
-  <img src="../src/assets/description1.png" alt="description" style="width: 80%;height: auto;">
+  <img src="${img_description1}" alt="description" style="width: 80%;height: auto;">
 Vì vậy, logic suy ra file mod thực ra là như thế này.
-  <img src="../src/assets/description3.png" alt="description" style="width: 80%;height: auto;">
+  <img src="${img_description3}" alt="description" style="width: 80%;height: auto;">
 Nếu bạn không hiểu sơ đồ trên, đây là một ví dụ trực quan hơn:
 Giả sử chúng ta muốn mặc cho Klee bộ "Quần áo mới của Hoàng đế", thì:
-  <img src="../src/assets/description2.png" alt="description" style="width: 80%;height: auto;">
+  <img src="${img_description2}" alt="description" style="width: 80%;height: auto;">
 "Thư mục đích mod" dùng để lưu các mod đang sử dụng.
 "Thư mục nguồn mod" dùng để lưu tất cả các mod.
 ---
@@ -135,7 +135,7 @@ Chương trình này tải mod bằng cách thay thế thư mục Mods, và đi�
 # Về chương trình này
 # Nguyên lý hoạt động
 Chương trình này tải mod bằng cách thay thế thư mục Mods, và điều chỉnh động các file bên trong thư mục mod để tải mod.
-  <img src="../src/assets/description.png" alt="description" style="width: 50%;height: auto;">
+  <img src="${img_description}" alt="description" style="width: 50%;height: auto;">
 `;
 
 const importContentVi =
@@ -334,12 +334,12 @@ Please note that the following three folders cannot be the same, otherwise the p
 If you still don't understand, you can set it to an empty folder first, observe the program's operation, and then set it up.
 
 I will use pictures to help you understand better:<br>
-  <img src="../src/assets/description1.png" alt="description" style="width: 80%;height: auto;">
+  <img src="${img_description1}" alt="description" style="width: 80%;height: auto;">
 Therefore, the logic of mod file derivation is actually like this.
-  <img src="../src/assets/description3.png" alt="description" style="width: 80%;height: auto;">
+  <img src="${img_description3}" alt="description" style="width: 80%;height: auto;">
 If you cannot understand the above diagram, here is a more intuitive one:
 Suppose we want to dress Klee in the "Emperor's New Clothes", then:
-  <img src="../src/assets/description2.png" alt="description" style="width: 80%;height: auto;">
+  <img src="${img_description2}" alt="description" style="width: 80%;height: auto;">
 The "mod target folder" is used to store the mods currently in use.
 The "mod source folder" is used to store all the mods.
 ---
@@ -355,7 +355,7 @@ This is the folder used by this program to store mod presets. The program will s
 # About this program
 # Operating principle
 This program implements mod loading by proxying the Mods folder, and dynamically adjusts the files inside the mod folder to implement mod loading.
-  <img src="../src/assets/description.png" alt="description" style="width: 50%;height: auto;">
+  <img src="${img_description}" alt="description" style="width: 50%;height: auto;">
 `;
 
 const importContentEn =
@@ -473,7 +473,7 @@ At the beginning, the program should have a default preset.
 2. In the new preset window, enter the name of the preset, and then click [OK].
 3. You will find a new preset in the preset list.
 # Delete Preset
-1. Click the "three" manage preset button at the bottom right of the preset list on the left side of the [Mods] page, the folder where the presets are stored will pop up.
+1. Click the menu (☰) button at the bottom right of the preset list on the left side of the [Mods] page, the folder where the presets are stored will pop up.
 2. Then you can delete the preset files in the preset folder to delete the presets.
 ---
 # Default Preset

@@ -1,6 +1,5 @@
 import 'sober'
 import 'sober/style/scroll-view.css'
-import { Snackbar } from 'sober'
 
 import '../src/style.css'
 
@@ -13,31 +12,14 @@ import IManager from '../electron/IManager'
 // Cửa sổ đổi cấu hình chỉ cần cài đặt, không cần danh sách mod hay plugin.
 const iManager = new IManager({ light: true });
 
-//-=================== 旧的导入 ===================-//
-const path = require('path');
-const fs = require('fs');
-const { shell } = require("electron");
-
 //-====================入口文件====================-//
 const vue_app = createApp(switchConfigPage);
 
 //-====================国际化====================-//
-import { createI18n } from 'vue-i18n';
-
-// 导入语言包
-import en from '../src/locales/en.json';
-import vi from '../src/locales/vi.json';
+import { createAppI18n, registerSnackListener, registerDomReadyProbe } from '../helper/sharedWindowSetup';
 
 // 创建i18n实例
-const i18n = createI18n({
-  locale: 'en', // 设置默认语言
-  fallbackLocale: 'en', // 设置回退语言
-  legacy: false,
-  messages: {
-    en,
-    vi,
-  },
-});
+const i18n = createAppI18n();
 
 // 使用i18n插件
 vue_app.use(i18n);
@@ -67,47 +49,7 @@ iManager.waitInit().then((iManager) => {
 //-=====================事件监听====================-//
 console.log('main.js');
 
-document.addEventListener('DOMContentLoaded', () => {
-    
-
-    // 开启 了 nodeIntegration: true, contextIsolation: false
-    // 所以可以直接使用 node.js 的模块
-
-    // 获取 process 对象
-    const process = window.process;
-
-    // 获取 node.js 的版本信息
-    const nodeVersion = process.versions.node;
-
-    // console.log('DOMContentLoaded' + nodeVersion);
-})
+registerDomReadyProbe();
 
 //-======================== snackbar ========================-//
-ipcRenderer.on('snack', (event, message,type = 'info') => {
-    snack(message,type);
-})
-
-function snack(message, type = 'info') {
-    console.log(`snack:${message} type:${type}`);
-    switch (type) {
-        case 'info':
-            Snackbar.show({
-                text: message,
-                align: 'top'
-            })
-            break;
-        case 'error':
-            Snackbar.show({
-                text: message,
-                align: 'top',
-                type: 'error'
-            })
-            break;
-        default:
-            Snackbar.show({
-                text: message,
-                align: 'top'
-            })
-            break;
-    }
-}
+registerSnackListener(ipcRenderer);

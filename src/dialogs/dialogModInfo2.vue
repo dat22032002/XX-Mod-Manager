@@ -135,15 +135,6 @@
                         style="left: 5px;" />
                       <s-text-field :value="hotkey.key" @change="handleHotkeyInput(hotkey, $event.target.value)" />
                     </div>
-                    <div class="hotkey-item OO-setting-bar">
-
-                      <s-text-field
-                        @change="(event) => { addNewHotkeyByDescription(event.target.value); event.target.value = ''; }"
-                        style="left: 5px;" :placeholder="$t('editDialog.mod-info-hotkeys-description')" />
-                      <s-text-field
-                        @change="(event) => { addNewHotkeyByHotkey(event.target.value); event.target.value = ''; }"
-                        :placeholder="$t('editDialog.mod-info-hotkeys-hotkey')" />
-                    </div>
                   </div>
 
                 </s-popup>
@@ -203,6 +194,7 @@
 <script setup>
 import { ref } from 'vue';
 import { defineProps, defineEmits, onMounted, computed, watch, useTemplateRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 import IManager from '../../electron/IManager';
 import DialogTemplate from './dialogTemplate.vue';
 import horizontalScrollBar from '../components/horizontalScrollBar.vue';
@@ -214,6 +206,18 @@ const iManager = new IManager();
 const props = defineProps({
   mod: ModData,
 });
+
+const { t } = useI18n();
+
+// TC23: cờ "đang lưu" — nút Lưu nằm trong vùng action của hộp Sober nên
+// bấm là hộp tự đóng (Sober gọi dismiss('ACTION')); sự kiện dismiss của
+// Sober là cancelable nên bộ nghe dismiss bên dưới gọi preventDefault()
+// khi đang lưu, hộp ở lại cho tới khi lưu xong (thành công thì đóng bằng
+// code, lỗi thì ở lại để bấm Lưu lại). saveFailed để lần Lưu sau thử ghi
+// lại dù nội dung trong RAM đã giống nhau (editModInfo áp dụng trước khi
+// ghi đĩa nên sau 1 lần lỗi, equals() đã là true).
+let savePending = false;
+let saveFailed = false;
 
 let saved = false;
 
@@ -282,16 +286,6 @@ const handleHotkeyInput = (hotkey, value) => {
   hotkey.key = value;
 }
 
-const addNewHotkeyByDescription = (description) => {
-  console.log(`add hot key`, description, `to`, tempModInfo.value.id);
-  tempModInfo.value.addHotkey("", description);
-}
-
-const addNewHotkeyByHotkey = (key) => {
-  console.log(`add hot key`, key, `to`, tempModInfo.value.id);
-  tempModInfo.value.addHotkey(key, "");
-}
-
 const handleSelectImage = async () => {
   const imgPath = await iManager.getFilePath('preview', 'image', tempModInfo.value.preview);
   if (imgPath) {
@@ -304,51 +298,120 @@ const handleSelectImage = async () => {
 const handleCancel = async () => {
   tempModInfo.value = props.mod.copy();
   img.value = await props.mod.getPreviewBase64(true, true);
+  // TC22: hủy thì quên ảnh đã dán, lần lưu sau không ghi đè ảnh bìa nữa.
+  changdPreviewByPaste = false;
+  // TC23: hủy thì thôi giữ hộp — lần lưu lỗi trước đó không chặn nút Hủy.
+  saveFailed = false;
 }
 
-const handleSave = () => {
+const handleSave = async () => {
   //debug
-  const ifEqual = props.mod.equals(tempModInfo.value);
-  console.log('saved', saved, `equals`, ifEqual);
-  // 保存修改的 mod 信息
+  // Đặt cờ trước mọi await. Nút Lưu nằm trong vùng action của Sober nên
+  // bấm là hộp tự đóng theo mặc định thư viện — bộ nghe dismiss (dưới)
+  // chặn lại nhờ savePending/saveFailed, và chỉ đóng hộp bằng lệnh khi
+  // lưu thành công (xem cuối hàm).
+  savePending = true;
+  try {
+    const ifEqual = props.mod.equals(tempModInfo.value);
+    console.log('saved', saved, `equals`, ifEqual);
+    // 保存修改的 mod 信息
 
-  if (ifEqual && !changdPreviewByPaste) {
-    // editModInfoDialog.value.$el.dismiss();
-    // 点击按钮自动会关闭dialog，这里如果手动关闭会导致再次触发dismiss事件，导致不必要的性能消耗
-    return;
+    if (ifEqual && !changdPreviewByPaste && !saveFailed) {
+      // Không có gì để lưu: hạ cờ để hộp tự đóng như cũ.
+      // editModInfoDialog.value.$el.dismiss();
+      // 点击按钮自动会关闭dialog，这里如果手动关闭会导致再次触发dismiss事件，导致不必要的性能消耗
+      savePending = false;
+      return;
+    }
+
+    // 处理 图片 更改
+    let needChangePreview = false;
+    if (props.mod.preview !== tempModInfo.value.preview) {
+      needChangePreview = true;
+    }
+
+    // 保存修改的 mod 信息
+    props.mod.editModInfo(tempModInfo.value);
+
+    if (needChangePreview) {
+      await props.mod.setPreviewByPath(tempModInfo.value.preview);
+    }
+
+    // 如果是通过粘贴操作更改的预览图片，则保存到本地
+    if (changdPreviewByPaste) {
+      await props.mod.setPreviewByBase64(img.value);
+    }
+
+    // TC23: chờ ghi đĩa thật + bắt lỗi — trước đây saveModInfo() không
+    // await/không try/catch nên ổ đầy/thư mục bị xóa ngoài thì lỗi chìm
+    // trong khi hộp đã tự đóng, người dùng tưởng đã lưu.
+    await props.mod.saveModInfo();
+
+    tempModInfo.value = props.mod.copy();
+    saved = true;
+    saveFailed = false;
+    // TC22: lưu xong thì quên ảnh đã dán.
+    changdPreviewByPaste = false;
+
+    props.mod.triggerChanged();
+    props.mod.triggerCurrentModChanged();
+
+    // Lưu xong mới đóng hộp bằng code (lần đóng tự động lúc bấm nút đã bị
+    // chặn lại nhờ savePending).
+    savePending = false;
+    editModInfoDialog.value.$el.dismiss();
+  } catch (error) {
+    // Lỗi: hộp vẫn mở (lần đóng tự động đã bị chặn), báo rõ lỗi để bấm Lưu lại.
+    savePending = false;
+    saveFailed = true;
+    console.error('dialogModInfo2: failed to save mod info', error);
+    iManager.snack(t('editDialog.saveFailed', { error: error.message }), 'error');
   }
-
-  // 处理 图片 更改
-  let needChangePreview = false;
-  if (props.mod.preview !== tempModInfo.value.preview) {
-    needChangePreview = true;
-  }
-
-  // 保存修改的 mod 信息
-  props.mod.editModInfo(tempModInfo.value);
-
-  if (needChangePreview) {
-    props.mod.setPreviewByPath(tempModInfo.value.preview);
-  }
-
-  // 如果是通过粘贴操作更改的预览图片，则保存到本地
-  if (changdPreviewByPaste) {
-    props.mod.setPreviewByBase64(img.value);
-  }
-
-  tempModInfo.value = props.mod.copy();
-  saved = true;
-
-  props.mod.saveModInfo();
-
-  props.mod.triggerChanged();
-  props.mod.triggerCurrentModChanged();
 }
 
 let changdPreviewByPaste = false;
+
+// TC22: chỉ nhận dán ảnh khi hộp sửa đang mở (đăng ký lúc show, gỡ lúc
+// dismissed), và chỉ nhận file đúng là ảnh. Trước đây bộ nghe đăng ký 1
+// lần lúc mở app, không bao giờ gỡ — dán ảnh vào ô tìm kiếm cũng đổi ảnh
+// bìa mod đang chọn, dán file zip cũng bị đọc thành ảnh.
+const handlePaste = async (event) => {
+  //debug
+  console.log('paste', event.clipboardData);
+  const clipboardData = event.clipboardData || event.originalEvent?.clipboardData;
+  const items = clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
+      const blob = item.getAsFile();
+      if (!blob || !blob.type.startsWith('image/')) continue;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imgBase64 = e.target.result;
+        img.value = imgBase64;
+        // tempModInfo.value.preview = imgBase64;
+        changdPreviewByPaste = true;
+      };
+      reader.readAsDataURL(blob);
+    }
+  }
+};
+
 onMounted(() => {
   // 监听 dialog 的 dismiss 事件，如果未保存则弹出保存更改的 dialog
-  editModInfoDialog.value.$el.addEventListener('dismiss', () => {
+  editModInfoDialog.value.$el.addEventListener('dismiss', (event) => {
+    // TC23: chặn đóng khi đang lưu (savePending) hoặc lần lưu vừa rồi lỗi
+    // (saveFailed). Nút Lưu nằm trong vùng action của Sober nên bấm là hộp
+    // tự đóng — kiểm chứng bằng app thật (19/11) cho thấy sự kiện dismiss
+    // tới SAU khi lưu async hoàn tất, nên cờ saveFailed mới là cờ giữ hộp
+    // ở lại khi lưu lỗi; savePending chỉ phòng trường hợp lưu chậm. Chỉ
+    // chặn nguồn ACTION (bấm nút trong hộp) để người dùng vẫn đóng được
+    // bằng cách bấm ra ngoài vùng hộp (SCRIM).
+    const source = event.detail && event.detail.source;
+    if ((savePending || saveFailed) && source === 'ACTION') {
+      event.preventDefault();
+      return;
+    }
     console.log('dismiss', 'props.mod', props.mod, 'tempModInfo', tempModInfo.value, saved);
     if (!saved && !props.mod.equals(tempModInfo.value)) {
       iManager.showDialog('save-change-dialog');
@@ -360,26 +423,15 @@ onMounted(() => {
   editModInfoDialog.value.$el.addEventListener('show', async () => {
     tempModInfo.value = props.mod.copy();
     img.value = await props.mod.getPreviewBase64(true, true);
+    // TC22: mở hộp mới thì quên ảnh đã dán lần trước + bắt đầu nghe dán.
+    changdPreviewByPaste = false;
+    saveFailed = false;
+    window.addEventListener('paste', handlePaste);
   });
 
-  // 监听粘贴操作，如果粘贴的是图片则将其设置为 mod 的预览图片
-  window.addEventListener('paste', async (event) => {
-    //debug
-    console.log('paste', event.clipboardData);
-    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
-    for (const item of items) {
-      if (item.kind === 'file') {
-        const blob = item.getAsFile();
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          const imgBase64 = e.target.result;
-          img.value = imgBase64;
-          // tempModInfo.value.preview = imgBase64;
-          changdPreviewByPaste = true;
-        };
-        reader.readAsDataURL(blob);
-      }
-    }
+  // TC22: hộp đóng hẳn thì thôi nghe dán.
+  editModInfoDialog.value.$el.addEventListener('dismissed', () => {
+    window.removeEventListener('paste', handlePaste);
   });
 });
 </script>
@@ -395,4 +447,5 @@ onMounted(() => {
   padding: 0 10px;
   border-radius: 20px;
 }
+
 </style>

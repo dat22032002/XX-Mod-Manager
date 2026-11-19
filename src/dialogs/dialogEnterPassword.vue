@@ -4,8 +4,8 @@
         <template v-slot:content>
             <p>{{ $t('dialogEnterPassword.title') }}</p>
             <div class="OO-setting-bar">
-                <h3>{{ $t('presetDialog.name') }}</h3>
-                <s-text-field v-model="getPassword" :placeholder="$t('presetDialog.requireName')" id="preset-name">
+                <h3>{{ $t('dialogEnterPassword.label') }}</h3>
+                <s-text-field v-model="getPassword" type="password" :placeholder="$t('dialogEnterPassword.placeholder')" id="archive-password">
 
                 </s-text-field>
             </div>
@@ -40,6 +40,10 @@ const { t } = useI18n();
 
 
 function handleCancel() {
+    // TC17: đặt archivePassword thành chuỗi rỗng để thoát vòng chờ
+    // waitForPassword (chỉ thoát khi khác null) + dừng giải nén. Trước đây
+    // không đặt gì nên vòng chờ thăm dò mãi, nhập file treo vĩnh viễn.
+    iManager.archivePassword = '';
     iManager.dismissDialog('dialog-enter-password');
     iManager.dismissDialog('loading-dialog');
     iManager.snack(t('dialogEnterPassword.cancel'), 'error');
@@ -48,11 +52,15 @@ function handleCancel() {
 }
 
 function handleConfirm() {
-    console.log('confirm password:', getPassword.value);
+    // TC17: không in mật khẩu ra console/snack nữa (log ghi ra file đĩa).
+    if (!getPassword.value) {
+        iManager.snack(t('dialogEnterPassword.empty'), 'error');
+    } else {
+        iManager.snack(t('dialogEnterPassword.confirm'), 'info');
+    }
     iManager.dismissDialog('dialog-enter-password');
-    iManager.snack(t('dialogEnterPassword.confirm') + getPassword.value, 'info');
     iManager.archivePassword = getPassword.value;
-    
+
     getPassword.value = '';
 }
 

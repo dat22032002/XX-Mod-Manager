@@ -260,8 +260,8 @@
 
         </div>
         <div class="buttons">
-            <s-button type="text" @click="prev" id="prev" class="OO-button-box">{{ $t('buttons.nextPage') }}</s-button>
-            <s-button type="text" @click="next" id="next" class="OO-button-box">{{ $t('buttons.forePage') }}</s-button>
+            <s-button type="text" @click="prev" id="prev" class="OO-button-box">{{ $t('buttons.forePage') }}</s-button>
+            <s-button type="text" @click="next" id="next" class="OO-button-box">{{ $t('buttons.nextPage') }}</s-button>
         </div>
 
     </div>
@@ -270,6 +270,7 @@
 
 <script setup>
 import { defineProps, defineEmits, ref, onMounted, computed, watch, useTemplateRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import sectionSelector from '../src/components/sectionSelector.vue';
 import IManager from '../electron/IManager';
@@ -277,12 +278,13 @@ import CssProxy from '../src/components/cssProxy.vue';
 import settingBar from '../src/components/settingBar.vue';
 import getData from '../src/section/settingSectionData.js';
 
-let { languageData, themeData, modTargetPathData, modSourcePathData, presetPathData, initAllDataButton } = getData();
+let { languageData, themeData } = getData();
 
 
 
 const ipcRenderer = require('electron').ipcRenderer;
 const iManager = new IManager({ light: true });
+const { t } = useI18n();
 
 
 const sections = ref(['intro', 'basic', 'advanced', 'auto', 'more']);
@@ -292,12 +294,6 @@ const currentSection = ref('intro');
 const modTargetPath = ref('');
 const modSourcePath = ref('');
 const presetPath = ref('');
-const autoStartGame = ref(false);
-const modLoaderDir = ref('');
-const gameDir = ref('');
-const ifAutoApply = ref(false);
-const ifAutoRefreshInZZZ = ref(false);
-const ifUseAdmin = ref(false);
 
 // Gõ đường dẫn chỉ đồng bộ vào cài đặt trong RAM; ghi file khi rời ô nhập
 // (@change), khi chọn thư mục bằng hộp thoại, hoặc khi bấm nút xong — trước
@@ -350,6 +346,17 @@ const prev = () => {
 
 function closeSettingPage() {
     console.log('closeSettingPage');
+    // TC31: chỉ cho đóng + chỉ đặt firstLoad=false khi đã điền đủ 3 đường
+    // dẫn. Trước đây đóng mà chưa điền gì thì trang này không bao giờ hiện
+    // lại, app chạy với đường dẫn trống.
+    const missing = [];
+    if (!modTargetPath.value.trim()) missing.push(t('setting.modTargetPath'));
+    if (!modSourcePath.value.trim()) missing.push(t('setting.modSourcePath'));
+    if (!presetPath.value.trim()) missing.push(t('setting.presetPath'));
+    if (missing.length > 0) {
+        alert(t('firstLoad.missingPaths', { missing: missing.join(', ') }));
+        return;
+    }
     iManager.config.firstLoad = false;
     iManager.config.modTargetPath = modTargetPath.value;
     iManager.config.modSourcePath = modSourcePath.value;
@@ -367,9 +374,9 @@ onMounted(async () => {
     modSourcePath.value = iManager.config.modSourcePath;
     presetPath.value = iManager.config.presetPath;
 
-    // 不论用户是否看完了 都 取消首次加载
-    iManager.config.firstLoad = false;
-    iManager.saveConfig();
+    // TC31: KHÔNG đặt firstLoad=false lúc mở trang nữa — chỉ khi người dùng
+    // đã điền đủ 3 đường dẫn và bấm đóng (closeSettingPage). Đóng cửa sổ
+    // giữa chừng (nút X) thì lần mở sau trang này vẫn hiện lại.
 });
 
 </script>

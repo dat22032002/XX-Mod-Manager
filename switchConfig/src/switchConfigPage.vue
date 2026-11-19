@@ -37,8 +37,7 @@
                 </s-tooltip>
             </div>
             <div class="bottom-right">
-                <!-- <s-button @click="handleApplyButtonClicked" /> -->
-                <s-button @click="handleApplyButtonClicked" id="apply-button"
+                <s-button @click="handleApplyButtonClicked" id="apply-button" :disabled="!currentTape"
                     class="OO-color-gradient font-hongmeng OO-button" style="color: var(--s-color-surface);">
                     {{ $t('buttons.apply') }}
                 </s-button>
@@ -51,12 +50,10 @@
 
 <script setup lang="ts">
 import { onMounted, ref, useTemplateRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import backButton from '../../src/components/backButton.vue';
-import sectionSelector from '../../src/components/sectionSelector.vue';
-import infoBox from './components/infoBox.vue';
 import plainConfig2 from './components/plainConfig2.vue';
-import clickableCard from '../../src/components/clickableCard.vue';
 
 import CssProxy from '../../src/components/cssProxy.vue';
 
@@ -65,18 +62,15 @@ function handleBackButtomClick() {
     console.log('back button clicked');
 }
 
-function handleSectionChange(newSection) {
-    console.log('Section changed to:', newSection);
-}
-
 import TapeConfig from './js/configManager';
 import { g_allConfig_vue } from './js/configManager';
 import IManager from '../../electron/IManager';
 const iManager = new IManager({ light: true });
-const { ipcRenderer } = require('electron');
+const { t } = useI18n();
 const allConfig = g_allConfig_vue;
-const currentTape = ref(allConfig[0]);
-const currentTapeIndex = ref(0);
+// TC30: allConfig là ref nên allConfig[0] là undefined — khởi tạo null,
+// nút Apply khóa khi chưa chọn (xem :disabled ở template).
+const currentTape = ref<any>(null);
 
 const plainConfigRefs = useTemplateRef("plainConfigRefs");
 
@@ -85,8 +79,6 @@ import XXMMCore from '../../core/XXMMCore';
 function selectTape(e, tape) {
     console.log('selectTape', tape)
     currentTape.value = tape;
-    currentTapeIndex.value = allConfig.value.indexOf(tape);
-    console.log('currentTapeIndex:', currentTapeIndex.value);
 
     // 取消其他卡片的选中状态
     plainConfigRefs.value?.forEach((config) => {
@@ -113,13 +105,14 @@ function handleRefreshButtonClicked() {
 
 function handleApplyButtonClicked() {
     console.log('handleApplyButtonClicked');
-    // TapeConfig.applyConfig(currentTape.value);
+    // TC30: chưa chọn cấu hình thì báo + không làm gì (trước đây đọc
+    // currentTape.value._dir trên undefined nên app văng TypeError).
+    if (!currentTape.value) {
+        iManager.snack(t('switchConfig.noSelection'), 'error');
+        return;
+    }
     iManager.temp.ifDontSaveOnClose = true;
-    // ipcRenderer.invoke('set-custom-config-folder', currentTape.value._dir);
     XXMMCore.setCustomConfigFolder(currentTape.value._dir);
-    // 页面重载为 mainPage
-    // ipcRenderer.send('switch-page', 'mainPage');
-    // 5s后重载
     iManager.changeUrl('');
 }
 
@@ -128,11 +121,6 @@ onMounted(() => {
     TapeConfig.loadAllConfig();
     console.log('currentTape:', currentTape.value);
 })
-
-//每0.5s打印一次allConfig
-// setInterval(() => {
-//     console.log('allConfig:', allConfig, currentTape.value);
-// }, 500);
 </script>
 
 

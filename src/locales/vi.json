@@ -77,8 +77,6 @@
     "mod-info-hotkeys": "Phím tắt",
     "mod-info-description": "Mô tả MOD",
     "edit-mod-image-preview": "Chọn ảnh bìa MOD",
-    "mod-info-hotkeys-hotkey": "Phím tắt",
-    "mod-info-hotkeys-description": "Mô tả phím tắt",
     "edit-mod-hotkeys": "Sửa phím tắt",
     "save": "Lưu",
     "cancel": "Hủy",
@@ -86,7 +84,8 @@
     "changeNotSave": "Phát hiện thay đổi chưa lưu",
     "ifSaveChange": "Lưu thay đổi?",
     "batch-operation": "Thao tác hàng loạt",
-    "batch-set-character": "Đặt nhân vật hàng loạt"
+    "batch-set-character": "Đặt nhân vật hàng loạt",
+    "saveFailed": "Lưu thông tin mod thất bại: {error}"
   },
   "buttons": {
     "addPreset": "Thêm preset",
@@ -98,14 +97,15 @@
     "reset": "đặt lại",
     "save": "lưu",
     "clickToClose": "Bấm để đóng",
-    "forePage": "Trang sau",
-    "nextPage": "Trang trước",
+    "forePage": "Trang trước",
+    "nextPage": "Trang sau",
     "confirm": "xác nhận",
     "refresh": "làm mới",
     "all": "Tất cả",
     "selected": "Đã chọn",
     "minimize": "Thu nhỏ",
-    "fullscreen": "Toàn màn hình"
+    "fullscreen": "Toàn màn hình",
+    "close": "Đóng"
   },
   "apply": {
     "progress": "Đang áp dụng mod {done} trên {total}...",
@@ -159,7 +159,8 @@
     "switchConfig": "Chọn đường dẫn [Lưu cấu hình thành] rồi bấm Tạo shortcut để tạo một mục cấu hình trên màn hình desktop dùng đường dẫn cục bộ thay vì đường dẫn toàn cục, để dùng cho nhiều game\nSau đó, bấm shortcut trên desktop để mở xxmm với cấu hình cục bộ",
     "switchConfigInfo1": "Nhập [Tên cấu hình] rồi bấm [Thêm cấu hình] để tạo một [Thư mục cấu hình] trong [Thư mục cấu hình toàn cục] để lưu cấu hình của bạn. Sau đó, bạn có thể bấm mở [Trang đổi cấu hình] để đổi cấu hình nhanh.\n\n-\n\nBạn có thể cài đặt để trang đổi cấu hình luôn mở đầu tiên mỗi lần mở chương trình, trang không theo quy ước này rất tiện khi dùng cho nhiều game.",
     "switchConfigTitle1": "# Thêm cấu hình mới trong thư mục cấu hình toàn cục",
-    "switchConfigInfo2": "# Công cụ tiện lợi\n\nNhiều khi, bạn muốn mở XXMM trực tiếp bằng các shortcut khác nhau trên desktop, thay vì mở XXMM rồi chọn tay cấu hình nào muốn dùng. Điều này rất hữu ích.\n\nBấm 'Mở thư mục cấu hình toàn cục', tìm thư mục bạn muốn tạo shortcut, chọn nó làm đích cho 'Lưu cấu hình thành', rồi bấm 'Tạo shortcut'. Thao tác này sẽ đặt một shortcut trên desktop dùng cấu hình trong thư mục đó, để bạn mở XXMM trực tiếp với cấu hình đó."
+    "switchConfigInfo2": "# Công cụ tiện lợi\n\nNhiều khi, bạn muốn mở XXMM trực tiếp bằng các shortcut khác nhau trên desktop, thay vì mở XXMM rồi chọn tay cấu hình nào muốn dùng. Điều này rất hữu ích.\n\nBấm 'Mở thư mục cấu hình toàn cục', tìm thư mục bạn muốn tạo shortcut, chọn nó làm đích cho 'Lưu cấu hình thành', rồi bấm 'Tạo shortcut'. Thao tác này sẽ đặt một shortcut trên desktop dùng cấu hình trong thư mục đó, để bạn mở XXMM trực tiếp với cấu hình đó.",
+    "missingPaths": "Hãy điền đủ 3 đường dẫn trước khi đóng. Còn thiếu: {missing}"
   },
   "gamebanana": "Gamebanana",
   "github": "Github",
@@ -175,11 +176,53 @@
     "warning": "Toàn bộ preset và toàn bộ cài đặt sẽ bị xóa hết. Không thể hoàn tác.",
     "backupNote": "Trước khi xóa, app sẽ lưu một bản sao lưu ngay cạnh file cài đặt."
   },
+  "closeDialog": {
+    "title": "Đóng app?",
+    "message": "Bạn có chắc muốn đóng XX Mod Manager không?"
+  },
   "mod-image": "Ảnh mod",
   "no-mod-selected": "Chưa chọn mod nào",
   "dialogEnterPassword": {
     "title": "Hãy nhập mật khẩu",
     "cancel": "Hủy nhập mật khẩu và thoát giải nén",
-    "confirm": "Xác nhận mật khẩu:"
+    "confirm": "Đã xác nhận mật khẩu",
+    "empty": "Mật khẩu không được để trống",
+    "label": "Mật khẩu giải nén",
+    "placeholder": "Nhập mật khẩu giải nén"
+  },
+  "deleteModDialog": {
+    "title": "Xóa mod này?",
+    "messageRecycle": "Chuyển mod “{name}” vào thùng rác? Bạn vẫn khôi phục được từ thư mục recycleBin trong kho mod.",
+    "messagePermanent": "Xóa vĩnh viễn mod “{name}”? Không thể hoàn tác."
+  },
+  "batchCharacter": {
+    "title": "Đặt nhân vật cho nhiều mod",
+    "message": "Đổi nhân vật thành “{name}” cho {count} mod đã chọn?",
+    "done": "Đã đặt nhân vật cho {count} mod",
+    "doneWithFailures": "Đã đặt cho {ok} mod, {fail} mod lỗi: {names}"
+  },
+  "update": {
+    "checkTitle": "Cập nhật app",
+    "checkButton": "Kiểm tra cập nhật",
+    "checking": "Đang kiểm tra...",
+    "currentVersion": "Phiên bản hiện tại: {version}",
+    "upToDate": "Bạn đang dùng bản mới nhất",
+    "checkFailed": "Không kiểm tra được, thử lại sau",
+    "noRelease": "Chưa có bản chính thức để cập nhật",
+    "notSupported": "Chỉ bản cài đặt trên Windows mới cập nhật được",
+    "availableTitle": "Có phiên bản mới",
+    "newVersion": "Phiên bản mới: {version}",
+    "releaseNotes": "Có gì mới",
+    "updateNow": "Cập nhật ngay",
+    "later": "Để sau",
+    "downloading": "Đang tải bản cập nhật... {percent}%",
+    "downloadedTitle": "Đã tải xong bản cập nhật",
+    "downloadedMessage": "Bản {version} đã sẵn sàng. Khởi động lại app để cài đặt.",
+    "downloadedNote": "Nếu để sau, bản mới sẽ tự cài khi bạn tắt app lần tới.",
+    "restartNow": "Khởi động lại ngay",
+    "downloadFailed": "Tải bản cập nhật thất bại, thử lại sau"
+  },
+  "switchConfig": {
+    "noSelection": "Hãy chọn một cấu hình trước"
   }
 }

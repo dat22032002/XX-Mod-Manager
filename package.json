@@ -5,7 +5,7 @@
   "main": "./electron/main.js",
   "author": "XLXZ",
   "license": "GPL-3.0-only",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "commonjs",
   "scripts": {
     "dev": "vite",
@@ -20,16 +20,15 @@
   },
   "dependencies": {
     "@tweenjs/tween.js": "^25.0.0",
-    "concurrently": "^9.1.0",
+    "electron-updater": "^6.8.11",
     "hmc-win32": "^1.4.92",
     "sober": "^0.6.8",
-    "three": "^0.173.0",
     "vue": "^3.5.12",
     "vue-i18n": "^10.0.5"
   },
   "devDependencies": {
-    "@types/three": "^0.173.0",
     "@vitejs/plugin-vue": "^5.1.4",
+    "concurrently": "^9.1.0",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
     "vite": "^5.4.10"

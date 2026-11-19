@@ -43,6 +43,8 @@ enum EventType {
     //----------插件相关----------
     pluginEnabled = 'pluginEnabled',
     pluginDisabled = 'pluginDisabled',
+    // TC8: người dùng đã xác nhận xóa mod trong hộp dialogConfirmDeleteMod
+    deleteModConfirmed = 'deleteModConfirmed',
     currentTabChanged = "currentTabChanged",
     //----------窗口相关----------
     windowBlur = 'windowBlur',
@@ -52,7 +54,6 @@ enum EventType {
 }
 
 class EventSystem {
-    private static devMode = false; // 开发模式
     private static eventMap = new Map<EventType, Function[]>(); // 事件映射表
     // HP19: Object.values() built a fresh ~20-item array on every trigger()/on()
     // call; a prebuilt Set makes the validity check O(1) with no allocation.
@@ -75,15 +76,19 @@ class EventSystem {
         // console.log('eventMap:', EventSystem.eventMap);
     }
 
+    // TC12: hủy 1 bộ nghe đã đăng ký — trước đây không có hàm này nên bộ nghe
+    // đăng ký rồi không bao giờ hủy được (rò rỉ theo mỗi lần tải lại danh sách).
     static async off(event: EventType, callback: Function) {
-        if (EventSystem.eventMap.has(event)) {
-            let callbacks = EventSystem.eventMap.get(event);
-            if (callbacks) {
-                let index = callbacks.indexOf(callback);
-                if (index !== -1) {
-                    callbacks.splice(index, 1);
-                }
-            }
+        if (!EventSystem.validEvents.has(event)) {
+            throw new Error(`EventSystem.off: event ${event} is not a valid EventType`);
+        }
+        const callbacks = EventSystem.eventMap.get(event);
+        if (!callbacks) {
+            return;
+        }
+        const index = callbacks.indexOf(callback);
+        if (index !== -1) {
+            callbacks.splice(index, 1);
         }
     }
 
@@ -95,29 +100,28 @@ class EventSystem {
         if (EventSystem.eventMap.has(event)) {
             let callbacks = EventSystem.eventMap.get(event);
             if (callbacks) {
-                //debug
-                if (EventSystem.devMode) console.log('trigger:', event, args,new Error());
-                for (let callback of callbacks) {
-                    callback(...args);
+                // TC12: 1 bộ nghe lỗi không được làm chết cả chuỗi — bọc từng
+                // callback, lỗi thì ghi log rồi chạy tiếp bộ nghe sau.
+                // Copy mảng trước khi lặp để bộ nghe tự hủy giữa chừng không
+                // làm lệch vòng lặp.
+                for (let callback of [...callbacks]) {
+                    try {
+                        const result = callback(...args);
+                        // Callback bất đồng bộ lỗi cũng phải bắt, không thì
+                        // thành lời hứa bị từ chối không ai bắt.
+                        if (result && typeof result.catch === 'function') {
+                            result.catch((e: any) => {
+                                console.error(`EventSystem.trigger: async listener for ${event} failed`, e);
+                            });
+                        }
+                    } catch (e) {
+                        console.error(`EventSystem.trigger: listener for ${event} failed`, e);
+                    }
                 }
             }
         }
     }
 
-    static async triggerSync(event: EventType, ...args: any[]) {
-        if (EventSystem.eventMap.has(event)) {
-            let callbacks = EventSystem.eventMap.get(event);
-            if (callbacks) {
-                for (let callback of callbacks) {
-                    await callback(...args);
-                }
-            }
-        }
-    }
-
-    static async clearAllEvents() {
-        EventSystem.eventMap.clear();
-    }
 }
 
 export { EventType, EventSystem };

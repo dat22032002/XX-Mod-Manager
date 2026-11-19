@@ -5,6 +5,8 @@
 // 这个类应该 被划分到 渲染进程底下，但是 主进程也应该能够访问到这个类
 const { ipcRenderer } = require('electron');
 
+// require qua biến trung gian để Vite không phân tích tĩnh được tên module:
+// 'path' là module Node, phải để Node require lúc chạy thay vì để Vite đóng gói.
 const pathOsName = 'path'
 const path = require(pathOsName);
 
@@ -13,7 +15,6 @@ const fs = require('fs');
 
 // 导入 libarchivejs
 let Archive = window.Archive;
-// import Archive from 'libarchive.js';
 //! 下面两个变量是为了解决 vite 打包时，无法正确导入 wasm 文件的问题
 import ArchiveWASM from './lib/libarchive.wasm?url';
 import workerBound from './lib/worker-bundle.js?url';
@@ -29,6 +30,7 @@ import { Language, TranslatedText, setCurrentLanguage } from '../helper/Language
 import { t_snack, SnackType, snack } from '../helper/SnackHelper';
 // 导入 EventSystem
 import { EventType, EventSystem } from '../helper/EventSystem';
+import { writeFileAtomicSync } from '../helper/SafeWrite';
 // 导入 PluginLoader
 import { IPluginLoader } from '../helper/PluginLoader';
 // 导入 PathHelper
@@ -39,6 +41,8 @@ import { ModData } from '../core/ModHelper';
 import { DialogID, DialogHelper } from '../helper/DialogHelper';
 
 // // 导入 hmc-win32
+// require qua biến trung gian như 'path' ở trên: hmc-win32 là module native,
+// để Node require lúc chạy thay vì để Vite đóng gói.
 const HMC_Name = 'hmc-win32';
 const HMC = require(HMC_Name);
 
@@ -172,6 +176,10 @@ class IManager {
     ModData = ModData;
     TranslatedText = TranslatedText;
     LogHandler = LogHandler;
+    // TC5: ghi file an toàn (qua file tạm rồi đổi tên) cho plugin dùng —
+    // plugin tải lúc chạy bằng require nên không import được code core (TS
+    // đã đóng gói), chỉ lấy được qua iManager này.
+    writeFileAtomicSync = writeFileAtomicSync;
 
 
     //-==================== 核心数据 ====================
@@ -250,7 +258,6 @@ class IManager {
         set: (target, key, value) => {
             if (target.hasOwnProperty(key)) {
                 target[key] = value;
-                // console.log(`data set: ${key}`, value);
                 // 不保存 modList，因为 modList 是一个对象数组，如果 传来传去，会导致内存占用过大
                 if (key === 'modList') {
                     // 打印 err
@@ -325,7 +332,6 @@ class IManager {
             return;
         }
 
-        // this.config = currentConfig;
         // 这样会导致 较新的配置项 丢失，所以需要逐个赋值
         for (const key in currentConfig) {
             try {
@@ -364,38 +370,6 @@ class IManager {
     }
 
     newMods = [];
-    async loadMods() {
-        const modSourcePath = this.config.modSourcePath;
-        //debug
-        console.log(`loadMods from ${modSourcePath}`);
-        const loadMods = await ipcRenderer.invoke('get-mods', modSourcePath);
-
-        if (loadMods == []) {
-            t_snack({ vi: 'Đường dẫn mod không tồn tại', en: 'Mod path does not exist' });
-            return;
-        }
-
-        //如果 loadMods 中的mod 的 newMod 为 true，则将其设置为 false，并触发addMod事件
-        this.newMods = loadMods.filter((mod) => mod.newMod);
-        //debug
-        console.log(`newMods:`, this.newMods);
-
-        // this.data.modList = loadMods;
-        // 将 mod 转换为 ModData, 并且保存到 data 中
-        this.data.modList = await Promise.all(loadMods.map(async (mod) => ModData.fromJson(mod).setModSourcePath(modSourcePath)));
-
-        // 刷新 characterList
-        await this.refreshCharacterList();
-
-        //debug
-        // console.log(loadMods);
-        // console.log(this.data.modList);
-        // console.log(this.data.characterList);
-
-        // debug,成功加载 n 个 mod，总共 m 个 角色
-        console.log(`Đã tải ${loadMods.length} mod, tổng cộng ${this.data.characterList.length} nhân vật`);
-        return loadMods;
-    }
 
     async newLoadMods(forceRescan = false) {
         //debug
@@ -514,7 +488,6 @@ class IManager {
     }
 
     async getModInfo(modName) {
-        // const data = await ipcRenderer.invoke('get-mod-info', this.config.modSourcePath, modName);
         // 改为直接从 data 中获取
         const data = this.data.modList.find((mod) => mod.name === modName);
 
@@ -586,46 +559,17 @@ class IManager {
         return modData;
     }
 
-    async loadModInfoOld(modName) {
-        const data = await ipcRenderer.invoke('get-mod-info', this.config.modSourcePath, modName);
-
-
-        if (data == null) {
-            const tt = TranslatedText.fromObject({
-                vi: `Tải thông tin mod thất bại`,
-                en: `Failed to load mod info`,
-            });
-            t_snack(tt, SnackType.error);
-            console.error(tt.get(), modName);
-            return null;
-        }
-
-        // 将其转换为 ModData
-        const mod = ModData.fromJson(data).setModSourcePath(this.config.modSourcePath);
-
-        // 如果 是新的 mod，则触发 addMod 事件
-        if (data.newMod) {
-            data.newMod = false;
-            await EventSystem.trigger('addMod', mod);
-        }
-
-        // 延时一下，等待 addMod 事件完成
-        // await new Promise((resolve) => setTimeout(resolve, 100));
-
-        // 将其添加到 modList 中
-        this.data.modList.push(mod);
-
-        // 刷新一下characterList (chỉ gán lại khi danh sách thật sự đổi)
-        await this.refreshCharacterList();
-
-        return mod;
-    }
 
     async getImageBase64(imagePath) {
-        //debug
-        // console.log(`get-image: ${imagePath}`);
-        const data = await ipcRenderer.invoke('get-image', imagePath);
-        return data;
+        // TC35: ảnh bìa bị xóa tay thì kênh IPC trả null (hoặc lỗi) —
+        // không để lỗi lan lên hộp sửa mod.
+        try {
+            const data = await ipcRenderer.invoke('get-image', imagePath);
+            return data;
+        } catch (e) {
+            console.error(`getImageBase64 failed for ${imagePath}`, e);
+            return null;
+        }
     }
 
     showDialog = DialogHelper.showDialog;
@@ -633,7 +577,6 @@ class IManager {
     //-==================== 生命周期 ====================
     // 初始化
     async init() {
-        // // 加载配置
         let startTime = new Date().getTime();
         console.log('⏳>> loadConfig');
         await this.loadConfig();
@@ -668,7 +611,6 @@ class IManager {
             // Chế độ nhẹ: cửa sổ này không cần danh sách mod hay preset.
             console.log('✅>> light init: skip loadMods + loadPresets');
         }
-
 
 
         //debug
@@ -880,7 +822,6 @@ class IManager {
     async changeUrl(url) {
         //debug
         console.log('change url from:', window.location.href, 'to:', url);
-        // const toUrl = window.location.href.replace(/\/[^/]*$/, '') + url + '/index.html';
         // url 截取掉最后的 /index.html
         let toUrl = window.location.href.replace(/\/index.html$/, '');
         // 再截取掉最后的 /switchConfig
@@ -955,42 +896,77 @@ class IManager {
         // webkitGetAsEntry 方法存在，说明是从本地文件夹拖入的文件
         // 从本地文件夹拖入的文件是 Entry 对象。
         const items = event.dataTransfer.items;
-        const item = items[0].webkitGetAsEntry();
 
-        console.log('get entry from drag event', item);
-        if (item == null) {
-            //debug
-            console.log('What is this?');
-            throw new Error('Invalid drag event');
-            return;
-        }
-        if (item.isDirectory) {
-            // 如果拖入的是文件夹，则视为用户想要添加mod
-            console.log('Directory:', item.fullPath);
-            this.handleFolderDrop(item);
-            return;
-        }
-        if (item.isFile) {
-            // 如果拖入的是文件，则视为用户想要更换mod的封面或者添加mod 压缩包
-            const file = items[0].getAsFile();
-            if (file.type.startsWith('image/')) {
-                // debug
-                console.log(`Image file: ${file.name}`);
-                // 交给 handleImageDrop 处理
-                this.handleImageDrop(file);
-                return;
-            }
-            // 通过使用 libarchive 处理 压缩文件，它能够支持所有的压缩文件
-            if (file.name.endsWith('.zip') || file.name.endsWith('.rar') || file.name.endsWith('.7z') || file.type === 'application/zip' || file.type === 'application/x-compressed' || file.type === 'application/x-tar' || file.type === 'application/x-gzip') {
-                // debug
-                console.log(`Zip file: ${file.name}`);
-                // 交给 handleArchiveDrop 处理
-                this.handleArchiveDrop(file);
-                return;
-            }
+        // TC26: lặp qua TẤT CẢ item được thả, chạy tuần tự rồi báo tổng kết
+        // số mod đã nhập. Trước đây chỉ dùng items[0], các mod sau bị bỏ
+        // qua im lặng.
+        let importedCount = 0;
+        let skippedCount = 0;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i].webkitGetAsEntry();
 
-            console.log('File type:', file.type);
-            snack('Invalid file type：' + file.type);
+            console.log('get entry from drag event', item);
+            if (item == null) {
+                //debug
+                console.log('What is this?');
+                skippedCount++;
+                continue;
+            }
+            try {
+                if (item.isDirectory) {
+                    // 如果拖入的是文件夹，则视为用户想要添加mod
+                    console.log('Directory:', item.fullPath);
+                    if (await this.handleFolderDrop(item)) {
+                        importedCount++;
+                    } else {
+                        skippedCount++;
+                    }
+                    continue;
+                }
+                if (item.isFile) {
+                    // 如果拖入的是文件，则视为用户想要更换mod的封面或者添加mod 压缩包
+                    const file = items[i].getAsFile();
+                    if (!file) {
+                        skippedCount++;
+                        continue;
+                    }
+                    if (file.type.startsWith('image/')) {
+                        // debug
+                        console.log(`Image file: ${file.name}`);
+                        // 交给 handleImageDrop 处理
+                        this.handleImageDrop(file);
+                        continue;
+                    }
+                    // 通过使用 libarchive 处理 压缩文件，它能够支持所有的压缩文件
+                    if (file.name.endsWith('.zip') || file.name.endsWith('.rar') || file.name.endsWith('.7z') || file.type === 'application/zip' || file.type === 'application/x-compressed' || file.type === 'application/x-tar' || file.type === 'application/x-gzip') {
+                        // debug
+                        console.log(`Zip file: ${file.name}`);
+                        // 交给 handleArchiveDrop 处理
+                        if (await this.handleArchiveDrop(file)) {
+                            importedCount++;
+                        } else {
+                            skippedCount++;
+                        }
+                        continue;
+                    }
+
+                    console.log('File type:', file.type);
+                    snack('Invalid file type：' + file.type);
+                    skippedCount++;
+                }
+            } catch (error) {
+                console.error('handleDropEntry failed for item', i, error);
+                snack('Failed to import dropped item: ' + error.message, 'error');
+                skippedCount++;
+            }
+        }
+        // Thả 1 mục thì mỗi đường xử lý đã tự báo; thả nhiều mới báo tổng kết.
+        if (items.length > 1) {
+            const t_message = {
+                vi: `Đã nhập ${importedCount} mod, bỏ qua ${skippedCount} mục`,
+                en: `Imported ${importedCount} mod(s), skipped ${skippedCount} item(s)`,
+            }
+            t_snack(t_message, importedCount > 0 ? 'success' : 'error');
         }
     }
 
@@ -999,14 +975,15 @@ class IManager {
         // 从网页拖入的文件是 File 对象。
         try {
             const files = event.dataTransfer.files;
-            //debug
-            console.log(`get file from drag event ${files[0].name}`);
-            if (files.length > 0) {
-                const file = files[0];
+            // TC26: lặp qua tất cả file (trước đây chỉ files[0]).
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                //debug
+                console.log(`get file from drag event ${file.name}`);
                 if (file.type.startsWith('image/')) {
                     // 交给 handleImageDrop 处理
                     this.handleImageDrop(file);
-                    return;
+                    continue;
                 }
                 console.log('File type:', file.type);
                 snack('Invalid file type：' + file.type);
@@ -1029,11 +1006,7 @@ class IManager {
         const reader = new FileReader();
         reader.onload = (event) => {
             const imageUrl = event.target.result;
-            //debug
-            // console.log(`handle image drop: ${file.name}`,imageUrl);
-            //! updateModCardCover(imageUrl, modItem, mod);
             // 这里的 imageUrl 是一个 base64 字符串，可以直接用于显示图片
-            // this.setModPreviewBase64ByName(imageUrl, this.temp.lastClickedMod.name);
             this.setModPreviewBase64ByName(imageUrl, this.temp.currentMod.name);
         };
         reader.readAsDataURL(file);
@@ -1055,38 +1028,47 @@ class IManager {
 
     // 解压文件到指定目录的函数
     async extractArchive(archivePath, destinationPath) {
+        // TC28: giới hạn tổng dung lượng sau giải nén — file nén vài GB hoặc
+        // "bom nén" sẽ bị từ chối trước khi giải nén thay vì ngốn hết RAM.
+        // Mod game thường dưới 1-2 GB; ngưỡng 4 GB đủ rộng cho mod lớn thật.
+        const MAX_ARCHIVE_EXTRACT_BYTES = 4 * 1024 * 1024 * 1024;
+
         // 使用 libarchive 处理 zip 文件
         // 读取文件
-        const archiveReader = await Archive.open(archivePath);
-        // extractFiles(extractCallback?: (entry: { file: File; path: string }) => void): Promise<FilesObject>;
-        // extractFiles 只是将其解压到内存中，并不会写入到磁盘
-        // 通过 extractCallback 可以获取到解压的文件，然后将其写入到磁盘
+        // TC29: file nén mở không được thì báo "file nén hỏng" và trả false —
+        // không để lỗi văng ra ngoài làm kẹt hộp "đang tải" ở nơi gọi.
+        let archiveReader;
+        try {
+            archiveReader = await Archive.open(archivePath);
+        } catch (error) {
+            console.error(`Failed to open archive: ${error}`);
+            t_snack({
+                vi: `File nén bị hỏng, không mở được`,
+                en: `The archive is damaged and could not be opened`,
+            }, 'error');
+            return false;
+        }
 
         console.debug("archive config", archiveReader, archiveReader.workerUrl);
 
-        const ifEncrypted = await archiveReader.hasEncryptedData();
+        // TC28: extractSingleFile không tự tắt worker như extractFiles nên
+        // phải đóng tay ở finally; mọi lỗi trong quá trình giải nén cũng
+        // được gom về đây thay vì văng ra ngoài.
+        let ifContainChinese = false;
+        let ifSuccess = true;
+        let ifEncrypted = false;
+        // Entries skipped by the zip-slip guard (paths escaping the mod folder).
+        let skippedEntries = [];
+        try {
+            ifEncrypted = await archiveReader.hasEncryptedData();
 
         if (ifEncrypted) {
-            // snack(`文件加密，无法解压`);
-            // const t_message = {
-            //     zh_cn: `文件加密，无法解压`,
-            //     en: `File is encrypted and cannot be extracted`,
-            // }
-            // t_snack(t_message, 'error');
-            // return false;
 
             // 如果文件加密，则需要等待用户输入密码
             const password = await this.waitForPassword();
-            //debug
-            console.log(`get password: ${password}`);
-            snack(`get password ${password}`);
-            if (password === null) {
-                // snack(`密码不能为空`);
-                const t_message = {
-                    vi: `Mật khẩu không được để trống`,
-                    en: `Password cannot be empty`,
-                }
-                t_snack(t_message, 'error');
+            // TC17: không in mật khẩu ra console/snack nữa. Chuỗi rỗng =
+            // người dùng bấm Hủy (hoặc xác nhận với ô trống): dừng giải nén.
+            if (password === null || password === '') {
                 return false;
             }
             try {
@@ -1103,105 +1085,92 @@ class IManager {
             }
         }
 
-        let ifContainChinese = false;
-        let ifSuccess = true;
-        // Entries skipped by the zip-slip guard (paths escaping the mod folder).
-        let skippedEntries = [];
-
-        if (!fs.existsSync(destinationPath)) {
-            fs.mkdirSync(destinationPath);
-        }
-
-        let callbackCount = 0;
-        let startCallback = false;
-        const extractCallback = (entry) => {
-
-            const filePath = path.join(destinationPath, entry.path);
-
-            // 当解压出来的文件包含中文时，会被替换为 * ，但是文件夹名不能包含 * ，所以需要将其替换为其他字符
-            // 将 filePath 中的 * 替换为 _
-            const newFilePath = filePath.replace(/\*/g, '_');
-            if (filePath !== newFilePath) {
-                ifContainChinese = true;
+            // TC28: liệt kê trước (chỉ đọc tiêu đề, không giải nén nội dung),
+            // cộng tổng dung lượng, vượt ngưỡng thì từ chối ngay.
+            const entries = await archiveReader.getFilesArray();
+            if (entries.length === 0) {
+                console.error(`Error: Extract can't start. The archive may be damaged or is empty`);
+                t_snack({
+                    vi: `Không bắt đầu giải nén được, file nén có thể đã hỏng hoặc rỗng`,
+                    en: `Unable to start extraction, the archive may be damaged or empty`,
+                }, 'error');
+                return false;
             }
-            // Zip-slip guard: skip entries whose resolved path escapes the
-            // destination folder (e.g. "../../evil.txt" in a malicious archive).
-            // Checked on the final path (after the * replacement) and before
-            // any folder is created.
-            if (!PathHelper.isPathInside(destinationPath, newFilePath)) {
-                skippedEntries.push(entry.path);
-                console.error(`Skipped entry escaping the mod folder: ${entry.path}`);
-                return;
+            const totalSize = entries.reduce((sum, entry) => {
+                const size = entry.file && typeof entry.file.size === 'number' ? entry.file.size : 0;
+                return sum + size;
+            }, 0);
+            if (totalSize > MAX_ARCHIVE_EXTRACT_BYTES) {
+                console.error(`Archive too large to extract: ${totalSize} bytes (limit ${MAX_ARCHIVE_EXTRACT_BYTES})`);
+                t_snack({
+                    vi: `File nén quá lớn sau khi giải nén (${(totalSize / 1024 / 1024 / 1024).toFixed(1)} GB, giới hạn 4 GB) nên không giải nén`,
+                    en: `Archive is too large when extracted (${(totalSize / 1024 / 1024 / 1024).toFixed(1)} GB, limit 4 GB), extraction refused`,
+                }, 'error');
+                return false;
             }
-            //debug
-            // console.log(`Converted: ${filePath}`, newFilePath);
-            const dir = path.dirname(newFilePath);
 
-
-            //检查文件夹是否存在，不存在则创建
-            if (!fs.existsSync(dir) && dir !== '') {
-                fs.mkdirSync(dir, { recursive: true });
-                //debug
-                // console.log(`Created folder: ${dir}`);
+            if (!fs.existsSync(destinationPath)) {
+                fs.mkdirSync(destinationPath);
             }
-            //debug
-            // console.log(`Extracted: ${filePath}`, entry.file);
 
-            // 因为环境的问题，entry.file 是一个 Blob 对象，无法直接写入到磁盘，所以需要将其转换为 Buffer
-            try {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const buffer = Buffer.from(reader.result);
-                    try {
-                        fs.writeFileSync(newFilePath, buffer)
-                    }
-                    catch (error) {
-                        console.error(`Error: ${error}`);
-                        ifSuccess = false;
-                        snack(`Error: ${error}`, 'error');
-                        throw new Error(`Error: ${error}`);
-                    }
-                };
-                reader.onloadend = () => {
-                    //debug
-                    callbackCount--;
-                    // console.log(`onloadend: ${newFilePath}`, callbackCount);
+            // Ghi 1 file đã giải nén ra đĩa (đường dẫn + chặn zip-slip giữ
+            // nguyên như trước, chỉ đổi FileReader callback thành await).
+            const writeEntry = async (entry) => {
+                const filePath = path.join(destinationPath, entry.path);
+
+                // Tên file/thư mục sau giải nén có ký tự lạ sẽ bị thay bằng *,
+                // mà tên thư mục không chứa được * nên thay * thành _.
+                const newFilePath = filePath.replace(/\*/g, '_');
+                if (filePath !== newFilePath) {
+                    ifContainChinese = true;
                 }
-                reader.onloadstart = () => {
-                    //debug
-                    callbackCount++;
-                    startCallback = true;
-                    // console.log(`onloadstart: ${newFilePath}`, callbackCount);
+                // Zip-slip guard: skip entries whose resolved path escapes the
+                // destination folder (e.g. "../../evil.txt" in a malicious archive).
+                // Checked on the final path (after the * replacement) and before
+                // any folder is created.
+                if (!PathHelper.isPathInside(destinationPath, newFilePath)) {
+                    skippedEntries.push(entry.path);
+                    console.error(`Skipped entry escaping the mod folder: ${entry.path}`);
+                    return;
                 }
-                reader.readAsArrayBuffer(entry.file);
-            }
-            catch (error) {
-                console.error(`Error: ${error}`);
-                snack(`Error: ${error}`, 'error');
-                throw new Error(`Error: ${error}`);
-            }
-        }
+                const dir = path.dirname(newFilePath);
 
-        try {
-            const obj = await archiveReader.extractFiles(extractCallback);
-            console.debug(obj);
-        }
-        catch (error) {
+                // Kiểm tra thư mục tồn tại chưa, chưa thì tạo.
+                if (!fs.existsSync(dir) && dir !== '') {
+                    fs.mkdirSync(dir, { recursive: true });
+                }
+
+                // entry.file là Blob nên phải chuyển thành Buffer mới ghi được.
+                const buffer = Buffer.from(await entry.file.arrayBuffer());
+                fs.writeFileSync(newFilePath, buffer);
+            };
+
+            // TC28: giải nén từng file một rồi ghi ra đĩa ngay — RAM chỉ giữ
+            // 1 file tại 1 thời điểm thay vì cả file nén như extractFiles.
+            // File nào lỗi thì đánh dấu thất bại rồi giải nén tiếp file sau.
+            for (const entry of entries) {
+                try {
+                    const file = await archiveReader.extractSingleFile(entry.path);
+                    await writeEntry({ file, path: entry.path });
+                } catch (error) {
+                    console.error(`Error extracting ${entry.path}: ${error}`);
+                    snack(`Error: ${error}`, 'error');
+                    ifSuccess = false;
+                }
+            }
+        } catch (error) {
             console.error(`Error: ${error}`);
             snack(`Error: ${error}`, 'error');
             // 如果有密码可能是密码错误
             if (ifEncrypted) {
-                // snack(`密码错误`);
                 const t_message = {
                     vi: `Sai mật khẩu`,
                     en: `Incorrect password`,
                 }
                 t_snack(t_message, 'error');
                 return false;
-            }
-            else {
+            } else {
                 // 没有密码可能是压缩包损坏，提示用户尝试手动解压
-                // snack(`压缩包可能损坏，尝试手动解压`);
                 const t_message = {
                     vi: `File nén có thể đã hỏng, hãy thử giải nén tay`,
                     en: `The archive may be damaged, try to extract it manually`,
@@ -1209,26 +1178,12 @@ class IManager {
                 t_snack(t_message, 'error');
                 return false;
             }
-        }
-
-        // 等待所有文件解压完成
-        // 最大超时 10 秒
-        const maxWaitTime = 3000;
-        const startTime = new Date().getTime();
-        while (callbackCount > 0 || !startCallback) {
-            //debug
-            console.log(`callbackCount: ${callbackCount}`);
-            if (new Date().getTime() - startTime > maxWaitTime && !startCallback) {
-                console.error(`Error: Extract can't start.The archive may be damaged or is empty`);
-                t_snack({
-                    vi: `Không bắt đầu giải nén được, file nén có thể đã hỏng hoặc rỗng`,
-                    en: `Unable to start extraction, the archive may be damaged or empty`,
-                }, 'error');
-                // snack(`解压失败,请手动解压`);
-                ifSuccess = false;
-                break;
+        } finally {
+            try {
+                await archiveReader.close();
+            } catch (_closeErr) {
+                // Bỏ qua: worker đã tắt hoặc chưa kịp mở.
             }
-            await new Promise((resolve) => setTimeout(resolve, 10));
         }
 
         // 如果解压出来的文件包含中文，则提示用户
@@ -1254,7 +1209,6 @@ class IManager {
             setTimeout(() => {
                 fs.rmdirSync(destinationPath, { recursive: true });
                 console.log(`Deleted folder: ${destinationPath}`);
-                // this.loadMods();
             }, 1000);
             return false;
         }
@@ -1295,7 +1249,7 @@ class IManager {
                 en: `Mod ${modName} already exists`,
             }
             t_snack(t_message, 'error');
-            return;
+            return false;
         }
 
         this.showDialog('loading-dialog');
@@ -1305,12 +1259,24 @@ class IManager {
         //debug
         console.log(`extracting ${file.name} to ${modPath}`);
 
-        // 记录一下时间
-        const startTime = new Date().getTime();
-        const ifSuccess = await this.extractArchive(file, modPath);
-        const endTime = new Date().getTime();
-
-        this.dismissDialog('loading-dialog');
+        // TC29: giải nén văng lỗi thì hộp "đang tải" vẫn phải tắt —
+        // không thì người dùng kẹt mãi ở màn hình chờ.
+        let ifSuccess = false;
+        try {
+            // Ghi lại thời gian giải nén.
+            const startTime = new Date().getTime();
+            ifSuccess = await this.extractArchive(file, modPath);
+            const endTime = new Date().getTime();
+            console.log(`extracted ${file.name} in ${endTime - startTime}ms`);
+        } catch (e) {
+            console.error(`handleArchiveDrop failed for ${file.name}`, e);
+            t_snack({
+                vi: `File nén bị hỏng, không giải nén được: ${file.name}`,
+                en: `The archive is damaged and could not be extracted: ${file.name}`,
+            }, 'error');
+        } finally {
+            this.dismissDialog('loading-dialog');
+        }
 
         if (ifSuccess) {
             //- 不再需要完全刷新，只需要将新的mod添加到列表中
@@ -1341,8 +1307,9 @@ class IManager {
             }
         }
 
+        // TC26: trả về true/false để handleDropEntry đếm số mod đã nhập.
+        return ifSuccess;
     }
-
 
 
     async handleZipDrop(file) {
@@ -1363,15 +1330,34 @@ class IManager {
         // 如果 modList 中已经存在同名的mod，则提示用户
         if (this.data.modList.find((mod) => mod.name === modName)) {
             snack(`Mod ${modName} already exists`);
-            return;
+            return false;
         }
         // 将文件夹拷贝到 modSourceDir 中
         // 但是这里的 item 的 fullPath 是一个虚拟路径，无法直接使用 fs 进行操作
         // 但是我们可以递归读取每一个文件，然后将其拷贝到 modSourceDir 的对应位置
         this.showDialog('loading-dialog');
-        await this.copyFolder(item, this.config.modSourcePath);
-        // 关闭加载对话框
-        this.dismissDialog('loading-dialog');
+        // TC27: copy lỗi thì báo rõ + dọn thư mục dở dang, hộp chờ luôn được tắt.
+        const copiedPath = path.join(this.config.modSourcePath, modName);
+        try {
+            await this.copyFolder(item, this.config.modSourcePath);
+        } catch (e) {
+            console.error(`Failed to import folder ${modName}`, e);
+            t_snack({
+                vi: `Nhập thư mục ${modName} thất bại: ${e.message || e}`,
+                en: `Failed to import folder ${modName}: ${e.message || e}`,
+            }, 'error');
+            try {
+                if (fs.existsSync(copiedPath)) {
+                    fs.rmSync(copiedPath, { recursive: true, force: true });
+                }
+            } catch (cleanupErr) {
+                console.error(`Failed to clean up partial folder ${copiedPath}`, cleanupErr);
+            }
+            return;
+        } finally {
+            // Tắt hộp chờ.
+            this.dismissDialog('loading-dialog');
+        }
 
 
         //debug
@@ -1397,7 +1383,8 @@ class IManager {
         this.showDialog('edit-mod-dialog');
 
         // getModInfo 遇到新的 mod 会触发 addMod 事件，所以这里不需要再次触发
-        // this.trigger('addMod', mod);
+        // TC26: trả về true để handleDropEntry đếm số mod đã nhập.
+        return true;
     }
 
     async setFilter(character) {
@@ -1418,21 +1405,40 @@ class IManager {
             if (!fs.existsSync(targetPath)) {
                 fs.mkdirSync(targetPath, { recursive: true });
             }
+            // TC27: readEntries() theo đặc tả có thể chỉ trả 1 phần —
+            // phải gọi lặp tới khi trả rỗng, không thì thư mục nhiều file sẽ mất file.
             const reader = item.createReader();
-            const entries = await new Promise((resolve) => reader.readEntries(resolve));
-            for (const entry of entries) {
-                await this.copyFolder(entry, targetDir);
+            for (;;) {
+                const entries = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+                if (entries.length === 0) {
+                    break;
+                }
+                for (const entry of entries) {
+                    await this.copyFolder(entry, targetDir);
+                }
             }
         } else if (item.isFile) {
-            const file = await new Promise((resolve) => item.file(resolve));
-            const reader = new FileReader();
-            const buffer = await new Promise((resolve) => {
-                reader.onload = () => resolve(Buffer.from(reader.result));
-                reader.readAsArrayBuffer(file);
-            });
-            // 如果 targetPath 不存在，则创建文件
+            const file = await new Promise((resolve, reject) => item.file(resolve, reject));
+            // TC27: chép theo từng khúc 8MB thay vì đọc trọn file vào RAM —
+            // file mod vài GB không còn làm app ngốn RAM. Ghi ra file tạm rồi
+            // đổi tên để file dở dang không bao giờ trông như file xong.
+            const tmpPath = `${targetPath}.tmp-${process.pid}-${Math.random().toString(36).slice(2, 10)}`;
+            const CHUNK_SIZE = 8 * 1024 * 1024;
+            const fd = fs.openSync(tmpPath, 'w');
+            try {
+                for (let offset = 0; offset < file.size; offset += CHUNK_SIZE) {
+                    const chunk = file.slice(offset, offset + CHUNK_SIZE);
+                    const buffer = Buffer.from(await chunk.arrayBuffer());
+                    fs.writeSync(fd, buffer);
+                }
+            } catch (e) {
+                try { fs.closeSync(fd); } catch (_ignored) { /* bỏ qua */ }
+                try { fs.unlinkSync(tmpPath); } catch (_ignored) { /* bỏ qua */ }
+                throw e;
+            }
+            fs.closeSync(fd);
+            fs.renameSync(tmpPath, targetPath);
             console.log(`Copied file from ${item.fullPath} to ${targetPath}`);
-            fs.writeFileSync(targetPath, buffer);
         }
     }
 
@@ -1465,12 +1471,10 @@ class IManager {
     }
 
     async savePresetByModNames(presetName, modNames) {
-        // ipcRenderer.invoke('save-preset', presetName, data);
         PresetHelper.savePresetByName(presetName, modNames);
     }
 
     async savePresetByModIds(presetName,modIds){
-        // ipcRenderer.invoke('save-preset', presetName, data);
         PresetHelper.savePresetById(presetName,modIds);
     }
 
@@ -1497,9 +1501,6 @@ class IManager {
             }, 'error');
             return null;
         }
-        //debug
-        // await ipcRenderer.invoke('apply-mods', modList, modSourcePath, modTargetPath);
-        // await applyMods(modList, modSourcePath, modTargetPath);
         let result;
         try {
             if (this.config.ifUseTraditionalApply){
@@ -1528,7 +1529,6 @@ class IManager {
             this.temp.applyResult = result;
             this.showDialog('dialog-apply-result');
         } else {
-            // ipcRenderer.send('snack', '应用成功');
             t_snack({
                 vi: 'Áp dụng thành công',
                 en: 'Applied successfully',
@@ -1538,9 +1538,9 @@ class IManager {
     }
 
     async addPreset(presetName) {
-        // const newPresetPath = this.config.presetPath + '/' + presetName;
         const newPresetPath = path.join(this.config.presetPath, presetName + '.json');
-        fs.writeFileSync(newPresetPath, JSON.stringify(this.data.modList));
+        // TC5: ghi qua file tạm rồi đổi tên.
+        writeFileAtomicSync(newPresetPath, JSON.stringify(this.data.modList));
 
         // 刷新预设列表
         await this.loadPresets();
@@ -1574,17 +1574,9 @@ class IManager {
     }
 
     async saveConfig() {
-        // await ipcRenderer.invoke('set-current-config', this._config);
         XXMMCore.saveCurrentConfig(this._config);
     }
 
-    // 同步的保存配置
-    saveConfigSync() {
-        //debug
-        console.log('saveConfig:', this._config);
-        // ipcRenderer.invoke('set-current-config', this._config);
-        XXMMCore.saveCurrentConfigSync(this._config);
-    }
 
     async getFilePath(fileName, fileType, defaultPath) {
         const filePath = await ipcRenderer.invoke('get-file-path', fileName, fileType, defaultPath);
@@ -1664,10 +1656,6 @@ class IManager {
         this.saveConfig();
     }
 
-    printModInfo(modInfo) {
-        console.log(ModData.fromJson(modInfo).print());
-        return;
-    }
 
     async moveAllFiles(sourcePath, targetPath) {
         const moveAllFiles = (srcDir, destDir) => {
@@ -1748,21 +1736,27 @@ function waitInitIManager() {
     });
 }
 
-const wakeUpConditionCount = 2
-let wakeUpCondition = 0
 // 只有同时满足 主进程那边确认这次是 初次加载 以及 这里 插件加载完成（也就是startdone）之后，才会触发 wakeUp 事件
-ipcRenderer.on('wakeUp', () => {
-    wakeUpCondition++;
-    if (wakeUpCondition == wakeUpConditionCount) {
+// TC33: đếm bằng 2 cờ riêng + chặn kích hoạt 2 lần, thay cho bộ đếm
+// chung == 2 — tín hiệu wakeUp tới 2 lần (tải lại trang, hẹn giờ dự phòng
+// ở tiến trình chính) không còn làm lệch số đếm rồi mất luôn wakeUp nữa.
+let wakeUpSignalReceived = false;
+let startDoneReceived = false;
+let wakeUpTriggered = false;
+function maybeTriggerWakeUp() {
+    if (wakeUpSignalReceived && startDoneReceived && !wakeUpTriggered) {
+        wakeUpTriggered = true;
         IManager.triggerWakeUp();
     }
+}
+ipcRenderer.on('wakeUp', () => {
+    wakeUpSignalReceived = true;
+    maybeTriggerWakeUp();
     // 这里不应该是在initdone完成之后触发，应该是在 startdone 之后触发
 });
 EventSystem.on(EventType.startDone, () => {
-    wakeUpCondition++;
-    if (wakeUpCondition == wakeUpConditionCount) {
-        IManager.triggerWakeUp();
-    }
+    startDoneReceived = true;
+    maybeTriggerWakeUp();
 });
 
 // send a ready event to main process
@@ -1780,7 +1774,6 @@ ipcRenderer.on('windowBlur', () => {
     EventSystem.trigger('windowBlur');
 
     sleepTimer = setTimeout(() => {
-        // EventSystem.trigger("windowSleep");
         EventSystem.trigger('windowSleep');
         isSleeping = true;
         const tt2 = new TranslatedText("💤windowSleep", "💤Cửa sổ nghỉ");
