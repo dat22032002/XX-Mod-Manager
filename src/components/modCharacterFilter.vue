@@ -1,11 +1,12 @@
 <!-- 这个是原本的上面的横幅，但是现在我将其封装起来，只留下接口 -->
 <template>
     <div class="filter-row">
-        <!-- 搜索框固定在过滤行左侧，不随横向滚动条滚动，始终可见 -->
-        <!-- Search box is a plain straight container, NOT a chipButton: the chip is
-             skewed -20deg and only its <p> text is counter-skewed, so an input
-             inside it renders slanted with clipped text. -->
+        <!-- Search box is slanted like the filter chips (outer skew -20deg),
+             with the icon + input counter-skewed back so the text stays
+             straight. (Skewing the input itself would slant/clip the text,
+             which is why round 3 kept this box straight.) -->
         <div id="search-filter-chip" class="search-box-fixed">
+          <div class="search-box-inner">
             <s-icon>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
                     <path
@@ -18,6 +19,7 @@
 
                 </s-text-field>
             </div>
+          </div>
         </div>
         <horizontalScrollBar class="chip-radio-bar" id="character-filter-bar" style="height: fit-content;">
             <chipButton :text="$t('buttons.all')" id="all-filter-chip" @click="updateSliderByEvent($event)"></chipButton>
@@ -32,8 +34,10 @@
 
 <script setup lang="ts">
 import horizontalScrollBar from './horizontalScrollBar.vue';
-import { ref, reactive, watch, Ref } from 'vue';
+import { ref, reactive, watch, Ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import chipButton from './chipButton.vue';
+import IManager from '../../electron/IManager';
+const iManager = new IManager();
 
 import { g_config_vue } from '../../electron/IManager';
 import { g_data_vue } from '../../electron/IManager';
@@ -75,7 +79,44 @@ const updateSlider = (element) => {
     lastClickedElement.value = element;
     sliderStyle.width = `${element.offsetWidth}px`;
     sliderStyle.left = `${element.offsetLeft}px`;
+    // Lần đo đầu tiên lúc mới mở app có thể chạy khi bố cục chưa ổn định
+    // (chữ chưa tải xong) nên thanh vàng bị lệch khỏi tag; đo lại sau 2 khung
+    // hình để nó khớp đúng vị trí tag. Chỉ đo lại khi tag đó vẫn đang chọn.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (lastClickedElement.value === element) {
+            sliderStyle.width = `${element.offsetWidth}px`;
+            sliderStyle.left = `${element.offsetLeft}px`;
+        }
+    }));
 };
+
+// Chữ tải xong / cửa sổ đổi kích thước đều có thể làm tag đổi rộng → đo lại
+// thanh vàng cho khớp.
+const repositionSlider = () => {
+    if (lastClickedElement.value) updateSlider(lastClickedElement.value);
+};
+onMounted(() => {
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(repositionSlider);
+    }
+    window.addEventListener('resize', repositionSlider);
+    // Lúc mới mở app, thanh vàng chưa bao giờ được đặt vị trí: đường duy nhất
+    // đặt nó (watcher ở component cha) đọc một biến không ai ghi, nên nó
+    // không chạy; chỉ khi người dùng bấm tag thì thanh mới nhảy đúng chỗ.
+    // Đặt vị trí ngay khi mount xong, theo nhân vật đang chọn.
+    nextTick(() => {
+        const current = iManager.temp.currentCharacter || 'all';
+        if (current === 'all' || current === 'selected') {
+            const el = document.getElementById(current === 'all' ? 'all-filter-chip' : 'selected-filter-chip');
+            if (el) updateSlider(el);
+        } else {
+            selectItemByName(current);
+        }
+    });
+});
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', repositionSlider);
+});
 
 const updateSliderByEvent = (e) => {
     const elment = e.currentTarget;
@@ -209,11 +250,22 @@ defineExpose({
     display: inline-flex;
     align-items: center;
     box-sizing: border-box;
-    padding: 0px 12px;
+    padding: 0px 16px;
     border-radius: 8px;
     background-color: var(--s-color-surface-container);
     border: 1px solid var(--s-color-outline-variant);
     overflow: hidden;
+    /* Nghiêng như tag chip (-20deg); nội dung bên trong nghiêng ngược lại
+       để chữ và ô nhập vẫn thẳng. */
+    transform: skew(-20deg);
+}
+
+.search-box-inner {
+    transform: skew(20deg);
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
 }
 
 #search-filter-chip s-icon {

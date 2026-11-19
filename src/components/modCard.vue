@@ -346,7 +346,7 @@ defineExpose({
     background-image: linear-gradient(to right, var(--s-color-surface-container-low), var(--s-color-surface-container-low)), linear-gradient(90deg, var(--s-color-primary), var(--s-color-secondary));
     box-sizing: border-box;
     transform: rotate3d(1, 1, 0, 0deg) scale(0.95);
-    border-radius: 0px 32px 0px 32px;
+    border-radius: 12px;
 }
 
 .mod-item[clicked="false"] {
@@ -355,7 +355,7 @@ defineExpose({
     border: 1px solid transparent;
     border: "";
     transform: rotate3d(1, 1, 0, 0deg);
-    border-radius: 0px 30px 0px 30px;
+    border-radius: 12px;
 }
 
 .mod-item {
