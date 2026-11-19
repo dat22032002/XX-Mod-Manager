@@ -373,6 +373,9 @@ defineExpose({
        trên lưới mod ở dưới (z-index). */
     position: relative;
     z-index: 30;
+    /* Khe dưới hàng lọc với lưới thẻ mod ở dưới — trước đây 2 khối dí
+       sát nhau quá (Đạt báo 19/11). */
+    margin-bottom: 10px;
     /* Không để khe: mép trái thanh tag đã nghiêng cùng góc 20° với ô
     tìm kiếm (xem .chip-radio-bar) nên hai mép song song, thanh tag có
     thể dí sát ô tìm kiếm mà không chèn lên nhau — Đạt muốn sát vào
@@ -435,7 +438,6 @@ defineExpose({
        bảng khi bảng đang mở. */
     position: relative;
     z-index: 60;
-    transition: box-shadow 0.2s ease;
 }
 
 /* Đang có lọc/xếp khác mặc định thì nút vàng như chip đang chọn. */
@@ -445,11 +447,13 @@ defineExpose({
     color: var(--s-color-on-primary);
 }
 
-/* Bảng đang mở thì nút phát sáng (hào quang màu vàng chủ đạo). Dòng
-   đầu là dự phòng cho trình duyệt chưa hiểu color-mix. */
+/* Bảng đang mở thì nút cũng vàng lên như chip đang chọn (Đạt muốn
+   nút đổi màu vàng thay vì hiệu ứng phát sáng — 19/11). Phân biệt
+   với nút vàng do đang lọc bằng mũi tên: ▲ là bảng đang mở. */
 .filter-toggle.open {
-    box-shadow: 0 0 18px 3px rgba(220, 233, 59, 0.55);
-    box-shadow: 0 0 18px 3px color-mix(in srgb, var(--s-color-primary) 65%, transparent);
+    background-color: var(--s-color-primary);
+    border-color: var(--s-color-primary);
+    color: var(--s-color-on-primary);
 }
 
 .filter-toggle-inner {
@@ -486,13 +490,17 @@ defineExpose({
 
 /* Bảng lọc overlay: thả xuống từ nút Bộ lọc, phủ lên lưới mod chứ
    không đẩy nội dung. Mép trái thẳng với mép trái nút (= ô tìm kiếm
-   160px + khe 8px; đổi rộng ô tìm kiếm thì đổi cả số này), mép phải
-   thẳng với mép phải hàng lọc. */
+   160px + khe 8px; đổi rộng ô tìm kiếm thì đổi cả số này). Bảng ôm
+   vừa nội dung (chỉ rộng bằng hàng chip dài nhất cộng đệm) — trước
+   đây kéo dài hết hàng lọc nên thừa cả một khoảng trống bên phải
+   (Đạt báo 19/11). Giới hạn để không tràn mép phải hàng lọc; cửa sổ
+   hẹp quá thì hàng chip tự lăn ngang như cũ. */
 .filter-panel {
     position: absolute;
     top: calc(100% + 8px);
     left: 168px;
-    right: 0;
+    width: fit-content;
+    max-width: calc(100% - 168px);
     z-index: 50;
     display: flex;
     flex-direction: column;
@@ -503,6 +511,13 @@ defineExpose({
     border: 1px solid var(--s-color-outline-variant);
     border-radius: 12px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Trong bảng overlay, thanh chip chiếm hết chiều rộng bảng (bỏ khe
+   20px mặc định của chipRadioBar) để hàng chip dài nhất không bị cắt
+   mất 20px cuối khi bảng ôm vừa nội dung. */
+.filter-panel .chip-radio-bar {
+    width: 100%;
 }
 
 .type-filter-wrap {
@@ -554,10 +569,11 @@ defineExpose({
     flex: 1;
     min-width: 0;
     min-height: 35px;
-    /* Lấn trái 7px vào ô tìm kiếm: cùng với gap 0 ở .filter-row, mép
-       thanh tag dí sát ô tìm kiếm. Mép cắt nghiêng vẫn song song với
-       mép phải ô tìm kiếm nên không chèn lên nhau. */
-    margin-left: -7px;
+    /* Cách nút Bộ lọc 8px (trước đây lấn trái 7px dí sát — từ khi có
+       nút Bộ lọc ở giữa, thanh tag dí sát nút quá, Đạt báo 19/11).
+       Mép cắt nghiêng vẫn song song với mép phải nút nên không chèn
+       lên nhau. */
+    margin-left: 8px;
     /* Mép trái cắt nghiêng theo ô tìm kiếm (cùng góc 20°): khi lăn
        chuột, tag trượt vào từ phải bị cắt theo đường này, trông như
        chui ra sau mép ô tìm kiếm. Đường cắt nằm cách mép phải ô tìm
