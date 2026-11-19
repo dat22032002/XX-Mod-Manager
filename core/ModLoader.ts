@@ -3,6 +3,7 @@ import { ModData } from './ModHelper';
 import { ModInfo } from './ModInfo';
 import ModCache from './ModCache';
 import type { ModCacheFile } from './ModCache';
+import { EventSystem, EventType } from '../helper/EventSystem';
 
 const fs = require('fs');
 const path = require('path');
@@ -100,7 +101,11 @@ class ModLoader {
         await Promise.all(this.modSourceFolders.map(async folder => {
             let mods = await fs.promises.readdir(folder, { withFileTypes: true });
             const seenFolders = new Set<string>();
-            const modDirs = mods.filter(mod => mod.isDirectory());
+            // TC10: thư mục recycleBin của plugin xóa mod không phải là mod —
+            // loại khỏi danh sách quét (so khớp không phân biệt hoa thường vì
+            // Windows không phân biệt). Mục cache cũ của nó cũng bị xóa ở
+            // bước dọn cache bên dưới vì không còn nằm trong seenFolders.
+            const modDirs = mods.filter(mod => mod.isDirectory() && mod.name.toLowerCase() !== 'recyclebin');
             for (let i = 0; i < modDirs.length; i += LOAD_CHUNK_SIZE) {
                 const chunk = modDirs.slice(i, i + LOAD_CHUNK_SIZE);
                 // Validity checks are async disk stats: run them together.
@@ -236,6 +241,15 @@ class ModLoader {
         return this.modsById.get(id);
     }
 }
+
+// TC12: 1 bộ nghe windowSleep chung cho mọi mod — thay cho mỗi-ModData-1-bộ-nghe
+// (trước đây đăng ký rồi không bao giờ hủy, rò rỉ theo mỗi lần tải lại).
+// Chỉ duyệt danh sách mod đang sống nên ModData cũ không bị giữ lại.
+EventSystem.on(EventType.windowSleep, () => {
+    for (const mod of ModLoader.mods) {
+        mod.clearPreviewCache();
+    }
+});
 
 // 测试一下
 // ModLoader.addModSourceFolder("D:\\GameResource\\WWMI\\ModSource");

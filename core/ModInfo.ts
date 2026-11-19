@@ -1,5 +1,6 @@
 import { SnackType, t_snack } from "../helper/SnackHelper";
 import { TranslatedText } from "../helper/Language";
+import { writeFileAtomicSync } from "../helper/SafeWrite";
 import type { CachedModEntry } from "./ModCache";
 const fs = require('fs');
 const path = require('path');
@@ -321,7 +322,8 @@ class ModInfo {
         metaData['id'] = this.id;
         metaData['location'] = this.location;
         metaData['modName'] = this.modName;
-        fs.writeFileSync(metaDataPath, JSON.stringify(metaData, null, 4), 'utf8');
+        // TC5: ghi qua file tạm rồi đổi tên — mất điện giữa chừng không làm hỏng mod.json.
+        writeFileAtomicSync(metaDataPath, JSON.stringify(metaData, null, 4), 'utf8');
     }
 
     // Serialize the loaded state for the cache. Callers supply fresh stat
@@ -374,6 +376,16 @@ class ModInfo {
         }
         // 更新文件路径
         this.location = newModFolderPath;
+        // TC11: id KHÔNG đổi khi đổi tên (id lưu trong mod.json, chỉ sinh từ
+        // đường dẫn khi chưa có id) nên mod không rơi khỏi preset. Nhưng phải
+        // lưu lại mod.json ngay để đường dẫn mới được ghi xuống đĩa — trước
+        // đây rename() không lưu, mod.json vẫn giữ đường dẫn cũ cho tới lần
+        // lưu sau. Lỗi lưu không làm hỏng lần đổi tên (thư mục đã đổi xong).
+        try {
+            this.saveMetaData();
+        } catch (e) {
+            console.error(`Đổi tên mod xong nhưng không lưu được mod.json mới: ${newModFolderPath}`, e);
+        }
         return true;
     }
 }

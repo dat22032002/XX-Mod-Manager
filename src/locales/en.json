@@ -84,7 +84,8 @@
     "changeNotSave": "Unsaved changes detected",
     "ifSaveChange": "Save changes?",
     "batch-operation": "Batch operation",
-    "batch-set-character": "Batch set character"
+    "batch-set-character": "Batch set character",
+    "saveFailed": "Failed to save mod info: {error}"
   },
   "buttons": {
     "addPreset": "Add preset",
@@ -158,7 +159,8 @@
     "switchConfig": "Select the [Save configuration as] path and click Create shortcut to create a configuration item on the desktop that uses a local path instead of a global path, so that it can be applied to multiple games\nAfter that, click the desktop shortcut to start xxmm using local configuration",
     "switchConfigInfo1": "Enter the [Configuration Name] and click [Add Configuration] to create a [Configuration Folder] in the [Global Configuration Folder] to store your configuration. After that, you can click to open the [Configuration Switch Page] to quickly switch configurations.\n\n-\n\nYou can configure the switch configuration page to be opened first every time you open it, and the unconventional page is easy to use for different games.",
     "switchConfigTitle1": "# Add a new configuration in the global config folder",
-    "switchConfigInfo2": "# Convenient tool\n\nMany times, you may want to open XXMM directly through different desktop shortcuts, rather than open XXMM and manually choose which config to use. This can be very useful.\n\nClick 'Open Global Config Folder', find the folder for which you want to create a shortcut, select it as the target for 'Save Configuration As', then click 'Create Shortcut'. This will place a shortcut on the desktop that uses the configuration in that folder, allowing you to open XXMM directly with that config."
+    "switchConfigInfo2": "# Convenient tool\n\nMany times, you may want to open XXMM directly through different desktop shortcuts, rather than open XXMM and manually choose which config to use. This can be very useful.\n\nClick 'Open Global Config Folder', find the folder for which you want to create a shortcut, select it as the target for 'Save Configuration As', then click 'Create Shortcut'. This will place a shortcut on the desktop that uses the configuration in that folder, allowing you to open XXMM directly with that config.",
+    "missingPaths": "Please fill in all 3 paths before closing. Missing: {missing}"
   },
   "gamebanana": "Gamebanana",
   "github": "Github",
@@ -183,8 +185,23 @@
   "dialogEnterPassword": {
     "title": "Please Enter Password",
     "cancel": "Cancel entering password and exit decompression",
-    "confirm": "Confirm Password:",
+    "confirm": "Password confirmed",
+    "empty": "Password cannot be empty",
     "label": "Extraction password",
     "placeholder": "Enter the extraction password"
+  },
+  "deleteModDialog": {
+    "title": "Delete this mod?",
+    "messageRecycle": "Move mod “{name}” to the recycle bin? You can still restore it from the recycleBin folder inside your mod library.",
+    "messagePermanent": "Permanently delete mod “{name}”? This cannot be undone."
+  },
+  "batchCharacter": {
+    "title": "Set character for multiple mods",
+    "message": "Set the character to “{name}” for {count} selected mods?",
+    "done": "Character set for {count} mods",
+    "doneWithFailures": "Character set for {ok} mods, {fail} failed: {names}"
+  },
+  "switchConfig": {
+    "noSelection": "Please select a config first"
   }
 }

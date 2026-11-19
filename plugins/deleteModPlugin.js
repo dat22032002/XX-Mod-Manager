@@ -29,6 +29,10 @@ const path = require('path');
 const pluginName = 'deleteModPlugin';
 // 这是一个用来在 编辑mod信息页面 增加一个 删除mod 按钮的插件
 
+// TC8: mod đang chờ xác nhận xóa (đặt lúc bấm nút xóa, dùng khi hộp xác
+// nhận trả về sự kiện deleteModConfirmed).
+let pendingDeleteMod = null;
+
 function removeModFromList(iManager, modName) {
     // 不再需要刷新页面，直接删除mod信息
     // iManager.showDialog('dialog-need-refresh');
@@ -52,12 +56,39 @@ function removeModFromList(iManager, modName) {
     // 使得编辑mod信息页面消失
     iManager.dismissDialog('edit-mod-dialog');
 }
-function deleteMod(iManager, modName) {
+// TC9: xóa theo đường dẫn thật của mod (ModData.getModPath), không ghép
+// đường dẫn từ tên hiển thị trên hộp thoại. Chặn đường dẫn trèo ra ngoài
+// thư mục mod và tên thư mục chứa ký tự tách đường dẫn / '..'.
+async function deleteMod(iManager, mod) {
+    const modName = mod.name;
     iManager.snack((iManager.config.language === 'vi' ? 'Đang xóa mod: ' : 'Deleting mod: ') + modName, 'error');
+
+    let modPath;
+    try {
+        modPath = await mod.getModPath();
+    } catch (error) {
+        iManager.snack((iManager.config.language === 'vi' ? 'Không lấy được đường dẫn mod: ' : 'Cannot resolve mod path: ') + modName, 'error');
+        console.error(error);
+        return;
+    }
+
+    const folderName = path.basename(modPath);
+    if (!folderName || folderName === '.' || folderName === '..' ||
+        folderName.includes('/') || folderName.includes('\\') || folderName.includes('..')) {
+        iManager.snack((iManager.config.language === 'vi' ? 'Tên thư mục mod không hợp lệ: ' : 'Invalid mod folder name: ') + folderName, 'error');
+        console.error('deleteMod: invalid folder name', folderName);
+        return;
+    }
+    const modSourcePath = path.resolve(iManager.config.modSourcePath);
+    const relativePath = path.relative(modSourcePath, path.resolve(modPath));
+    if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+        iManager.snack((iManager.config.language === 'vi' ? 'Mod nằm ngoài thư mục mod, không xóa được: ' : 'Mod is outside the mod library, refusing to delete: ') + modName, 'error');
+        console.error('deleteMod: mod path outside mod source', modPath);
+        return;
+    }
 
     // 删除mod
     // 删除mod文件夹
-    const modPath = path.join(iManager.config.modSourcePath, modName);
     if (fs.existsSync(modPath)) {
         // 判断是否使用回收站
         const ifUseRecycleBin = iManager.getPluginData(pluginName, 'useRecycleBin');
@@ -78,7 +109,9 @@ function deleteMod(iManager, modName) {
 
         // 将其移动到回收站
         const recycleBin = 'recycleBin';
-        let recycleBinPath = path.join(iManager.config.modSourcePath, recycleBin, modName);
+        // Dùng tên thư mục thật (đã lọc) cho đích trong thùng rác, không dùng
+        // tên hiển thị của mod (có thể khác tên thư mục).
+        let recycleBinPath = path.join(iManager.config.modSourcePath, recycleBin, folderName);
         // 如果回收站不存在，创建回收站
         if (!fs.existsSync(path.join(iManager.config.modSourcePath, recycleBin))) {
             fs.mkdirSync(path.join(iManager.config.modSourcePath, recycleBin));
@@ -89,7 +122,7 @@ function deleteMod(iManager, modName) {
             // 将当前时间加到mod名字后面
             const now = new Date();
             const nowStr = now.toISOString().replace(/:/g, '-').replace(/\./g, '-');
-            recycleBinPath = path.join(iManager.config.modSourcePath, recycleBin, modName+'-'+nowStr);
+            recycleBinPath = path.join(iManager.config.modSourcePath, recycleBin, folderName+'-'+nowStr);
         }
         //debug
         console.log('modPath:', modPath, 'recycleBinPath:', recycleBinPath);
@@ -121,16 +154,17 @@ function addDeleteButton(iManager){
     deleteButton.style.left = '23px';
     deleteButton.classList.add('OO-button');
 
-    // 单击时弹出提示
+    // TC8: bấm 1 lần mở hộp xác nhận (ghi rõ tên mod + hậu quả), không xóa
+    // ngay bằng đúp chuột nữa. Mod lấy từ currentMod (TC9), không đọc tên
+    // từ chữ hiển thị trên hộp thoại.
     deleteButton.onclick = () => {
-        const modName = document.getElementById('editDialog-mod-info-name').innerHTML;
-        iManager.snack((iManager.config.language === 'vi' ? 'Bấm đúp để xóa mod: ' : 'Double-click to delete mod: ') + modName, 'info');
-    }
-
-    // 双击时删除mod
-    deleteButton.ondblclick = () => {
-        const modName = document.getElementById('editDialog-mod-info-name').innerHTML;
-        deleteMod(iManager, modName);
+        const mod = iManager.temp.currentMod;
+        if (!mod) {
+            iManager.snack(iManager.config.language === 'vi' ? 'Chưa chọn mod nào để xóa' : 'No mod selected to delete', 'error');
+            return;
+        }
+        pendingDeleteMod = mod;
+        iManager.showDialog('dialog-confirm-delete-mod');
     }
 
     const editModInfoContent = document.getElementById('edit-mod-info-content');
@@ -160,6 +194,16 @@ module.exports = {
     },
     init(iManager){
 
+        // TC8: hộp xác nhận xóa trả về sự kiện này khi người dùng bấm Xác nhận.
+        // pendingDeleteMod đặt lại null ngay để bấm đúp xác nhận không xóa 2 lần.
+        iManager.on('deleteModConfirmed', async () => {
+            const mod = pendingDeleteMod;
+            pendingDeleteMod = null;
+            if (mod) {
+                await deleteMod(iManager, mod);
+            }
+        });
+
         iManager.on("pluginLoaded", (iManager) => {
             // debug
             const ifAble = iManager.getPluginData(pluginName, 'ifAblePlugin')
@@ -185,8 +229,8 @@ module.exports = {
                 en:'Delete Mod'
             },
             t_description:{
-                vi:'# Thêm nút xóa mod vào trang chỉnh sửa thông tin mod\nBấm nút, mod sẽ bị xóa',
-                en:'# Add a delete mod button on the edit mod info page\nClick the button, it will delete the mod'
+                vi:'# Thêm nút xóa mod vào trang chỉnh sửa thông tin mod\nBấm nút, hộp xác nhận sẽ hiện ra rồi mới xóa',
+                en:'# Add a delete mod button on the edit mod info page\nClick the button, a confirmation dialog appears before deleting'
             },
             onChange: (value) => {
                 // markdown 类型的数据不会触发 onChange,它只作为展示

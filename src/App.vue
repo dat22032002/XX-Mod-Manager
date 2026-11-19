@@ -57,6 +57,7 @@
     <dialogApplyResult />
     <dialogConfirmReset />
     <dialogConfirmClose />
+    <dialogConfirmDeleteMod />
 </template>
 
 <script setup>
@@ -74,6 +75,7 @@ import dialogEnterPassword from './dialogs/dialogEnterPassword.vue';
 import dialogApplyResult from './dialogs/dialogApplyResult.vue';
 import dialogConfirmReset from './dialogs/dialogConfirmReset.vue';
 import dialogConfirmClose from './dialogs/dialogConfirmClose.vue';
+import dialogConfirmDeleteMod from './dialogs/dialogConfirmDeleteMod.vue';
 
 import DialogNeedRefresh from './dialogs/dialogNeedRefresh.vue';
 import { EventSystem } from '../helper/EventSystem';

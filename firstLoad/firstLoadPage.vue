@@ -270,6 +270,7 @@
 
 <script setup>
 import { defineProps, defineEmits, ref, onMounted, computed, watch, useTemplateRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import sectionSelector from '../src/components/sectionSelector.vue';
 import IManager from '../electron/IManager';
@@ -283,6 +284,7 @@ let { languageData, themeData } = getData();
 
 const ipcRenderer = require('electron').ipcRenderer;
 const iManager = new IManager({ light: true });
+const { t } = useI18n();
 
 
 const sections = ref(['intro', 'basic', 'advanced', 'auto', 'more']);
@@ -344,6 +346,17 @@ const prev = () => {
 
 function closeSettingPage() {
     console.log('closeSettingPage');
+    // TC31: chỉ cho đóng + chỉ đặt firstLoad=false khi đã điền đủ 3 đường
+    // dẫn. Trước đây đóng mà chưa điền gì thì trang này không bao giờ hiện
+    // lại, app chạy với đường dẫn trống.
+    const missing = [];
+    if (!modTargetPath.value.trim()) missing.push(t('setting.modTargetPath'));
+    if (!modSourcePath.value.trim()) missing.push(t('setting.modSourcePath'));
+    if (!presetPath.value.trim()) missing.push(t('setting.presetPath'));
+    if (missing.length > 0) {
+        alert(t('firstLoad.missingPaths', { missing: missing.join(', ') }));
+        return;
+    }
     iManager.config.firstLoad = false;
     iManager.config.modTargetPath = modTargetPath.value;
     iManager.config.modSourcePath = modSourcePath.value;
@@ -361,9 +374,9 @@ onMounted(async () => {
     modSourcePath.value = iManager.config.modSourcePath;
     presetPath.value = iManager.config.presetPath;
 
-    // 不论用户是否看完了 都 取消首次加载
-    iManager.config.firstLoad = false;
-    iManager.saveConfig();
+    // TC31: KHÔNG đặt firstLoad=false lúc mở trang nữa — chỉ khi người dùng
+    // đã điền đủ 3 đường dẫn và bấm đóng (closeSettingPage). Đóng cửa sổ
+    // giữa chừng (nút X) thì lần mở sau trang này vẫn hiện lại.
 });
 
 </script>

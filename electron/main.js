@@ -1,5 +1,5 @@
 // main.js
-const { app, BrowserWindow, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, dialog } = require('electron');
 const path = require('node:path')
 require('./fileSystem.js')
 const setMainWindow = require('./fileSystem.js').setMainWindow;
@@ -219,33 +219,55 @@ app.whenReady().then(() => {
   })
 
   console.log('===== createWindow end =====');
-  wakeUpCondition++;
-  console.log('wakeUp condition count', wakeUpCondition);
-  if (wakeUpCondition == wakeUpNeeds) {
-    sendWakeUp()
+  // TC33: app đã sẵn sàng — gửi wakeUp cho các cửa sổ đã báo ready trước đó.
+  appIsReady = true;
+  for (const [id, pending] of wakeUpPending) {
+    clearTimeout(pending.timer);
+    sendWakeUpTo(pending.contents);
+    wakeUpPending.delete(id);
   }
 })
 
-let wakeUpCondition = 0;
-const wakeUpNeeds = 2; // 需要唤醒的次数
+// TC33: "bắt tay đánh thức" theo từng cửa sổ, thay cho bộ đếm chung == 2.
+// Trước đây: mọi cửa sổ (kể cả trang đổi cấu hình, vì nó cũng import
+// IManager) đều gửi 'main-window-ready' làm lệch số đếm, và sau mỗi lần
+// tải lại trang số đếm vượt quá 2 nên wakeUp không bao giờ tới nữa.
+// Giờ: mỗi cửa sổ báo ready thì nhận wakeUp riêng; nếu app chưa sẵn sàng
+// thì chờ app sẵn sàng, và hẹn giờ dự phòng 5 giây tự gửi wakeUp để
+// không kẹt vĩnh viễn khi 1 tín hiệu bị mất.
+let appIsReady = false;
+const WAKEUP_FALLBACK_MS = 5000;
+// webContents.id -> { contents, timer } của cửa sổ đang chờ app sẵn sàng
+const wakeUpPending = new Map();
 
-function sendWakeUp() {
-  if (currentMainWindow) {
-    //debug
-    console.log('send wakeUp', currentMainWindow == null);
-    // 向主窗口发送消息，告诉它可以开始工作了
-    currentMainWindow.webContents.send('wakeUp')
+function sendWakeUpTo(contents) {
+  if (contents && !contents.isDestroyed()) {
+    console.log('send wakeUp to webContents', contents.id);
+    contents.send('wakeUp');
   }
 }
 
 // 监听主窗口是否准备好
 ipcMain.on('main-window-ready', (event) => {
-  console.log('main-window-ready', currentMainWindow == null);
-  wakeUpCondition++;
-  console.log('wakeUp condition count', wakeUpCondition);
-  if (wakeUpCondition == wakeUpNeeds) {
-    sendWakeUp()
+  const contents = event.sender;
+  console.log('main-window-ready', contents.id);
+  // Cửa sổ tải lại sẽ gửi ready lại: xóa hẹn giờ dự phòng cũ trước.
+  const oldPending = wakeUpPending.get(contents.id);
+  if (oldPending) {
+    clearTimeout(oldPending.timer);
+    wakeUpPending.delete(contents.id);
   }
+  if (appIsReady) {
+    sendWakeUpTo(contents);
+    return;
+  }
+  // App chưa sẵn sàng: chờ app sẵn sàng, nhưng sau 5 giây vẫn tự gửi
+  // wakeUp để không kẹt nếu tín hiệu app-ready bị mất.
+  const timer = setTimeout(() => {
+    wakeUpPending.delete(contents.id);
+    sendWakeUpTo(contents);
+  }, WAKEUP_FALLBACK_MS);
+  wakeUpPending.set(contents.id, { contents, timer });
 })
 
 // 除了 macOS 外，当所有窗口都被关闭的时候退出程序。 因此, 通常
@@ -256,19 +278,60 @@ app.on('window-all-closed', () => {
 })
 
 // 白屏意味着渲染进程崩溃了，这里可以尝试重启
+// TC32: sập khi mở mà cứ tải lại mãi thì quay vòng vô hạn — đếm số lần sập
+// trong 1 phút cho từng cửa sổ, quá 3 lần thì dừng + hiện thông báo lỗi.
+// 'crashed' và 'render-process-gone' có thể cùng báo 1 lần sập nên 2 sự
+// kiện cách nhau dưới 2 giây chỉ tính là 1 lần.
+const CRASH_WINDOW_MS = 60 * 1000;
+const CRASH_MAX_RELOADS = 3;
+const CRASH_DEDUPE_MS = 2000;
+// webContents.id -> { crashTimes: number[], notified: boolean }
+const crashTracker = new Map();
+
+function handleRendererCrash(contents, details) {
+  if (!contents || contents.isDestroyed()) {
+    return;
+  }
+  const now = Date.now();
+  let record = crashTracker.get(contents.id);
+  if (!record) {
+    record = { crashTimes: [], notified: false };
+    crashTracker.set(contents.id, record);
+  }
+  const recent = record.crashTimes.filter(t => now - t < CRASH_WINDOW_MS);
+  // Cùng 1 lần sập báo 2 sự kiện ('crashed' + 'render-process-gone'):
+  // sự kiện thứ 2 tới quá nhanh thì bỏ qua, không tính 2 lần.
+  if (recent.length > 0 && now - recent[recent.length - 1] < CRASH_DEDUPE_MS) {
+    return;
+  }
+  recent.push(now);
+  record.crashTimes = recent;
+  console.log(`renderer crashed (${recent.length} in the last minute)`, details);
+  if (recent.length > CRASH_MAX_RELOADS) {
+    if (!record.notified) {
+      record.notified = true;
+      dialog.showMessageBox({
+        type: 'error',
+        title: 'XX Mod Manager',
+        message: 'The app window crashed repeatedly and was not reloaded automatically.\n\nCửa sổ app đã sập nhiều lần (hơn 3 lần trong 1 phút) nên không tự tải lại nữa.',
+        detail: 'Please restart the app. If the crash repeats, the log files in the app data folder may help find the cause.\n\nHãy khởi động lại app. Nếu lỗi lặp lại, file nhật ký trong thư mục dữ liệu của app có thể giúp tìm nguyên nhân.',
+        buttons: ['OK'],
+      });
+    }
+    return;
+  }
+  contents.reload();
+}
+
 app.on('web-contents-created', (e, contents) => {
   contents.on('crashed', () => {
-    if (!contents.isDestroyed()) {
-      contents.reload();
-    }
+    handleRendererCrash(contents, { reason: 'crashed' });
   });
 });
 
-app.on("render-process-gone", (e, webContents, details) => {
+app.on("render-process-gone", (e, contents, details) => {
   console.log("render-process-gone", details);
-  if (!webContents.isDestroyed()) {
-    webContents.reload();
-  }
+  handleRendererCrash(contents, details);
 });
 
 
