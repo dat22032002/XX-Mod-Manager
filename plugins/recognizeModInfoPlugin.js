@@ -236,8 +236,13 @@ const getModKeySwap = async (iManager, mod) => {
     iManager.t_snack(successTT, 'info');
     console.log(successTT.get());
 
-    // Clear existing hotkeys before adding new ones
-    mod.hotkeys = [];
+    // TC20: giữ hotkey cũ, chỉ thêm phím mới chưa có (gộp theo tên phím) —
+    // đúng nguyên tắc "chỉ thêm mới, không xóa cũ" ở đầu file. Trước đây
+    // `mod.hotkeys = []` xóa sạch hotkey sửa tay và hotkey không có trong ini.
+    if (!Array.isArray(mod.hotkeys)) {
+        mod.hotkeys = [];
+    }
+    const existingHotkeyKeys = new Set(mod.hotkeys.map(hotkey => hotkey && hotkey.key));
 
     // 2. 读取所有 ini 文件
     let allHotkeys = new Set();
@@ -245,8 +250,9 @@ const getModKeySwap = async (iManager, mod) => {
         const hotkeys = getSwapkeyFromIni(iniFilePath, iManager);
         for (const hotkey of hotkeys) {
             const hotkeyStr = JSON.stringify(hotkey);
-            if (!allHotkeys.has(hotkeyStr)) {
+            if (!allHotkeys.has(hotkeyStr) && !existingHotkeyKeys.has(hotkey.key)) {
                 allHotkeys.add(hotkeyStr);
+                existingHotkeyKeys.add(hotkey.key);
                 mod.hotkeys.push(hotkey);
             }
         }
@@ -564,18 +570,35 @@ module.exports = {
                     });
 
                     try {
+                        // TC21: lưu qua mod.saveModInfo() (đường dẫn thật +
+                        // đúng định dạng) thay vì ghi thẳng object thô vào
+                        // đường dẫn ghép từ tên mod; lỗi từng mod thì ghi
+                        // nhận rồi tiếp tục, không dừng cả loạt.
+                        const failedMods = [];
                         for (const mod of iManager.data.modList) {
-                            const newMod = await getModKeySwap(iManager, mod);
-                            if (newMod) {
-                                const modFilePath = path.join(iManager.config.modSourcePath, mod.name, 'mod.json');
-                                fs.writeFileSync(modFilePath, JSON.stringify(newMod, null, 4));
+                            try {
+                                const newMod = await getModKeySwap(iManager, mod);
+                                if (newMod) {
+                                    await newMod.saveModInfo();
+                                }
+                            } catch (error) {
+                                console.error('Error refreshing mod:', mod.name, error);
+                                failedMods.push(mod.name);
                             }
                         }
 
-                        iManager.t_snack({
-                            en: "Successfully refreshed all mods",
-                            vi: "Đã làm mới tất cả mod thành công"
-                        }, 'success');
+                        if (failedMods.length > 0) {
+                            const names = failedMods.slice(0, 5).join(', ') + (failedMods.length > 5 ? ', …' : '');
+                            iManager.t_snack({
+                                en: `Refreshed all mods, but ${failedMods.length} mod(s) failed: ${names}`,
+                                vi: `Đã làm mới tất cả mod, nhưng ${failedMods.length} mod lỗi: ${names}`
+                            }, 'error');
+                        } else {
+                            iManager.t_snack({
+                                en: "Successfully refreshed all mods",
+                                vi: "Đã làm mới tất cả mod thành công"
+                            }, 'success');
+                        }
                     } catch (error) {
                         console.error('Error refreshing mods:', error);
                         iManager.t_snack({

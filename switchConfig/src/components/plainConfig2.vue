@@ -10,7 +10,6 @@
             <div slot="subhead" id="config-item-subhead">{{ props.configRef.name }}</div>
             <div slot="text" id="config-item-text">
                 <s-scroll-view>
-                    <!-- <p id="config-hotkeys">Hotkeys: {{ displayHotKeys }}</p> -->
                     <p id="config-item-description">{{ props.configRef.desc }}</p>
                     <div class="placeholder"></div>
                 </s-scroll-view>
@@ -44,10 +43,6 @@ watch(() => cardRef.value?.clicked, (value) => {
         clicked.value = value;
     }
 })
-// let handleClick: ((event: MouseEvent, ifToggle?: boolean) => void) | null = null;
-// let playFlipAnim: ((cardElement: HTMLElement, event: MouseEvent | null, rect: DOMRect | null) => void) | null = null;
-// let playSelectedAnim: ((cardElement: HTMLElement, event: MouseEvent | null, rect: DOMRect | null) => void) | null = null;
-// let playUnselectedAnim: ((cardElement: HTMLElement, event: MouseEvent | null, rect: DOMRect | null) => void) | null = null;
 const getClickedRef = () => {
     return cardRef.value?.getClickedRef();
 }

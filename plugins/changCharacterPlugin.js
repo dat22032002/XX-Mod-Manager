@@ -41,89 +41,6 @@ module.exports = {
     init(iManager) {
 
         let pluginData = [];
-        // - 开关，清空所有mod的hotkeys 的二次确认开关，用于二次确认
-        // let ifClearAllModHotkeys = {
-        //     name: 'ifClearAllModHotkeys',
-        //     data: false,
-        //     type: 'boolean',
-        //     displayName: 'If Clear All Mod Hotkeys',
-        //     description: 'If true, clear all mod hotkeys',
-        //     t_displayName: {
-        //         zh_cn: '清空所有mod的热键 - 二次确认',
-        //         en: 'Clear All Mod Hotkeys - Confirm'
-        //     },
-        //     t_description: {
-        //         zh_cn: '你需要先将此开关打开才能清空所有mod的热键',
-        //         en: 'You need to set this option to true first to clear all mod hotkeys'
-        //     },
-        //     onChange: (value) => {
-        //         console.log('ifClearAllModHotkeys changed:', value);
-        //         ifClearAllModHotkeys.data = value;
-
-        //         const snackMessage = {
-        //             zh_cn: '清空全部的mod的热键可能会需要一些时间，这取决于你的mod数量，请坐和放宽，不要关闭程序',
-        //             en: 'Clearing all mod hotkeys may take some time, depending on the number of mods you have, please be patient and do not close the program'
-        //         }
-        //         iManager.t_snack(snackMessage);
-
-        //         //需要刷新，将value返回
-        //         return value;
-        //     }
-        // }
-        // pluginData.push(ifClearAllModHotkeys);
-
-        // //- 按钮，清空所有mod的hotkeys
-        // let clearAllModHotkeys = {
-        //     name: 'clearAllModHotkeys',
-        //     data: '',
-        //     type: 'iconbutton',
-        //     displayName: 'Clear All Mod Hotkeys',
-        //     description: 'Clear all mod hotkeys',
-        //     t_displayName: {
-        //         zh_cn: '清空所有mod的热键',
-        //         en: 'Clear All Mod Hotkeys'
-        //     },
-        //     t_description: {
-        //         zh_cn: '清空所有mod的热键',
-        //         en: 'Clear all mod hotkeys'
-        //     },
-        //     buttonName: 'clear',
-        //     t_buttonName: {
-        //         zh_cn: '清空',
-        //         en: 'Clear'
-        //     },
-        //     onChange: () => {
-        //         console.log('clearAllModHotkeys clicked');
-
-        //         if (iManager.getPluginData(pluginName, "ifClearAllModHotkeys")) {
-        //             // 将 二次确认 开关关闭
-        //             iManager.setPluginData(pluginName, "ifClearAllModHotkeys", false);
-
-        //             iManager.showDialog('loading-dialog');
-        //             const snackMessage = {
-        //                 en: "clear all mod hotkeys",
-        //                 zh_cn: "清空所有mod的热键"
-        //             }
-        //             iManager.t_snack(snackMessage);
-        //             iManager.data.modList.forEach(async (mod) => {
-        //                 mod.hotkeys = [];
-        //                 const modFilePath = path.join(iManager.config.modSourcePath, mod.name, 'mod.json');
-        //                 fs.writeFileSync(modFilePath, JSON.stringify(mod, null, 4));
-        //             });
-        //             iManager.dismissDialog('loading-dialog');
-
-        //             iManager.showDialog('dialog-need-refresh');
-        //         }
-        //         else {
-        //             const snackMessage = {
-        //                 en: "You need to set 'If Clear All Mod Hotkeys' to true first",
-        //                 zh_cn: "你需要先将 '清空所有mod的热键 - 二次确认' 保持为开启状态"
-        //             }
-        //             iManager.t_snack(snackMessage, 'error');
-        //         }
-        //     }
-        // }
-        // pluginData.push(clearAllModHotkeys);
         //- markdown
         const markdown_vi = `# Thay đổi nhân vật của mod hàng loạt
         Thay đổi nhân vật của các mod có nhân vật nguồn thành nhân vật đích`;
@@ -281,16 +198,40 @@ module.exports = {
 
                     // 修改mod的character,当所有mod的character都修改完成后，关闭loading-dialog
                     // 使用Promise.all来等待所有的promise完成
+                    // TC15: bắt lỗi từng mod (lưu lỗi thì hoàn lại tên cũ +
+                    // ghi tên vào danh sách lỗi) và luôn tắt hộp chờ bằng
+                    // .finally — trước đây 1 mod lỗi là Promise.all reject,
+                    // .then không chạy, hộp Loading kẹt vĩnh viễn.
+                    const failedMods = [];
                     Promise.all(iManager.data.modList.map(async (mod) => {
                         if (mod.character === sourceCharacter) {
-                            mod.character = targetCharacter;
-                            // debug
-                            console.log('mod:', mod.name, 'character changed to:', mod.character);
-                            await mod.saveModInfo();
+                            try {
+                                mod.character = targetCharacter;
+                                // debug
+                                console.log('mod:', mod.name, 'character changed to:', mod.character);
+                                await mod.saveModInfo();
+                            } catch (error) {
+                                mod.character = sourceCharacter;
+                                failedMods.push(mod.name);
+                                console.error('changeCharacter: failed to save mod', mod.name, error);
+                            }
                         }
                     })).then(() => {
-                        iManager.dismissDialog('loading-dialog');
+                        if (failedMods.length > 0) {
+                            iManager.t_snack({
+                                en: `Failed to change character for ${failedMods.length} mod(s): ${failedMods.join(', ')}`,
+                                vi: `Đổi nhân vật thất bại cho ${failedMods.length} mod: ${failedMods.join(', ')}`
+                            }, 'error');
+                        }
                         iManager.showDialog('dialog-need-refresh');
+                    }).catch((error) => {
+                        console.error('changeCharacter: unexpected error', error);
+                        iManager.t_snack({
+                            en: 'Failed to change character: ' + error.message,
+                            vi: 'Đổi nhân vật thất bại: ' + error.message
+                        }, 'error');
+                    }).finally(() => {
+                        iManager.dismissDialog('loading-dialog');
                     });
                 }
                 else {

@@ -30,11 +30,12 @@ jobs:
         run: npm install
 
       - name: Build Electron App
-        run: npm run build  # 运行 electron-builder 打包
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # 需要配置 GitHub Token
+        # Chỉ đóng gói giao diện (vite) ở đây; electron-builder chỉ chạy 1 lần
+        # ở bước Publish bên dưới (trước đây npm run build rồi npm run publish
+        # khiến electron-builder đóng gói 2 lần).
+        run: npx vite build
 
       - name: Publish Electron App to GitHub
-        run: npm run publish  # 发布到 GitHub Releases
+        run: npx electron-builder --win --linux --publish always  # Package and publish to GitHub Releases
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # 需要配置 GitHub Token

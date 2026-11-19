@@ -1,10 +1,11 @@
 //-===================== 插件 =====================
-const { ipcRenderer } = require('electron');
 import XXMMCore from "../core/XXMMCore";
 import { EventType, EventSystem } from "./EventSystem";
 import { TranslatedText } from "./Language";
 import { PathHelper } from "./PathHelper";
 import { snack, SnackType, t_snack } from "./SnackHelper";
+// require qua biến trung gian để Vite không phân tích tĩnh được tên module:
+// 'path' là module Node, phải để Node require lúc chạy thay vì để Vite đóng gói.
 const pathOsName = 'path'
 const path = require(pathOsName);
 const fs = require('fs');
@@ -98,9 +99,7 @@ class IPluginLoader {
     }
 
     static async LoadDisabledPlugins() {
-        // IPluginLoader.disabledPluginNames = await ipcRenderer.invoke('get-disabled-plugins');
         IPluginLoader.disabledPluginNames = XXMMCore.getDisabledPlugins();
-        // this.trigger('disabledPluginsLoaded', disabledPluginNames);
         // debug
         console.log('disabledPluginNames:', IPluginLoader.disabledPluginNames);
     }
@@ -131,7 +130,6 @@ class IPluginLoader {
     }
 
     static async saveDisabledPlugins() {
-        // ipcRenderer.invoke('save-disabled-plugins', IPluginLoader.disabledPluginNames);
         XXMMCore.saveDisabledPlugins(IPluginLoader.disabledPluginNames);
     }
 
@@ -140,7 +138,7 @@ class IPluginLoader {
     /** @function
      * @desc 注册一个插件
      * @param {IPlugin} plugin - 插件
-     * @param {any} enviroment - 应当是XManager的实例，或者IManager的实例
+     * @param {any} enviroment - should be an IManager instance
      * 这里使用 enviroment 是为了 避免循环引用
      * @returns {boolean}
      */
@@ -182,7 +180,7 @@ class IPluginLoader {
     /** @function
      * @desc 初始化一个插件
      * @param {IPlugin} plugin - 插件
-     * @param {any} enviroment - 应当是XManager的实例，或者IManager的实例
+     * @param {any} enviroment - should be an IManager instance
      * 这里使用 enviroment 是为了 避免循环引用
      * @returns {boolen}
      */
@@ -214,7 +212,7 @@ class IPluginLoader {
 
     /** @function
      * @desc 从指定的文件夹加载插件
-     * @param {any} enviroment - 应当是XManager的实例，或者IManager的实例
+     * @param {any} enviroment - should be an IManager instance
      * @param {string} folder - 插件文件夹
      * @returns {Promise<void>}
      */
@@ -235,8 +233,6 @@ class IPluginLoader {
                     await IPluginLoader.RegisterPlugin(plugin, enviroment);
                 }
                 catch (e) {
-                    // 在 本应该 应该有 插件的位置 创建一个 lookAtMe 文件，以便我定位问题
-                    fs.writeFileSync(`./plugins/lookAtMe`, 'lookAtMe');
                     const tt = new TranslatedText(`❌plugin ${file} load failed: ${e.message}`, `❌Plugin ${file} tải thất bại: ${e.message}`);
                     console.error(tt.get(), e);
                     t_snack(tt, SnackType.error);
@@ -247,7 +243,7 @@ class IPluginLoader {
 
     /** @function
      * @desc 加载所有插件
-     * @param {any} enviroment - 应当是XManager的实例，或者IManager的实例
+     * @param {any} enviroment - should be an IManager instance
      * 这里使用 enviroment 是为了 避免循环引用
      */
     static async LoadPlugins(enviroment: any) {
@@ -266,7 +262,7 @@ class IPluginLoader {
 
         const endTime = new Date().getTime();
         const tt = new TranslatedText(`🚀plugin loaded in ${endTime - startTime}ms`, `🚀Đã tải plugin trong ${endTime - startTime}ms`);
-        console.log(tt.get(), `${IPluginLoader.plugins.length} plugins loaded, ${IPluginLoader.disabledPluginNames.length} disabled`);
+        console.log(tt.get(), `${Object.keys(IPluginLoader.plugins).length} plugins loaded, ${IPluginLoader.disabledPluginNames.length} disabled`);
     }
 
     //-===================== 插件配置 =====================
@@ -300,7 +296,6 @@ class IPluginLoader {
         const tt = new TranslatedText(`🔧plugin ${pluginName} config saved`, `🔧Đã lưu cấu hình plugin ${pluginName}`
         );
         console.log(tt.get(), pluginName, pluginDataToSave);
-        // ipcRenderer.invoke('save-plugin-config', pluginName, pluginDataToSave);
         // 保存插件配置到文件
         XXMMCore.savePluginConfig(pluginName, pluginDataToSave);
     }
@@ -329,14 +324,20 @@ class IPluginLoader {
     static SaveAllPluginConfigSync() {
         //弹出窗口，询问是否保存配置
         // alert('SaveAllPluginConfigSync');
-        // HP15: a single IPC call + a single file write for all plugins,
-        // instead of one read + one full write per plugin (9x on close).
+        // TC13: chỉ còn 1 đường ghi cấu hình plugin — ghi đồng bộ trực tiếp
+        // như SaveAllPluginConfig. Trước đây đường tắt app đi qua IPC
+        // 'save-all-plugin-config' (tiến trình chính đọc-sửa-ghi cùng 1 file
+        // pluginConfig.json) trong khi plugin ghi trực tiếp từ giao diện
+        // (XXMMCore.savePluginConfig) — 2 tiến trình đọc-sửa-ghi chồng nhau
+        // có thể ghi đè mất nhau, và lệnh IPC không chờ lúc tắt app có thể
+        // mất luôn trước khi cửa sổ đóng. Ghi đồng bộ ở đây thì chắc chắn
+        // xong trước khi cửa sổ đóng (giống saveConfigSync).
         const allPluginDataToSave: { [key: string]: any } = {};
         for (const pluginName in IPluginLoader.pluginConfig) {
             allPluginDataToSave[pluginName] = IPluginLoader.transformPluginConfigToSave(IPluginLoader.pluginConfig[pluginName]);
         }
         console.log('saveAllPluginConfig:', allPluginDataToSave);
-        ipcRenderer.invoke('save-all-plugin-config', allPluginDataToSave);
+        XXMMCore.saveAllPluginConfig(allPluginDataToSave);
     }
 
     //-===================== 插件接口 =====================

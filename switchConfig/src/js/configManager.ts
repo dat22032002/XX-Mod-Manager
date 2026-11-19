@@ -9,8 +9,7 @@ import { TranslatedText } from '../../../helper/Language';
 import fsProxy from '../../../electron/fsProxy';
 import { ref } from 'vue';
 
-let g_allConfig: TapeConfig[] = [];
-const g_allConfig_vue = ref(g_allConfig);
+const g_allConfig_vue = ref<TapeConfig[]>([]);
 
 
 class TapeConfig{
@@ -107,30 +106,18 @@ class TapeConfig{
         this.allConfig = configList;
         return configList;
     }
-    static _allConfig: TapeConfig[] = [];
+    // Nguồn duy nhất của danh sách cấu hình là g_allConfig_vue (ref để giao
+    // diện phản ứng theo); accessor này chỉ trỏ qua ref đó, không giữ bản sao.
     static get allConfig(){
-        return this._allConfig;
+        return g_allConfig_vue.value;
     }
     static set allConfig(value: TapeConfig[]){
-        this._allConfig = value;
-        // 全局变量 和 这里同步
         g_allConfig_vue.value = value;
-        g_allConfig = value;
     }
 
 
-    static async getAllConfig(){
-        if(this._allConfig.length === 0){
-            this._allConfig = await this.loadAllConfig();
-        }
-        return this._allConfig;
-    }
     static async reloadAllConfig(){
-        this._allConfig = await this.loadAllConfig();
-    }
-    static clearConfig(){
-        this._allConfig = [];
-        console.log('All configurations cleared.');
+        this.allConfig = await this.loadAllConfig();
     }
 
     static async createConfig(name: string){

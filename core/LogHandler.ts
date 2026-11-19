@@ -15,14 +15,65 @@ class LogHandler {
 
     private static logBuffer: string[] = [];
     private static flushInterval: NodeJS.Timeout;
+    // TC34: init() giờ chạy mặc định lúc tải module (xem cuối file) nên
+    // phải chặn gọi 2 lần — plugin test vẫn gọi init() bằng tay.
+    private static initialized: boolean = false;
 
     constructor() {
         console.error('LogHandler cannot be instantiated');
         throw new Error('LogHandler cannot be instantiated');
     }
 
+    // Thư mục ghi log: thư mục dữ liệu của app (userData) thay vì thư mục
+    // 'Logs' tương đối như trước — thư mục làm việc hiện tại của app đóng
+    // gói không đoán trước được. Không lấy được userData (vd chạy ngoài
+    // Electron) thì giữ thư mục 'Logs' tương đối như cũ.
+    private static resolveLogDir(): string {
+        try {
+            const { ipcRenderer } = require('electron');
+            const userData = ipcRenderer.sendSync('get-user-data-path-sync');
+            if (typeof userData === 'string' && userData) {
+                return path.join(userData, 'Logs');
+            }
+        } catch (e) {
+            // Bỏ qua, dùng thư mục tương đối bên dưới.
+        }
+        return 'Logs';
+    }
+
     static init() {
+        if (LogHandler.initialized) {
+            return;
+        }
+        LogHandler.initialized = true;
         console.log('LogHandler init');
+
+        // Tên file gồm cả giây để 2 cửa sổ mở cùng 1 phút (cửa sổ chính +
+        // trang đổi cấu hình) không ghi đè log của nhau.
+        const logDir = LogHandler.resolveLogDir();
+        LogHandler.logFile = path.join(logDir, `XXMMLog${new Date().toISOString().replace(/:/g, '-').slice(0, 19)}.log`);
+
+        // If the log file already exists, delete it
+        try {
+            if (fs.existsSync(LogHandler.logFile)) {
+                fs.unlinkSync(LogHandler.logFile);
+            }
+        } catch (e) {
+            console.warn('LogHandler: cannot remove existing log file', e);
+        }
+
+        // If the number of files in the log directory exceeds 10, delete the oldest files
+        try {
+            if (fs.existsSync(logDir)) {
+                while (fs.readdirSync(logDir).map(file => path.join(logDir, file)).length > 10) {
+                    const logFiles = fs.readdirSync(logDir).map(file => path.join(logDir, file));
+                    logFiles.sort((a, b) => fs.statSync(a).mtimeMs - fs.statSync(b).mtimeMs);
+                    fs.unlinkSync(logFiles[0]);
+                }
+            }
+        } catch (e) {
+            console.warn('LogHandler: cannot prune old log files', e);
+        }
 
         console.log = LogHandler.log;
         console.error = LogHandler.error;
@@ -98,24 +149,15 @@ class LogHandler {
     static logFile: string;
 }
 
-LogHandler.logFile = path.join('Logs', `XXMMLog${new Date().toISOString().replace(/:/g, '-').slice(0, 16)}.log`);
-
-// If the log file already exists, delete it
-if (fs.existsSync(LogHandler.logFile)) {
-    fs.unlinkSync(LogHandler.logFile);
+// TC34: bật ghi nhật ký mặc định — trước đây init() bị comment nên chỉ bật
+// được qua plugin test, app chạy bình thường thì không có file ghi chép để
+// xem khi gặp lỗi. Log ghi ra <userData>/Logs (xem resolveLogDir).
+// Lỗi khởi tạo log không được làm hỏng app nên bọc try/catch.
+try {
+    LogHandler.init();
+} catch (e) {
+    console.error('LogHandler: failed to start file logging', e);
 }
-
-// If the number of files in the log directory exceeds 10, delete the oldest files
-const logDir = path.dirname(LogHandler.logFile);
-if (fs.existsSync(logDir)) {
-    while (fs.readdirSync(logDir).map(file => path.join(logDir, file)).length > 10) {
-        const logFiles = fs.readdirSync(logDir).map(file => path.join(logDir, file));
-        logFiles.sort((a, b) => fs.statSync(a).mtimeMs - fs.statSync(b).mtimeMs);
-        fs.unlinkSync(logFiles[0]);
-    }
-}
-
-// LogHandler.init();
 
 
 export default LogHandler;

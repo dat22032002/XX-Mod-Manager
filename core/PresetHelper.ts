@@ -1,5 +1,8 @@
 import { ModInfo, ModMetaData, ModMetaDataItem, ModMetaDataType } from "./ModInfo";
 import ModLoader from "./ModLoader";
+import { writeFileAtomicSync } from "../helper/SafeWrite";
+import { SnackType, t_snack } from "../helper/SnackHelper";
+import { TranslatedText } from "../helper/Language";
 const fs = require('fs');
 const path = require('path');
 // 这个用来代替之前的直接读取文件夹的方式，改用PresetHelper来管理
@@ -113,7 +116,9 @@ class Preset {
         // }
 
         // 去重
-        this.modIds = [...new Set(this.modIds)];
+        // TC14: file preset thiếu/hỏng modIds (không phải mảng) thì coi như
+        // preset rỗng thay vì văng lỗi làm hỏng cả danh sách preset.
+        this.modIds = [...new Set(Array.isArray(this.modIds) ? this.modIds : [])];
     }
 
     getModIds() {
@@ -130,7 +135,9 @@ class Preset {
 
         // 首先找到所有继承的preset，如果继承的preset也开始且有继承的preset，则需要递归查找，并加入到当前preset中，如果当前preset已经有了或者是自己，则不加入
         const getInhertedPresets = (preset: Preset) => {
-            if(preset.useExperimentalFeature && preset.experimentalFeatureConfig.inheritPresets !== undefined){
+            // TC14: preset bật tính năng thử nghiệm nhưng thiếu experimentalFeatureConfig
+            // thì không có preset kế thừa — không văng lỗi.
+            if (preset.useExperimentalFeature && preset.experimentalFeatureConfig && preset.experimentalFeatureConfig.inheritPresets !== undefined) {
                 preset.experimentalFeatureConfig.inheritPresets.forEach((id: string) => {
                     let inheritedPreset = PresetHelper.getPresetById(id);
                     if (inheritedPreset !== undefined && inheritedPreset.id !== preset.id && !inheritedPresets.includes(inheritedPreset) && this.id !== inheritedPreset.id) {
@@ -153,7 +160,8 @@ class Preset {
 
         // 获取所有继承的preset的modIds
         // 深拷贝
-        inheritedModIds = JSON.parse(JSON.stringify(this.modIds));
+        // TC14: modIds không phải mảng (file hỏng) thì coi như rỗng.
+        inheritedModIds = JSON.parse(JSON.stringify(Array.isArray(this.modIds) ? this.modIds : []));
         inheritedPresets.forEach(preset => {
             // debug
             console.log(`add modIds from preset: ${preset.name}`, preset.modIds);
@@ -164,18 +172,6 @@ class Preset {
 
         // 返回当前preset的modIds和继承的preset的modIds
         return inheritedModIds;
-    }
-
-    public getModNames() {
-        const adjustedModIds = this.getModIds();
-        const modNames = adjustedModIds.map(modId => {
-            const mod = ModLoader.mods.find(mod => mod.id === modId);
-            return mod?.name || modId;
-        }
-        );
-        // debug
-        console.log(`getModNames: ${modNames}`, this.modIds, adjustedModIds);
-        return modNames;
     }
 
     setModsByNames(modNames: string[]) {
@@ -199,7 +195,8 @@ class Preset {
     savePreset() {
         // 保存到文件中
         const content = JSON.stringify(this, null, 4);
-        fs.writeFileSync(this.location, content, 'utf-8');
+        // TC5: ghi qua file tạm rồi đổi tên — mất điện giữa chừng không làm hỏng preset.
+        writeFileAtomicSync(this.location, content, 'utf-8');
     }
 }
 class PresetHelper {
@@ -215,16 +212,26 @@ class PresetHelper {
             return;
         }
 
+        // TC14: một file preset hỏng không được làm hỏng cả danh sách —
+        // bắt lỗi từng file, file hỏng thì bỏ qua và báo tên file cho người dùng.
+        const brokenFiles: string[] = [];
         folders.forEach(folder => {
             if (fs.existsSync(folder)) {
                 const files = fs.readdirSync(folder);
                 files.forEach(file => {
                     const filePath = path.join(folder, file);
-                    if (fs.statSync(filePath).isFile() && path.extname(file) === '.json') {
-                        const preset = Preset.fromPath(filePath);
-                        if (preset !== null) {
-                            PresetHelper.presets.push(preset);
+                    try {
+                        if (fs.statSync(filePath).isFile() && path.extname(file) === '.json') {
+                            const preset = Preset.fromPath(filePath);
+                            if (preset !== null) {
+                                PresetHelper.presets.push(preset);
+                            } else {
+                                brokenFiles.push(file);
+                            }
                         }
+                    } catch (e) {
+                        console.error(`PresetHelper.loadPresets: cannot read preset file ${filePath}`, e);
+                        brokenFiles.push(file);
                     }
                 });
             } else {
@@ -232,8 +239,25 @@ class PresetHelper {
             }
         });
 
-        // Build all presets after loading
-        PresetHelper.presets.forEach(preset => preset.build(PresetHelper.presets));
+        // Build all presets after loading — preset nào build lỗi thì bỏ riêng
+        // preset đó, các preset còn lại vẫn tải bình thường.
+        PresetHelper.presets = PresetHelper.presets.filter(preset => {
+            try {
+                preset.build(PresetHelper.presets);
+                return true;
+            } catch (e) {
+                console.error(`PresetHelper.loadPresets: cannot build preset ${preset.location}`, e);
+                brokenFiles.push(path.basename(preset.location));
+                return false;
+            }
+        });
+
+        if (brokenFiles.length > 0) {
+            t_snack(new TranslatedText(
+                `Some preset files are corrupt and were skipped: ${brokenFiles.join(', ')}`,
+                `Một số file preset bị hỏng nên đã bỏ qua: ${brokenFiles.join(', ')}`),
+                SnackType.error);
+        }
     }
 
     static getPresetList() {

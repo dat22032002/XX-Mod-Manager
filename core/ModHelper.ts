@@ -11,13 +11,11 @@ import { ImageHelper } from "../helper/ImageHelper";
 import ModLoader from "./ModLoader";
 import { ModMetaDataType } from "./ModInfo";
 
-let count = 0;
 class ImageBase64 {
     private base64WithHeader: string = "";
     public get = () => this.base64WithHeader;
     public set = (base64WithHeader: string) => {
         this.base64WithHeader = base64WithHeader;
-        count++;
     }
 
     public withoutHeader = () => this.base64WithHeader.split(',')[1];
@@ -29,12 +27,6 @@ class ImageBase64 {
         this.base64WithHeader = base64WithHeader;
     }
 }
-
-// 每1s打印一次count
-// setInterval(() => {
-//     console.log(`imageBase64 count: ${count}`);
-// }, 1000);
-
 
 class ModData {
     public name: string;
@@ -73,18 +65,21 @@ class ModData {
         // const stackTrace = new Error();
         // console.log(`ℹ️ℹ️ℹ️ModData ${this.name} is being created`,this.id,stackTrace)
 
-        // 当进入休眠状态时，清空缓存
-        EventSystem.on(EventType.windowSleep, async () => {
-            this.oldPreview = "";
-            // this.modPreviewBase64 = "";
-            this.modPreviewBase64WithHeader.clear();
+        // TC12: KHÔNG đăng ký bộ nghe windowSleep riêng cho mỗi mod nữa —
+        // trước đây mỗi ModData tạo 1 bộ nghe mà không bao giờ hủy, mỗi lần
+        // tải lại danh sách là thêm N bộ nghe cũ giữ xác ModData cũ (rò rỉ).
+        // Giờ chỉ có 1 bộ nghe chung ở ModLoader, duyệt danh sách mod đang
+        // sống và gọi clearPreviewCache() cho từng mod.
+    }
 
-        });
+    // Xóa bộ nhớ đệm ảnh bìa khi cửa sổ nghỉ (gọi từ bộ nghe chung ở ModLoader).
+    public clearPreviewCache() {
+        this.oldPreview = "";
+        this.modPreviewBase64WithHeader.clear();
     }
     // 析构函数
     public destroy() {
-        this.modPreviewBase64WithHeader.clear();
-        // this.modPreviewBase64 = "";
+        this.clearPreviewCache();
 
         // 释放资源
         ImageHelper.clearImageCache();
@@ -218,8 +213,6 @@ class ModData {
         return newModData;
     }
     public equals(modData: ModData): boolean {
-        //debug
-        console.log(`comparing......`, new Error(), this.index, this.toJson(), modData.index, modData.toJson());
         return JSON.stringify(this.toJson()) === JSON.stringify(modData.toJson());
     }
 
@@ -299,13 +292,6 @@ class ModData {
     }
 
 
-    public async addHotkey(key: string, description: string) {
-        if (!key && !description) {
-            console.log("ModData.addHotkey: key and description are required");
-            return;
-        }
-        this.hotkeys.push({ key, description });
-    }
     public async removeHotkey(key: string) {
         if (key === undefined) {
             console.log("ModData.removeHotkey: key is required");
@@ -318,18 +304,6 @@ class ModData {
     }
 
     //-========== 保存mod信息 ===========
-    public async saveModInfoOld() {
-        await this.checkModSourcePath();
-        const modSourcePath = this.modSourcePath;
-
-        //这里的 modInfo 是一个对象，不能直接传递给主进程
-        //所以需要将 modInfo 转化为 json
-        const jsonModInfo = JSON.stringify(this.toJson(), null, 4);
-        //debug
-        console.log(`ModData.saveModInfo: ${this.name}`, this, jsonModInfo);
-        await ipcRenderer.invoke('save-mod-info', modSourcePath, jsonModInfo);
-    }
-
     public async saveModInfo() {
         // 改用 modInfo 的 saveMetaData 方法来保存 mod 信息
         await this.checkModSourcePath();

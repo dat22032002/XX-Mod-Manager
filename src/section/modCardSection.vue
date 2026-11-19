@@ -91,6 +91,25 @@
     </div>
 
 
+    <!-- TC16: hộp xác nhận đặt nhân vật hàng loạt -->
+    <dialogTemplate id="dialog-confirm-batch-character" type="block">
+        <template v-slot:content>
+            <h1 style="z-index: 1;">{{ $t('batchCharacter.title') }}</h1>
+            <p style="z-index: 1; text-align: center;">{{ $t('batchCharacter.message', { count: batchConfirmCount, name: batchConfirmName }) }}</p>
+        </template>
+        <template v-slot:action>
+            <s-button slot="action" type="text" id="dialog-cancel" class="OO-button font-hongmeng" style="margin-left: 20px;
+    margin-right: 20px;">
+                <p>{{ $t('buttons.cancel') }}</p>
+            </s-button>
+            <s-button slot="action" type="text" id="batch-character-confirm" @click="runBatchSetCharacter"
+                class="OO-button font-hongmeng OO-color-gradient" style="color: var(--s-color-dark-surface);margin-left: 20px;
+    margin-right: 20px;">
+                <p>{{ $t('buttons.confirm') }}</p>
+            </s-button>
+        </template>
+    </dialogTemplate>
+
     <svg width="0" height="0">
         <defs>
             <clipPath id="svgCircle">
@@ -102,17 +121,17 @@
 
 <script setup>
 import modCardManager from '../components/modCardManager.vue';
-import modCardManager2 from '../components/modCardManager2.vue';
 import leftMenu from '../components/leftMenu.vue';
 import modInfo from '../components/modInfo.vue';
-import { ref, onMounted, onUnmounted, useTemplateRef, watch, computed } from 'vue';
+import { ref, onUnmounted, useTemplateRef, watch, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import dialogTemplate from '../dialogs/dialogTemplate.vue';
 import IManager from '../../electron/IManager';
 import { g_temp_vue, g_config_vue, g_data_vue } from '../../electron/IManager';
 import fsProxy from '../../electron/fsProxy';
 const iManager = new IManager();
-import settingBar from '../components/settingBar.vue';
-import { EventType, EventSystem } from '../../helper/EventSystem';
-import { SnackType, t_snack } from '../../helper/SnackHelper';
+import { EventSystem } from '../../helper/EventSystem';
+import { SnackType, t_snack, snack } from '../../helper/SnackHelper';
 import { selectedModIdSet } from '../../helper/SelectedMods';
 
 const displayModRef = g_temp_vue.currentMod;
@@ -137,12 +156,21 @@ function handleRefreshButtonClicked() {
     iManager.refreshModList();
 }
 
+const { t } = useI18n();
+
 const targetCharacter = ref('');
+// TC16: dữ liệu cho hộp xác nhận đặt nhân vật hàng loạt.
+const batchConfirmCount = ref(0);
+const batchConfirmName = ref('');
+const batchConfirmIds = ref([]);
 function handleBatchSetCharacterButtonClicked(){
     console.log('batch set character button clicked', targetCharacter.value);
+    // TC16: cắt khoảng trắng thừa — tên toàn khoảng trắng trước đây vẫn qua
+    // được kiểm tra rỗng.
+    const newCharacter = targetCharacter.value.trim();
     const ModIds = selectedModIds();
 
-    if (!targetCharacter.value) {
+    if (!newCharacter) {
         t_snack({
             vi: 'Hãy nhập tên nhân vật',
             en: 'Please enter the character name',
@@ -158,17 +186,43 @@ function handleBatchSetCharacterButtonClicked(){
         console.error('selectedModIds is empty');
         return;
     }
-    ModIds.forEach(async modId => {
-        const ModData = await iManager.getModInfoById(modId);
-        //debug
-        console.log('ModData', ModData, targetCharacter.value);
-        console.log('TargetCharacter', targetCharacter.value);
-        if (ModData && targetCharacter.value) {
-            ModData.character = targetCharacter.value;
-            ModData.saveModInfo();
-            ModData.triggerChanged();
+    // TC16: hỏi xác nhận (ghi số mod + tên mới) trước khi ghi đè hàng loạt.
+    batchConfirmCount.value = ModIds.length;
+    batchConfirmName.value = newCharacter;
+    batchConfirmIds.value = ModIds;
+    iManager.showDialog('dialog-confirm-batch-character');
+}
+
+// TC16: chạy tuần tự, bắt lỗi từng mod, báo kết quả cuối. Trước đây dùng
+// forEach(async ...) không await/không try/catch nên lỗi từng mod bị nuốt
+// im và không có thông báo nào khi xong.
+async function runBatchSetCharacter(){
+    const newCharacter = batchConfirmName.value;
+    const ModIds = batchConfirmIds.value;
+    const failedMods = [];
+    let changedCount = 0;
+    for (const modId of ModIds) {
+        try {
+            const ModData = await iManager.getModInfoById(modId);
+            if (ModData) {
+                ModData.character = newCharacter;
+                await ModData.saveModInfo();
+                ModData.triggerChanged();
+                changedCount++;
+            } else {
+                failedMods.push(modId);
+            }
+        } catch (error) {
+            console.error('batch set character: failed to save mod', modId, error);
+            failedMods.push(modId);
         }
-    });
+    }
+    if (failedMods.length > 0) {
+        const names = failedMods.slice(0, 5).join(', ') + (failedMods.length > 5 ? ', …' : '');
+        snack(t('batchCharacter.doneWithFailures', { ok: changedCount, fail: failedMods.length, names }), 'error');
+    } else {
+        snack(t('batchCharacter.done', { count: changedCount }), 'success');
+    }
 }
 
 //-============================== Compact Mode ==============================

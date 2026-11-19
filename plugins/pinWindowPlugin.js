@@ -6,8 +6,17 @@ const pluginName = 'pinWindowPlugin'
 // 将该配置项 提升到全局，方便其他地方调用
 let currentPinState;
 
+// TC7: lưu tham chiếu tới nút ghim lúc tạo — khi tắt plugin chỉ xóa đúng nút
+// này. Trước đây dùng document.querySelector('.OO-button') nên xóa nhầm nút
+// đầu tiên có class đó (có thể là nút Apply hoặc nút xóa mod).
+let pinTooltipElement = null;
+
 // 添加置顶窗口按钮，点击后窗口置顶
 const addPinWindowButton = (iManager) => {
+    // Đã có nút ghim rồi thì không tạo thêm (tránh nhân đôi khi bật lại)
+    if (pinTooltipElement && pinTooltipElement.isConnected) {
+        return;
+    }
     // 创建一个按钮，仿照原有的按钮
     const pinButton = document.createElement('s-icon-button')
     pinButton.setAttribute('slot', 'trigger')
@@ -31,7 +40,8 @@ const addPinWindowButton = (iManager) => {
         console.warn('bottom-left not found')
         return
     }
-    buttons.appendChild(pinTooltip)
+    buttons.appendChild(pinTooltip);
+    pinTooltipElement = pinTooltip;
 
     // 添加点击事件
     pinButton.onclick = () => {
@@ -132,8 +142,12 @@ module.exports = {
                 if (value) {
                     addPinWindowButton(iManager)
                 } else {
-                    const pinButton = document.querySelector('.OO-button')
-                    pinButton.remove()
+                    // TC7: chỉ xóa đúng nút ghim đã lưu tham chiếu, không
+                    // querySelector '.OO-button' (xóa nhầm nút khác)
+                    if (pinTooltipElement) {
+                        pinTooltipElement.remove()
+                        pinTooltipElement = null
+                    }
                     setPinState(iManager, false)
                 }
             }

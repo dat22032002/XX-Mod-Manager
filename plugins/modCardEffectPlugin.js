@@ -33,8 +33,6 @@ const pluginName = 'modCardEffect';
 
 const fadeOutCss = (animationSpeed) => `
 .mod-item.hidden {
-    display: block !important;
-
     width: 0px !important;
     height: 0px !important;
     padding: 0px !important;
@@ -68,37 +66,39 @@ const modCardCss = (animationSpeed) => `
 }
 `;
 
-
-
-const modContainerCss = `
-#mod-container {
-    display: block !important;
-    height: fit-content;
-}
-`;
-
+// Bộ nghe hover đang gắn (dạng ủy quyền) + nơi nó gắn vào; null khi chưa bật.
+let hoverHandler = null;
+let hoverTarget = null;
 
 function addHoverEffect (document, iManager) {
-    document.querySelectorAll('.mod-item').forEach((item) => {
-        item.addEventListener('mouseover', () => {
-            const modName = item.getAttribute('name');
-            //debug
-            console.log('hoverSwitchCurrentCard:', modName);
-            // iManager.setLastClickedMod_ByName(modName);
-            iManager.setCurrentModByName(modName);
-        });
-    });
+    // Ủy quyền sự kiện: chỉ gắn MỘT bộ nghe trên khung chứa danh sách mod,
+    // dùng chung cho mọi thẻ — thẻ mới gắn thêm khi cuộn/lọc cũng có hiệu ứng.
+    // (Trước đây gắn 1 bộ nghe riêng cho từng thẻ đang hiện, thẻ mới không có.)
+    // Bộ nghe được lưu lại để khi tắt gỡ đúng hàm đó (trước đây gỡ bằng hàm
+    // mới tạo nên trình duyệt không gỡ được, bật/tắt nhiều lần còn nhân đôi).
+    if (hoverHandler) {
+        return;
+    }
+    hoverHandler = (event) => {
+        const item = event.target && event.target.closest ? event.target.closest('.mod-item') : null;
+        if (!item) {
+            return;
+        }
+        const modName = item.getAttribute('name');
+        //debug
+        console.log('hoverSwitchCurrentCard:', modName);
+        iManager.setCurrentModByName(modName);
+    };
+    hoverTarget = document.querySelector('#mod-container') || document;
+    hoverTarget.addEventListener('mouseover', hoverHandler);
 };
 function removeHoverEffect(document, iManager) {
-    document.querySelectorAll('.mod-item').forEach((item) => {
-        item.removeEventListener('mouseover', () => {
-            const modName = item.getAttribute('name');
-            //debug
-            console.log('hoverSwitchCurrentCard:', modName);
-            // iManager.setLastClickedMod_ByName(modName);
-            iManager.setCurrentModByName(modName);
-        });
-    });
+    if (!hoverHandler) {
+        return;
+    }
+    hoverTarget.removeEventListener('mouseover', hoverHandler);
+    hoverHandler = null;
+    hoverTarget = null;
 };
 
 
@@ -118,7 +118,6 @@ module.exports = {
                 const fadeOutSpeed = iManager.getPluginData(pluginName, 'fadeOutSpeed');
                 iManager.addCssWithHash(fadeOutCss(fadeOutSpeed));
                 iManager.addCssWithHash(modCardCss(fadeInSpeed));
-                iManager.addCssWithHash(modContainerCss);
             }
 
             let hoverSwitchCurrentCard = iManager.getPluginData(pluginName, 'hoverSwitchCurrentCard');
@@ -162,11 +161,9 @@ module.exports = {
                 if (value) {
                     iManager.addCssWithHash(fadeOutCss(fadeOutSpeed));
                     iManager.addCssWithHash(modCardCss(fadeInSpeed));
-                    iManager.addCssWithHash(modContainerCss);
                 } else {
                     iManager.removeCssWithHash(fadeOutCss(fadeOutSpeed));
                     iManager.removeCssWithHash(modCardCss(fadeInSpeed));
-                    iManager.removeCssWithHash(modContainerCss);
                 }
             }
         };
