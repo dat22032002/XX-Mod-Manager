@@ -262,7 +262,12 @@ defineExpose({
     box-sizing: border-box;
     padding: 0px 16px;
     border-radius: 8px;
-    background-color: var(--s-color-surface-container);
+    /* Nền phải nhìn thấy được: surface-container (8,8,8) gần như trùng màu
+       nền hàng (12,12,12) nên ô tìm kiếm chỉ còn thấy viền méo, phần nền
+       trông như nền thẳng. surface-container-low (34,34,34 — cùng tông
+       với các hàng cài đặt) để khối nền méo hiện rõ như viền.
+       (surface-container-high đo ra vẫn chỉ (11,11,11) nên không dùng.) */
+    background-color: var(--s-color-surface-container-low);
     border: 1px solid var(--s-color-outline-variant);
     overflow: hidden;
     /* Nghiêng như tag chip (-20deg); nội dung bên trong nghiêng ngược lại
