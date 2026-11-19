@@ -3,7 +3,7 @@
         :name="props.modRef.name" :character="props.modRef.character" @click="click" :compact="props.compactMode"
         @contextmenu.prevent.stop="openEditModDialog">
 
-        <div slot="image" style="height: 200px;" v-if="ifDisplayImage">
+        <div slot="image" style="height: calc(var(--card-width, 250px) * 0.8);" v-if="ifDisplayImage">
             <img id="editDialog-mod-info-image"
                 style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;" alt="Mod Image"
                 :src="img || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D'" @load="enterWindow" />
@@ -62,8 +62,7 @@ import { EventSystem, EventType } from '../../helper/EventSystem';
 import { TranslatedText } from '../../helper/Language';
 import { ModData } from '../../core/ModHelper';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
-import { selectedModIdSet, evictSameSlotMods, getModSlot } from '../../helper/SelectedMods';
-import { SnackType, t_snack } from '../../helper/SnackHelper';
+import { selectedModIdSet, toggleModSelection, toggleModPin } from '../../helper/SelectedMods';
 
 const displayHotKeysModes = {
     none: 0,
@@ -78,6 +77,10 @@ const props = defineProps({
     },
     lazyLoad: Boolean,
     compactMode: Boolean,
+    cardWidth: {
+        type: Number,
+        default: 250
+    },
     displayHotKeysMode: {
         type: Number,
         default: 1
@@ -127,28 +130,9 @@ const modItemRef = useTemplateRef('modItemRef');
 const emit = defineEmits(['click'])
 
 const click = (event) => {
-    const newClicked = !clicked.value;
-    // Keep the shared selection set in sync, so the selection survives
-    // unmounting (scrolling away) and preset/Apply always see every
-    // selected mod, mounted or not.
-    if (newClicked) {
-        // Mỗi nhân vật chỉ bật 1 mod mỗi loại (đồ/vũ khí/hiệu ứng): tắt mod
-        // cũ cùng nhân vật + cùng loại trước khi bật mod này, rồi báo rõ
-        // đã tắt mod nào để người dùng không bị bất ngờ.
-        const evicted = evictSameSlotMods(iManager.data.modList || [], props.modRef);
-        selectedModIdSet.add(props.modRef.id);
-        if (evicted.length > 0) {
-            const slotWords = { outfit: ['outfit', 'đồ'], weapon: ['weapon', 'vũ khí'], effect: ['effect', 'hiệu ứng'] };
-            const [slotEn, slotVi] = slotWords[getModSlot(props.modRef)];
-            const names = evicted.map(m => m.name).join(', ');
-            t_snack(new TranslatedText(
-                `Turned off ${names} — only one ${slotEn} mod per character can be on`,
-                `Đã tắt ${names} — mỗi nhân vật chỉ bật 1 mod ${slotVi} cùng lúc`
-            ), SnackType.info);
-        }
-    } else {
-        selectedModIdSet.delete(props.modRef.id);
-    }
+    // Chọn/bỏ chọn qua helper dùng chung với hàng danh sách (kèm luật
+    // 1 mod/1 loại + báo mod bị tắt).
+    const newClicked = toggleModSelection(iManager.data.modList || [], props.modRef);
     // Đồng bộ thuộc tính DOM ngay để CSS [clicked="true"] và playClickAnim
     // đọc đúng giá trị mới (binding :clicked của Vue chỉ cập nhật ở tick sau).
     modItemRef.value.setAttribute('clicked', newClicked);
@@ -178,14 +162,7 @@ const pinTitle = computed(() => props.modRef.pinned
     : new TranslatedText('Pin to top', 'Ghim lên đầu').get());
 
 const togglePin = async () => {
-    props.modRef.pinned = !props.modRef.pinned;
-    try {
-        await props.modRef.saveModInfo();
-    } catch (e) {
-        // Ghi lỗi thì trả lại trạng thái cũ để màn hình không lệch với file.
-        props.modRef.pinned = !props.modRef.pinned;
-        console.error('Failed to save pin state', e);
-    }
+    await toggleModPin(props.modRef);
 };
 
 function playClickAnim(modItem, event = null, rect = null) {
@@ -262,9 +239,11 @@ function playClickAnim(modItem, event = null, rect = null) {
 
 //-==================== compact mode ====================-//
 const enterCompactMode = (item) => {
+    const normalH = props.cardWidth * 1.4;
+    const compactH = props.cardWidth * 0.6;
     item.animate([
-        { height: '350px' },
-        { height: '150px' }
+        { height: `${normalH}px` },
+        { height: `${compactH}px` }
     ], {
         duration: 300,
         easing: 'ease-in-out',
@@ -276,7 +255,7 @@ const enterCompactMode = (item) => {
     item.childNodes.forEach(child => {
         if (child.slot == 'headline' || child.slot == 'subhead' || child.slot == 'text') {
             child.animate([
-                { transform: 'translateY(200px)' },
+                { transform: `translateY(${normalH - compactH}px)` },
                 { transform: 'translateY(0px)' }
             ], {
                 duration: 300,
@@ -300,9 +279,11 @@ const enterCompactMode = (item) => {
     });
 };
 const exitCompactMod = (item) => {
+    const normalH = props.cardWidth * 1.4;
+    const compactH = props.cardWidth * 0.6;
     item.animate([
-        { height: '150px' },
-        { height: '350px' }
+        { height: `${compactH}px` },
+        { height: `${normalH}px` }
     ], {
         duration: 300,
         easing: 'ease-in-out',
@@ -316,7 +297,7 @@ const exitCompactMod = (item) => {
     item.childNodes.forEach(child => {
         if (child.slot == 'headline' || child.slot == 'subhead' || child.slot == 'text') {
             child.animate([
-                { transform: 'translateY(-200px)' },
+                { transform: `translateY(-${normalH - compactH}px)` },
                 { transform: 'translateY(0px)' }
             ], {
                 duration: 300,
@@ -401,16 +382,21 @@ defineExpose({
 
 .mod-item {
     perspective: 500px;
-    width: 250px;
-    height: 350px;
+    /* Kích thước theo mức phóng to: biến --card-width đặt trên
+       #mod-container (mặc định 250px); cao = rộng × 1.4, ảnh = rộng × 0.8.
+       Sober s-card mặc định max-width 280px — bỏ giới hạn đó thì thẻ mới
+       phóng to được tới 300/350px. */
+    width: var(--card-width, 250px);
+    max-width: none;
+    height: calc(var(--card-width, 250px) * 1.4);
     margin-bottom: 0px;
     will-change: transform;
 
     transition: x, y 0.5s cubic-bezier(.36, -0.64, .34, 1.76);
 
     >div[slot="image"] {
-        width: 250px;
-        height: 200px;
+        width: var(--card-width, 250px);
+        height: calc(var(--card-width, 250px) * 0.8);
     }
 }
 
@@ -493,8 +479,8 @@ defineExpose({
 }
 
 .mod-item[compact="true"] {
-    width: 250px;
-    height: 150px;
+    width: var(--card-width, 250px);
+    height: calc(var(--card-width, 250px) * 0.6);
     transition: all 0.4s;
 }
 
