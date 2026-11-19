@@ -248,8 +248,8 @@ defineExpose({
     /* Không để khe: mép trái thanh tag đã nghiêng cùng góc 20° với ô
     tìm kiếm (xem .chip-radio-bar) nên hai mép song song, thanh tag có
     thể dí sát ô tìm kiếm mà không chèn lên nhau — Đạt muốn sát vào
-    (19/11). Thanh tag còn lấn trái thêm 7px bằng margin để tag đầu
-    ngồi sát ô tìm kiếm (~5px khe nhìn thấy được). */
+    (19/11). Thanh tag còn lấn trái thêm 7px bằng margin; tag đầu ngồi
+    cách ô tìm kiếm ~9px (đủ nhìn thấy khe, xem padding-left ở dưới). */
     gap: 0;
 }
 
@@ -316,22 +316,27 @@ defineExpose({
     overflow-y: hidden;
     position: relative;
     height: fit-content;
-    padding: 3px 10px;
+    /* Lề trái 16px: tag đầu (lúc chưa kéo) ngồi cách ô tìm kiếm ~9px,
+       vừa đủ nhìn thấy khe mà vẫn sát như Đạt muốn; đồng thời giữ tag
+       đầu nằm phải đường cắt nghiêng ở dưới (nó cách đường cắt 3px). */
+    padding: 3px 10px 3px 16px;
     flex: 1;
     min-width: 0;
     min-height: 35px;
-    /* Lấn trái 7px vào ô tìm kiếm: cùng với gap 0 ở .filter-row, tag
-       đầu ngồi cách ô tìm kiếm ~5px. Mép cắt nghiêng vẫn song song với
+    /* Lấn trái 7px vào ô tìm kiếm: cùng với gap 0 ở .filter-row, mép
+       thanh tag dí sát ô tìm kiếm. Mép cắt nghiêng vẫn song song với
        mép phải ô tìm kiếm nên không chèn lên nhau. */
     margin-left: -7px;
-    /* Mép trái nghiêng theo ô tìm kiếm: ô nghiêng 20° nên mép phải của
-       nó lệch trái dần xuống dưới, trong khi mép trái thẳng đứng của
-       thanh tag làm khe giữa hai bên thành hình nêm (trên hẹp ~14px,
-       dưới rộng ~22px) — nhìn như vệt đen. Cắt mép trái thanh tag theo
-       cùng góc 20° (thanh cao 41px → lệch 15px, chia đều hai đầu quanh
-       tâm) để khe đều ~18px suốt chiều cao. Tag đầu lúc chưa kéo vẫn
-       hiện đủ (mép trái của nó nằm phải đường cắt). */
-    clip-path: polygon(7.5px 0, 100% 0, 100% 100%, -7.5px 100%);
+    /* Mép trái cắt nghiêng theo ô tìm kiếm (cùng góc 20°): khi lăn
+       chuột, tag trượt vào từ phải bị cắt theo đường này, trông như
+       chui ra sau mép ô tìm kiếm. Đường cắt nằm cách mép phải ô tìm
+       kiếm 6px suốt chiều cao — đủ nhìn thấy khe. Đường cắt cũ
+       (7.5px/-7.5px) tính cho thời khe còn 18px; từ khi thanh dí sát
+       ô (1.5.13) nó trùng gần như đúng mép ô (chỉ 0.5px ở mép trên)
+       nên tag lúc lăn trông như dí sát vào ô. Tag đầu lúc chưa kéo
+       vẫn hiện đủ (mép trái của nó nằm phải đường cắt 3px nhờ lề
+       trái 16px ở trên). */
+    clip-path: polygon(14px 0, 100% 0, 100% 100%, -1px 100%);
 
     >* {
         margin-right: 5px;
