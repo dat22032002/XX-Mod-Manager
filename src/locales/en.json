@@ -195,6 +195,13 @@
     "messageRecycle": "Move mod “{name}” to the recycle bin? You can still restore it from the recycleBin folder inside your mod library.",
     "messagePermanent": "Permanently delete mod “{name}”? This cannot be undone."
   },
+  "conflictDialog": {
+    "title": "Mods conflict",
+    "message": "These mods change the same game asset. Applying both may make one of them stop working.",
+    "itemTexture": "“{modA}” and “{modB}” both change the same texture (code {hash})",
+    "itemShader": "“{modA}” and “{modB}” both change the same shader (code {hash})",
+    "applyAnyway": "Apply anyway"
+  },
   "batchCharacter": {
     "title": "Set character for multiple mods",
     "message": "Set the character to “{name}” for {count} selected mods?",

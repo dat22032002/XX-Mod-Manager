@@ -45,6 +45,8 @@ enum EventType {
     pluginDisabled = 'pluginDisabled',
     // TC8: người dùng đã xác nhận xóa mod trong hộp dialogConfirmDeleteMod
     deleteModConfirmed = 'deleteModConfirmed',
+    // Người dùng đã bấm "Vẫn áp dụng" trong hộp cảnh báo mod đụng nhau
+    applyConflictsConfirmed = 'applyConflictsConfirmed',
     currentTabChanged = "currentTabChanged",
     //----------窗口相关----------
     windowBlur = 'windowBlur',
