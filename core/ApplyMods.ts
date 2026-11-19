@@ -182,6 +182,30 @@ function renameModFolder(mod: ModInfo, newName: string, result: ApplyResult, cou
     }
 }
 
+// Chia toàn bộ mod thành 2 tập để áp dụng: tập chưa chọn (cần gỡ) và tập
+// vừa chọn vừa có trong danh sách (cần áp dụng). selectedMods luôn là tập
+// con của allMod vì getModByID chỉ tra trong modsRaw, nên không có trường
+// hợp mod được chọn mà không nằm trong allMod.
+function resolveApplySets(modIds: string[]): { notInSelectedMods: ModInfo[]; inBoth: ModInfo[] } {
+    const allMod = ModLoader.modsRaw;
+
+    const selectedMods = modIds.map((modId) => {
+        const mod = ModLoader.getModByID(modId);
+        return mod ? mod : null;
+    }).filter(mod => mod !== null) as ModInfo[];
+
+    console.log('selectedMods', selectedMods);
+
+    const notInSelectedMods = allMod.filter(mod => !selectedMods.includes(mod));
+    const inBoth = selectedMods.filter(mod => allMod.includes(mod));
+
+    // debug
+    console.log('notInSelectedMods', notInSelectedMods);
+    console.log('inBoth', inBoth);
+
+    return { notInSelectedMods, inBoth };
+}
+
 async function applyMods(
     modIds: string[],
     modSourcePath: string,
@@ -243,32 +267,7 @@ async function applyMods(
     
 
     // await ModLoader.loadMods();
-    const allMod = ModLoader.modsRaw;
-    
-    const selectedMods = modIds.map((modId) => {
-        const mod = ModLoader.getModByID(modId);
-        return mod ? mod : null;
-    }).filter(mod => mod !== null) as ModInfo[];
-
-    console.log('selectedMods', selectedMods);
-
-    // 计算三个值：
-    // 1. 在allMod中没有但是存在于selectedMods中的mod
-    // 2. 在allMod中存在但是不存在于selectedMods中的mod
-    // 3. 在allMod中和selectedMods中都存在的mod
-    const notInAllMod = selectedMods.filter(mod => !allMod.includes(mod));
-    const notInSelectedMods = allMod.filter(mod => !selectedMods.includes(mod));
-    const inBoth = selectedMods.filter(mod => allMod.includes(mod));
-
-    // debug
-    console.log('notInAllMod', notInAllMod);
-    console.log('notInSelectedMods', notInSelectedMods);
-    console.log('inBoth', inBoth);
-
-    // 如果有不在allMod中的mod，抛出错误
-    if (notInAllMod.length > 0) {
-        throw new Error(`The following mods are not in allMod: ${notInAllMod.map(mod => mod.modName).join(', ')}`);
-    }
+    const { notInSelectedMods, inBoth } = resolveApplySets(modIds);
 
     const result = emptyResult();
     const total = notInSelectedMods.length + inBoth.length;
@@ -323,32 +322,7 @@ async function applyModsTranditional(
     }
 
     // await ModLoader.loadMods();
-    const allMod = ModLoader.modsRaw;
-
-    const selectedMods = modIds.map((modId) => {
-        const mod = ModLoader.getModByID(modId);
-        return mod ? mod : null;
-    }).filter(mod => mod !== null) as ModInfo[];
-
-    console.log('selectedMods', selectedMods);
-
-    // 计算三个值：
-    // 1. 在allMod中没有但是存在于selectedMods中的mod
-    // 2. 在allMod中存在但是不存在于selectedMods中的mod
-    // 3. 在allMod中和selectedMods中都存在的mod
-    const notInAllMod = selectedMods.filter(mod => !allMod.includes(mod));
-    const notInSelectedMods = allMod.filter(mod => !selectedMods.includes(mod));
-    const inBoth = selectedMods.filter(mod => allMod.includes(mod));
-
-    // debug
-    console.log('notInAllMod', notInAllMod);
-    console.log('notInSelectedMods', notInSelectedMods);
-    console.log('inBoth', inBoth);
-
-    // 如果有不在allMod中的mod，抛出错误
-    if (notInAllMod.length > 0) {
-        throw new Error(`The following mods are not in allMod: ${notInAllMod.map(mod => mod.modName).join(', ')}`);
-    }
+    const { notInSelectedMods, inBoth } = resolveApplySets(modIds);
 
     const result = emptyResult();
     const total = notInSelectedMods.length + inBoth.length;

@@ -57,37 +57,47 @@
     <dialogApplyResult />
     <dialogConfirmReset />
     <dialogConfirmClose />
+    <dialogConfirmDeleteMod />
+    <dialogUpdateAvailable />
+    <dialogUpdateDownloaded />
 </template>
 
 <script setup>
 import { ref} from 'vue';
 
-import modCardSection from '../section/modCardSection.vue';
-import sectionSelector from '../components/sectionSelector.vue';
-import dialogAddPreset from '../dialogs/dialogAddPreset.vue';
-import settingSection from '../section/settingSection.vue'; 
-import CssProxy from '../components/cssProxy.vue';
-import dialogModInfo2 from '../dialogs/dialogModInfo2.vue';
-import helpSection from '../section/helpSection.vue';
-import dialogLoading from '../dialogs/dialogLoading.vue';
-import dialogEnterPassword from '../dialogs/dialogEnterPassword.vue';
-import dialogApplyResult from '../dialogs/dialogApplyResult.vue';
-import dialogConfirmReset from '../dialogs/dialogConfirmReset.vue';
-import dialogConfirmClose from '../dialogs/dialogConfirmClose.vue';
+import modCardSection from './section/modCardSection.vue';
+import sectionSelector from './components/sectionSelector.vue';
+import dialogAddPreset from './dialogs/dialogAddPreset.vue';
+import settingSection from './section/settingSection.vue'; 
+import CssProxy from './components/cssProxy.vue';
+import dialogModInfo2 from './dialogs/dialogModInfo2.vue';
+import helpSection from './section/helpSection.vue';
+import dialogLoading from './dialogs/dialogLoading.vue';
+import dialogEnterPassword from './dialogs/dialogEnterPassword.vue';
+import dialogApplyResult from './dialogs/dialogApplyResult.vue';
+import dialogConfirmReset from './dialogs/dialogConfirmReset.vue';
+import dialogConfirmClose from './dialogs/dialogConfirmClose.vue';
+import dialogConfirmDeleteMod from './dialogs/dialogConfirmDeleteMod.vue';
+import dialogUpdateAvailable from './dialogs/dialogUpdateAvailable.vue';
+import dialogUpdateDownloaded from './dialogs/dialogUpdateDownloaded.vue';
 
-import DialogNeedRefresh from '../dialogs/dialogNeedRefresh.vue';
-import { EventSystem } from '../../helper/EventSystem';
+import DialogNeedRefresh from './dialogs/dialogNeedRefresh.vue';
+import { EventSystem } from '../helper/EventSystem';
+
+// Nghe sự kiện cập nhật từ tiến trình chính (có bản mới -> mở hộp hỏi).
+import { initUpdateListener } from '../helper/UpdateHelper';
+initUpdateListener();
 
 const loaded = ref(false);
 
-// import IManager from '../../electron/IManager';
+// import IManager from '../electron/IManager';
 // const iManager = new IManager();
 // 这里不需要 iManager 实例，直接通过waitInit 获取
 
-import { waitInitIManager } from '../../electron/IManager';
-import IManager from '../../electron/IManager';
+import { waitInitIManager } from '../electron/IManager';
+import IManager from '../electron/IManager';
 
-import { g_temp_vue } from '../../electron/IManager';
+import { g_temp_vue } from '../electron/IManager';
 const currentMod = g_temp_vue.currentMod;
 
 const sections = ref(['mod', 'help', 'settings']);

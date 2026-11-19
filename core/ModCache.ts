@@ -23,6 +23,7 @@
 // the next launch simply scans again — the cache is a pure optimization.
 import XXMMCore from './XXMMCore';
 import { EventSystem, EventType } from '../helper/EventSystem';
+import { writeFileAtomic } from '../helper/SafeWrite';
 
 const fs = require('fs');
 const path = require('path');
@@ -181,7 +182,9 @@ class ModCache {
             if (epoch !== this.writeEpoch) {
                 return;
             }
-            return fs.promises.writeFile(cachePath, snapshot, 'utf8');
+            // TC5: ghi cache qua file tạm rồi đổi tên (bản bất đồng bộ,
+            // vẫn nối đuôi nhau qua writeChain như trước).
+            return writeFileAtomic(cachePath, snapshot, 'utf8');
         }).catch((e) => {
             // A failed cache write must not break the app; next launch
             // simply scans again.

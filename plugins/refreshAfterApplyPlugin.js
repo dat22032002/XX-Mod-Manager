@@ -61,21 +61,49 @@ const refreshInGame = async (iManager) => {
         // ZZZ wont accept any keys if the manager is not run as admin.
         // ZZZ wont accept virtual keys, only accepts direct input keys.
         // Here is the trick to get ZZZ to register the VK input without admin:
-        // 1. Press the F10 Key down on the manager
-        HMC.sendKeyboard(VisualKey, true);
-        // 2. Set focus on ZZZ window
-        window.setFocus(true);
-        // 3. Wait a reasonable amount of time for the key to register
-        await sleep(75);
-        // 4. Set focus on the Manager window
-        manager.setFocus(true);
-        // 5. Wait again for the window
-        await sleep(50);
-        // 6. Release the F10 Key
-        HMC.sendKeyboard(VisualKey, false);
-        // 7. Set focus on ZZZ window again
-        window.setFocus(true);
-        return 1;
+        // TC25: bọc toàn bộ trong try/finally — lỗi ở bước giữa (vd setFocus
+        // văng) thì phím vẫn được nhả + focus trả về app, không kẹt phím F10
+        // trong game. Thành công thì giữ nguyên hành vi cũ (focus ở lại game).
+        let keyDown = false;
+        let succeeded = false;
+        try {
+            // 1. Press the F10 Key down on the manager
+            HMC.sendKeyboard(VisualKey, true);
+            keyDown = true;
+            // 2. Set focus on ZZZ window
+            window.setFocus(true);
+            // 3. Wait a reasonable amount of time for the key to register
+            await sleep(75);
+            // 4. Set focus on the Manager window
+            manager.setFocus(true);
+            // 5. Wait again for the window
+            await sleep(50);
+            // 6. Release the F10 Key
+            HMC.sendKeyboard(VisualKey, false);
+            keyDown = false;
+            // 7. Set focus on ZZZ window again
+            window.setFocus(true);
+            succeeded = true;
+            return 1;
+        } catch (error) {
+            console.error('refreshInGame failed:', error);
+            return 0;
+        } finally {
+            if (keyDown) {
+                try {
+                    HMC.sendKeyboard(VisualKey, false);
+                } catch (e) {
+                    console.error('refreshInGame: failed to release key:', e);
+                }
+            }
+            if (!succeeded) {
+                try {
+                    manager.setFocus(true);
+                } catch (e) {
+                    console.error('refreshInGame: failed to restore focus:', e);
+                }
+            }
+        }
     }
     return 0;
 }

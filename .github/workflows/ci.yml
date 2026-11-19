@@ -39,5 +39,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: xx-mod-manager-windows
-          path: build/*.zip
+          path: |
+            build/*.zip
+            build/*.exe
           if-no-files-found: error

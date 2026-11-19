@@ -47,7 +47,6 @@ watch(currentCharacter, (newVal) => {
         //debug
         console.log('currentCharacter changed:', newVal);
         characterFilterRef.value.selectItemByName(newVal);
-        changeFilter(newVal);
         // Snapshot the selection when the 'selected' filter is applied, so
         // the list behaves as before: toggling a card while viewing
         // 'selected' does not make it vanish until the filter is re-applied.
@@ -204,16 +203,6 @@ const loadMods = async () => {
         selectedSnapshot.value = new Set(selectedModIdSet);
     }
 
-    // 检查是否选择了角色，如果选择了角色，则筛选角色
-    // 这里再刷新一次的原因是，因为 mod卡片全部重新加载了之后，之前的筛选就失效了
-    // debug
-    console.log('changeFilter to currentCharacter:', currentCharacter.value);
-    if (currentCharacter.value) {
-        setTimeout(() => {
-            changeFilter(currentCharacter.value);
-        }, 0);
-    }
-
     //debug
     console.log(`❇️❇️❇️❇️❇️❇️❇️\nsuccess load mods, mod count: ${mods.value.length}, character count: ${characters.value.length}`);
 
@@ -229,35 +218,21 @@ const setModCardRef = (id) => (el) => {
     modCardRefs.value[id] = el;
 };
 
-let wasSearching = false;
 // 定义 handleFilterChange 方法
 const handleFilterChange = (character) => {
     // A character chip was clicked: any active search is over.
     searchText.value = '';
-    wasSearching = false;
     iManager.setCurrentCharacter(character);
 };
 
 const handleFilterChangeToAll = () => {
     iManager.setCurrentCharacter('all');
     searchText.value = '';
-    if (wasSearching) {
-        wasSearching = false;
-        changeFilterToSearch('');
-    } else {
-        changeFilter('all');
-    }
 };
 
 const handleFilterChangeToSelected = () => {
     iManager.setCurrentCharacter('selected');
     searchText.value = '';
-    if (wasSearching) {
-        wasSearching = false;
-        changeFilterToSearch('');
-    } else {
-        changeFilter('selected');
-    }
 };
 
 const handleFilterChangeToSearch = (search) => {
@@ -267,7 +242,6 @@ const handleFilterChangeToSearch = (search) => {
         // Without this reset, filteredMods would fall back to the previous
         // character filter and the list would not show everything.
         searchText.value = '';
-        wasSearching = false;
         iManager.setCurrentCharacter('all');
         return;
     }
@@ -278,96 +252,25 @@ const handleFilterChangeToSearch = (search) => {
     // iManager.setCurrentCharacter('all');
     // 但是筛选并不按照currentCharacter来筛选，而是按照搜索的内容来筛选
     changeFilterToSearch(search);
-    wasSearching = true;
 };
 
 async function changeFilterToSearch(search){
-    // 筛选出所有 mod-item 元素
-    const modItems = document.querySelectorAll('.mod-item');
-    // 如果搜索内容为空，则显示所有 mod-item 元素
-    if (search === '') {
-        modItems.forEach(item => {
-            item.classList.remove('hidden');
-        });
-        return;
-    }
+    // Lọc danh sách thật nằm ở filteredMods (theo searchText); hàm này chỉ
+    // chuyển chip đang chọn khi từ khóa khớp đúng 1 nhân vật, để thanh
+    // trượt trong hàng phím lọc theo kịp từ khóa tìm kiếm.
     // 搜索不区分大小写：统一转小写再比较
-    const keyword = search.trim().toLowerCase();
+    const keyword = (search || '').trim().toLowerCase();
     if (keyword === '') {
-        modItems.forEach(item => {
-            item.classList.remove('hidden');
-        });
         return;
     }
     // 只按角色名称的开头几个字母匹配
     const characterList = g_data_vue.characterList;
     const characterNames = (characterList && characterList.value) || [];
     const matched = characterNames.filter(name => name && name.toLowerCase().startsWith(keyword));
-    // 开头字母撞到 0 个或多个角色时，什么都不显示
-    if (matched.length !== 1) {
-        modItems.forEach(item => {
-            item.classList.add('hidden');
-        });
-        return;
-    }
     // 唯一匹配：像点击该角色标签一样选中它，显示该角色的 mod
-    iManager.setCurrentCharacter(matched[0]);
-}
-
-async function changeFilter(character) {
-    // 通过设置 card 的 class 属性来实现筛选
-
-    //debug
-    console.log('changeFilter', character);
-    if (character === 'all') {
-        // for (const [key, value] of Object.entries(modCardRefs.value)) {
-        //     if (!value) continue;
-        //     value.$el.classList.remove('hidden');
-        // }
-        // 使用querySelectorAll 会比遍历快很多
-        document.querySelectorAll('.mod-item.hidden').forEach(item => {
-            item.classList.remove('hidden');
-        });
-    } else if (character === 'selected') {
-        // for (const [key, value] of Object.entries(modCardRefs.value)) {
-        //     if (!value) continue;
-        //     if (value.$el.getAttribute('clicked') === 'true') {
-        //         value.$el.classList.remove('hidden');
-        //     } else {
-        //         value.$el.classList.add('hidden');
-        //     }
-        // }
-        document.querySelectorAll('.mod-item').forEach(item => {
-            if (item.getAttribute('clicked') === 'true') {
-                item.classList.remove('hidden');
-            } else {
-                item.classList.add('hidden');
-            }
-        });
-    } else {
-        // for (const [key, value] of Object.entries(modCardRefs.value)) {
-        //     if (!value) continue;
-        //     if (value.$props.character === character) {
-        //         value.$el.classList.remove('hidden');
-        //     } else {
-        //         value.$el.classList.add('hidden');
-        //     }
-        // }
-
-        // return;
-        document.querySelectorAll('.mod-item').forEach(item => {
-            item.classList.add('hidden');
-        });
-        document.querySelectorAll(`.mod-item[character="${character}"]`).forEach(item => {
-            item.classList.remove('hidden');
-        });
+    if (matched.length === 1) {
+        iManager.setCurrentCharacter(matched[0]);
     }
-
-    // 重新触发 observer
-    // observeMods();
-    // 它必须要有一个“进入视口”的动作，否则不会触发 observer
-    // 为了触发 observer，我们可以手动触发一次滚动事件
-    window.dispatchEvent(new Event('scroll'));
 }
 
 
@@ -375,18 +278,11 @@ async function changeFilter(character) {
 async function loadPreset(presetName) {
     const preset = await iManager.loadPreset(presetName);
     const mods = preset?.getModIds() || [];
-    // Record the preset's selection up front. Cards that are not mounted
-    // (scrolled out of view) read this when they mount, so the preset still
-    // applies to them; mounted cards are flipped below as before.
+    // Record the preset's selection up front. Cards read this shared set
+    // (modCard's `clicked` is a computed over it), so mounted cards update
+    // on their own and cards that are not mounted yet still get the
+    // preset's selection when they mount — no card-clicking loop needed.
     setSelectedModIds(mods);
-    //遍历modCardRefs，如果 满足 mods.includes(mod.name) ^ mod.clicked 则调用click
-    for (const [key, value] of Object.entries(modCardRefs.value)) {
-        if (!value) continue;
-        const clicked = value.$el.getAttribute('clicked') == 'true';
-        if (mods.includes(key) ^ clicked) {
-            value.click();
-        }
-    }
 
     //debug
     console.log('loadPreset', presetName);
