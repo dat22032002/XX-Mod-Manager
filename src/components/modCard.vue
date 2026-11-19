@@ -62,7 +62,8 @@ import { EventSystem, EventType } from '../../helper/EventSystem';
 import { TranslatedText } from '../../helper/Language';
 import { ModData } from '../../core/ModHelper';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
-import { selectedModIdSet } from '../../helper/SelectedMods';
+import { selectedModIdSet, evictSameSlotMods, getModSlot } from '../../helper/SelectedMods';
+import { SnackType, t_snack } from '../../helper/SnackHelper';
 
 const displayHotKeysModes = {
     none: 0,
@@ -131,7 +132,20 @@ const click = (event) => {
     // unmounting (scrolling away) and preset/Apply always see every
     // selected mod, mounted or not.
     if (newClicked) {
+        // Mỗi nhân vật chỉ bật 1 mod mỗi loại (đồ/vũ khí/hiệu ứng): tắt mod
+        // cũ cùng nhân vật + cùng loại trước khi bật mod này, rồi báo rõ
+        // đã tắt mod nào để người dùng không bị bất ngờ.
+        const evicted = evictSameSlotMods(iManager.data.modList || [], props.modRef);
         selectedModIdSet.add(props.modRef.id);
+        if (evicted.length > 0) {
+            const slotWords = { outfit: ['outfit', 'đồ'], weapon: ['weapon', 'vũ khí'], effect: ['effect', 'hiệu ứng'] };
+            const [slotEn, slotVi] = slotWords[getModSlot(props.modRef)];
+            const names = evicted.map(m => m.name).join(', ');
+            t_snack(new TranslatedText(
+                `Turned off ${names} — only one ${slotEn} mod per character can be on`,
+                `Đã tắt ${names} — mỗi nhân vật chỉ bật 1 mod ${slotVi} cùng lúc`
+            ), SnackType.info);
+        }
     } else {
         selectedModIdSet.delete(props.modRef.id);
     }
