@@ -447,14 +447,14 @@ const animate = new Group();
 const modContainerRef = useTemplateRef('modContainerRef');
 
 // Chiều cao 1 hàng theo kiểu thẻ: dọc = rộng × 1.4 (gọn × 0.6) như cũ;
-// ngang = rộng × 250/350 (gọn × 0.45). Phải khớp CSS .mod-item không lưới
+// ngang = rộng × 280/350 (gọn × 0.45). Phải khớp CSS .mod-item không lưới
 // sẽ lệch.
 function targetRowHeight() {
     const w = effectiveCardWidth.value;
     if (props.cardLayout === 'vertical') {
         return props.compactMode ? w * 0.6 : w * 1.4;
     }
-    return props.compactMode ? w * 0.45 : w * 250 / 350;
+    return props.compactMode ? w * 0.45 : w * 280 / 350;
 }
 
 // Đặt chiều cao hàng ngay (lúc đổi mức phóng to).
@@ -623,7 +623,7 @@ defineExpose({
     grid-column-end: auto;
     grid-template-columns: repeat(auto-fill, var(--card-width, 350px));
     grid-row-end: auto;
-    grid-auto-rows: calc(var(--card-width, 350px) * 250 / 350);
+    grid-auto-rows: calc(var(--card-width, 350px) * 280 / 350);
     gap: 12px;
     /* Căn giữa khối thẻ: chiều rộng vùng hiển thị hiếm khi chia hết cho
        (rộng thẻ + khe) nên luôn thừa một khoảng; để start thì khoảng

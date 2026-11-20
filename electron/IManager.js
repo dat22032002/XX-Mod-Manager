@@ -217,7 +217,7 @@ class IManager {
         },
         ifUseTraditionalApply: false, // 是否使用传统的应用方式
         cardWidth: 350, // Chiều rộng thẻ ở dạng lưới (dọc 100–350 / ngang 200–450)
-        cardLayout: 'horizontal', // Kiểu thẻ: 'vertical' (dọc 250×350) hay 'horizontal' (ngang 350×250)
+        cardLayout: 'horizontal', // Kiểu thẻ: 'vertical' (dọc 250×350) hay 'horizontal' (ngang 350×280)
         modTypeFilter: 'all', // Lọc theo loại mod: all/outfit/weapon/effect
         modSortBy: 'default', // Sắp xếp mod: default/name-asc/name-desc/time-desc/time-asc
     };

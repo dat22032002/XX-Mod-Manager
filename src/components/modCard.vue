@@ -271,11 +271,11 @@ function playClickAnim(modItem, event = null, rect = null) {
 }
 
 //-==================== compact mode ====================-//
-// Tỉ lệ cao/rộng theo kiểu thẻ (dọc 1.4 / gọn 0.6 như cũ; ngang 250/350
+// Tỉ lệ cao/rộng theo kiểu thẻ (dọc 1.4 / gọn 0.6 như cũ; ngang 280/350
 // / gọn 0.45) — hiệu ứng gọn/phồng dùng tỉ lệ này, phải khớp CSS.
 const layoutRatios = computed(() => props.cardLayout === 'vertical'
     ? { normal: 1.4, compact: 0.6 }
-    : { normal: 250 / 350, compact: 0.45 });
+    : { normal: 280 / 350, compact: 0.45 });
 
 const enterCompactMode = (item) => {
     const normalH = props.cardWidth * layoutRatios.value.normal;
@@ -440,14 +440,14 @@ defineExpose({
 .mod-item {
     perspective: 500px;
     /* Kích thước theo mức phóng to: biến --card-width đặt trên
-       #mod-container (mặc định 350px); ngang: cao = rộng × 250/350,
-       ảnh = rộng × 0.5 (thẻ 350×250 — Đạt dặn 20/11); dọc thì xem
+       #mod-container (mặc định 350px); ngang: cao = rộng × 280/350,
+       ảnh = rộng × 0.5 (thẻ 350×280 — Đạt dặn 20/11); dọc thì xem
        .mod-item[data-layout="vertical"] bên dưới (250×350 như cũ).
        Sober s-card mặc định max-width 280px — bỏ giới hạn đó thì thẻ mới
        phóng to được tới 450px. */
     width: var(--card-width, 350px);
     max-width: none;
-    height: calc(var(--card-width, 350px) * 250 / 350);
+    height: calc(var(--card-width, 350px) * 280 / 350);
     margin-bottom: 0px;
     will-change: transform;
 
@@ -531,9 +531,9 @@ defineExpose({
 
 
 .mod-item #mod-item-text {
-    /* Ngang: ~30px ở rộng 350 (250 − ảnh 175 − tên ~45); dọc 100px như
+    /* Ngang: ~60px ở rộng 350 (280 − ảnh 175 − tên ~45); dọc 100px như
        cũ (xem rule .mod-item[data-layout="vertical"] bên dưới). */
-    height: calc(var(--card-width, 350px) * 0.086);
+    height: calc(var(--card-width, 350px) * 0.171);
     /* margin-top âm cũ (-10px) dùng để kéo sát vào dòng tên nhân vật
        phía trên; bỏ dòng đó rồi thì kéo âm làm mô tả chồng lên tên. */
     margin-top: 0;

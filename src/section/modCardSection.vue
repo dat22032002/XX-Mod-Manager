@@ -430,7 +430,7 @@ function handleCompactButtonClicked() {
 //#region Zoom
 // Kiểu thẻ + mức phóng to (chiều rộng thẻ, px). Dọc: 100–350, 250 là cỡ
 // gốc = 100% (thẻ 250×350 như cũ). Ngang: 200–450, 350 là cỡ gốc = 100%
-// (thẻ 350×250 — Đạt dặn 20/11).
+// (thẻ 350×280 — Đạt dặn 20/11).
 // Đọc qua g_config_vue (ref phản ứng): lúc mở app, loadConfig ghi giá trị
 // đã lưu vào đây, khung lưới tự cập nhật theo. Ghi thì đi qua Proxy
 // iManager.config để _config + ref cùng đổi (ghi thẳng vào ref thì file
