@@ -4,11 +4,12 @@
 //
 // Luật bật/tắt theo tag (1 mod/nhân vật): Character, Weapon, Effect
 // mỗi nhân vật chỉ bật 1 (bật mod mới thì mod cũ cùng tag tự tắt);
-// Skin và Accessory bật bao nhiêu cũng được.
+// Skin, Accessory và ETC bật bao nhiêu cũng được. ETC dành cho mod
+// linh tinh không thuộc 5 loại kia (mod UI, mod NPC... — Đạt dặn 20/11).
 
-export type ModTag = 'character' | 'skin' | 'weapon' | 'effect' | 'accessory';
+export type ModTag = 'character' | 'skin' | 'weapon' | 'effect' | 'accessory' | 'etc';
 
-export const MOD_TAGS: ModTag[] = ['character', 'skin', 'weapon', 'effect', 'accessory'];
+export const MOD_TAGS: ModTag[] = ['character', 'skin', 'weapon', 'effect', 'accessory', 'etc'];
 
 // Tag "độc quyền": mỗi nhân vật chỉ bật 1 mod tag này cùng lúc.
 const EXCLUSIVE_TAGS: ReadonlySet<ModTag> = new Set(['character', 'weapon', 'effect']);

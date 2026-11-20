@@ -244,7 +244,7 @@ const handleModNameChange = (event) => {
 }
 
 //-==================== chọn tag mod ====================//
-// 5 tag có sẵn (ModTag), hiển thị bằng chipRadioBar giống hàng lọc.
+// 6 tag có sẵn (ModTag), hiển thị bằng chipRadioBar giống hàng lọc.
 // Thanh vàng của thanh chip đo theo kích thước chip nên lúc hộp mới mở
 // (hộp còn ẩn, chip đo được 0) phải đo lại sau 2 khung hình — xem bộ
 // nghe 'show' ở dưới.
