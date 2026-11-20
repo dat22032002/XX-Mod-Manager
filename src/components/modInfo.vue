@@ -1,37 +1,36 @@
 <template>
     <div class="mod-info-card OO-box" ref="modInfoRef">
         <div class="mod-title">{{ props.mod ? props.mod.name : $t('modInfo.emptyTitle') }}</div>
-        <div class="mod-image" @click="openShowcase" style="cursor: pointer;">
-            <img style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;"
-                :alt="t('mod-image')" :src="img" />
-            <!-- Viên con nhộng tag: tên nhân vật + loại mod, nền đen, căn
-                 giữa dưới hình (Đạt dặn 20/11) — nằm trong khu hình nên
-                 lăn chuột không làm mất. Bấm vào tag thì không mở ảnh. -->
-            <div v-if="props.mod" class="mod-tag-capsule" @click.stop>
+        <!-- Khung trên: ảnh + tag (Đạt dặn 20/11 — tách khung phải
+             thành 2 khung nhỏ). Tag nằm DƯỚI hình, nền xám giống ô
+             tìm kiếm; phím tắt ở khung dưới riêng nên không đè lên tag. -->
+        <div class="mod-panel-top OO-box">
+            <div class="mod-image" @click="openShowcase" style="cursor: pointer;">
+                <img style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;"
+                    :alt="t('mod-image')" :src="img" />
+            </div>
+            <div v-if="props.mod" class="mod-tag-capsule">
                 <span>{{ props.mod.character }}</span>
                 <span class="mod-tag-divider"></span>
                 <span>{{ t(`modTag.${props.mod.tag || 'character'}`) }}</span>
             </div>
         </div>
 
-        <s-scroll-view class="mod-info-content">
+        <!-- Khung dưới: chỉ có phím tắt (Đạt dặn 20/11 — bỏ phần mô tả
+             khỏi khung phải; mô tả vẫn sửa được trong hộp Sửa thông tin).
+             Tiêu đề cố định trên, danh sách lăn bên dưới. -->
+        <div class="mod-panel-bottom OO-box">
             <h4 v-if="props.mod && props.mod.hotkeys && props.mod.hotkeys.length > 0"> {{ $t('modInfo.hotkeys') }}</h4>
-            <div id="hotkey-container" class="OO-colunm-center">
-                <div v-for="hotkey in props.mod ? props.mod.hotkeys : []" class="hotkey OO-setting-bar OO-shade-box a-little-left" style="margin-bottom: 5px;">
-                    <h3>{{ hotkey.description }}</h3>
-                    <h3>{{ hotkey.key }}</h3>
+            <s-scroll-view class="mod-info-content">
+                <div id="hotkey-container" class="OO-colunm-center">
+                    <div v-for="hotkey in props.mod ? props.mod.hotkeys : []" class="hotkey OO-setting-bar OO-shade-box a-little-left" style="margin-bottom: 5px;">
+                        <h3>{{ hotkey.description }}</h3>
+                        <h3>{{ hotkey.key }}</h3>
+                    </div>
                 </div>
-            </div>
-
-            <h4> {{ $t('modInfo.description') }}</h4>
-
-            <div class="OO-box OO-shade-box a-little-left" id="mod-info-description">
-                <p id="mod-description" style="white-space: pre-warp;">
-                    {{ props.mod ? props.mod.description : $t('modInfo.emptyDescription') }}
-                </p>
-            </div>
-            <div class="placeholder"></div>
-        </s-scroll-view>
+                <p v-if="props.mod && (!props.mod.hotkeys || props.mod.hotkeys.length === 0)" class="mod-no-hotkeys">{{ $t('modInfo.noHotkeys') }}</p>
+            </s-scroll-view>
+        </div>
 
         <div class="buttons">
             <s-tooltip>
@@ -163,13 +162,10 @@ h4 {
     color: var(--s-color-on-surface-variant);
 }
 
-/* Vùng lăn: cao = chiều cao khung trừ phần trên (tiêu đề ~50 + hình 200
-   + lề 10 = 260). Con số 240 cũ tính cho bố cục có ô tên nhân vật
-   (hình kết thúc ở 250); bỏ ô đó rồi mà giữ 240 thì vùng lăn dài thừa
-   10px ở đáy + margin-top -10px làm nội dung chui xuống dưới hình khi
-   lăn (Đạt báo 20/11). */
+/* Vùng lăn phím tắt: căng hết khung dưới (flex), không tính cao bằng
+   calc nữa — calc cũ (100% - 260px) gắn với bố cục 1 khung, đổi bố cục
+   là lệch. */
 s-scroll-view {
-    height: calc(100% - 260px);
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -181,9 +177,35 @@ s-scroll-view {
     margin-right: 10px;
     height: calc(100% - 20px);
     text-align: center;
+    /* 3 tầng xếp dọc: tiêu đề + khung ảnh/tag + khung phím tắt. */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Khung trên: ảnh + tag. Chiều cao theo nội dung (ảnh 200 + tag). */
+.mod-panel-top {
+    flex-shrink: 0;
+}
+
+/* Khung dưới: chỉ phím tắt, căng phần còn lại của khung phải.
+   margin-bottom 56px để khung kết thúc trên 2 nút tuyệt đối ở đáy
+   (nút cao 50, mép trên của nút cách đáy khung 56px) — phím tắt
+   không còn bị nút che như trước. */
+.mod-panel-bottom {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 56px;
+}
+.mod-panel-bottom h4 {
+    flex-shrink: 0;
+    margin: 0 0 8px 7px;
 }
 
 .mod-title {
+    flex-shrink: 0;
     font-size: 25px;
     font-weight: bold;
     padding: 10px 0;
@@ -196,39 +218,36 @@ s-scroll-view {
 }
 
 
-/* Hinh khung phai: truoc day margin-top -50px de chui xuong duoi o ten
-   nhan vat; bo o do roi thi hinh ve cho binh thuong (Dat dan 20/11). */
+/* Hình trong khung trên: lấp đầy chiều rộng trong của khung (không còn
+   tràn ra mép khung ngoài như bố cục 1 khung trước đây). */
 .mod-image {
-    position: relative;
-    width: calc(100% + 20px);
-    height: auto;
+    width: 100%;
+    height: 200px;
     border-radius: 8px;
     background-size: cover;
-    height: 200px;
-
-    margin-top: 10px;
-    margin-left: -10px;
+    margin: 0;
 }
 
-/* Viên con nhộng tag: 2 nhãn chung 1 nền đen, căn giữa dưới hình
-   (Đạt dặn 20/11 — không nền vàng). Viền mờ để vẫn thấy trên hình tối. */
+/* Viên con nhộng tag: 2 nhãn chung 1 nền xám GIỐNG Ô TÌM KIẾM
+   (surface-container-low #222222 — Đạt dặn 20/11), viền cùng kiểu ô
+   tìm kiếm. Nằm DƯỚI hình trong khung trên, căn giữa; phím tắt ở
+   khung dưới riêng nên không bao giờ đè lên tag. */
 .mod-tag-capsule {
-    position: absolute;
-    left: 50%;
-    bottom: 10px;
-    transform: translateX(-50%);
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
-    background-color: #000000;
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    width: fit-content;
+    max-width: 100%;
+    margin: 10px auto 0;
+    background-color: var(--s-color-surface-container-low);
+    border: 1px solid var(--s-color-outline-variant);
     border-radius: 20px;
     padding: 4px 14px;
     font-size: 14px;
     font-weight: 600;
     color: #ffffff;
     white-space: nowrap;
-    max-width: calc(100% - 20px);
 }
 .mod-tag-capsule span {
     overflow: hidden;
@@ -264,30 +283,21 @@ s-scroll-view {
     height: 40px;
 }
 
-#mod-info-description {
-    margin-top: 10px;
-    margin-bottom: 10px;
-    height: fit-content;
-    padding: 5px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    color: var(--s-color-on-surface-variant);
-    line-break: anywhere;
-
-    p {
-        padding: 10px;
-        font-size: 15px;
-        text-align: left;
-        font-weight: 500;
-    }
+/* Vùng lăn căng hết khung dưới (flex); không còn margin âm — margin
+   -10px cũ là để tràn ra mép khung ngoài ở bố cục 1 khung. */
+.mod-info-content {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding-right: 5px;
 }
 
-.mod-info-content {
-    /* margin-top -10px cũ kéo vùng lăn chui xuống dưới hình 10px nên nội
-       dung lăn lên bị hình che mất (Đạt báo 20/11) — về 0 cho vùng lăn
-       bắt đầu đúng ở mép dưới hình. */
-    margin: 0 -10px 0px 0px;
-    padding-right: 5px;
+/* Dòng hiện khi mod không có phím tắt nào (không thì khung dưới trống). */
+.mod-no-hotkeys {
+    margin: 8px 0 0 7px;
+    text-align: left;
+    font-size: 14px;
+    color: var(--s-color-on-surface-variant);
 }
 
 .buttons {
@@ -320,10 +330,6 @@ s-scroll-view {
     height: 50px;
     border-radius: 24px;
     padding: 10px 20px;
-}
-
-.placeholder {
-    height: 100px;
 }
 
 .a-little-left {

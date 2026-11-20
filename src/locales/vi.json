@@ -55,9 +55,8 @@
   "modInfo": {
     "emptyTitle": "Bấm vào một thẻ mod để xem thông tin chi tiết",
     "emptyCharacter": "Không có nhân vật",
-    "emptyDescription": "Không có mô tả",
     "hotkeys": "Phím tắt",
-    "description": "Mô tả",
+    "noHotkeys": "Không có phím tắt",
     "edit": "Sửa thông tin",
     "openUrl": "Mở liên kết mod",
     "openFolder": "mở thư mục"
