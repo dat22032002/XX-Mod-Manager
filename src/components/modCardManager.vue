@@ -10,9 +10,10 @@
              filteredMods). -->
         <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
-            <div id="mod-container" :compact="compactMode" ref="modContainerRef" :style="containerStyle">
+            <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle">
                 <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true
-                    :compactMode="compactMode" :cardWidth="effectiveCardWidth" :ref="setModCardRef(mod.id)" />
+                    :compactMode="compactMode" :cardWidth="effectiveCardWidth" :cardLayout="cardLayout"
+                    :ref="setModCardRef(mod.id)" />
             </div>
             <div class="placeholder"></div>
         </s-scroll-view>
@@ -37,10 +38,15 @@ const iManager = new IManager();
 // 接受参数
 const props = defineProps({
     compactMode: Boolean,
-    // Chiều rộng thẻ ở dạng lưới (200/250/300/350/400/450).
+    // Chiều rộng thẻ ở dạng lưới (dọc 100–350 / ngang 200–450).
     cardWidth: {
         type: Number,
-        default: 400
+        default: 350
+    },
+    // Kiểu thẻ: 'vertical' (dọc) hay 'horizontal' (ngang).
+    cardLayout: {
+        type: String,
+        default: 'horizontal'
     }
 });
 
@@ -208,11 +214,15 @@ function scheduleWindowUpdate() {
     });
 }
 
-// Rộng thẻ hợp lệ: chỉ nhận 1 trong 6 nấc (200/250/300/350/400/450);
-// giá trị lạ trong config cũ thì về 400 để lưới không vỡ.
-const ZOOM_LEVELS = [200, 250, 300, 350, 400, 450];
+// Rộng thẻ hợp lệ theo kiểu thẻ — dọc: 100/150/200/250/300/350 (gốc 250);
+// ngang: 200/250/300/350/400/450 (gốc 350). Giá trị lạ thì về gốc của
+// kiểu đang dùng để lưới không vỡ.
+const LAYOUT_BASE = { vertical: 250, horizontal: 350 };
+const ZOOM_LEVELS = computed(() => props.cardLayout === 'vertical'
+    ? [100, 150, 200, 250, 300, 350]
+    : [200, 250, 300, 350, 400, 450]);
 const effectiveCardWidth = computed(() =>
-    ZOOM_LEVELS.includes(props.cardWidth) ? props.cardWidth : 400
+    ZOOM_LEVELS.value.includes(props.cardWidth) ? props.cardWidth : LAYOUT_BASE[props.cardLayout]
 );
 
 // Kiểu của khung lưới: khoảng đệm vẽ từng phần + biến rộng thẻ. Thẻ lưới
@@ -436,10 +446,15 @@ EventSystem.on('currentPresetChanged', (preset) => {
 const animate = new Group();
 const modContainerRef = useTemplateRef('modContainerRef');
 
-// Chiều cao 1 hàng theo mức phóng to: thường = rộng × 0.75; gọn = rộng × 0.45
-// (thẻ 400×300 — Đạt dặn 20/11; phải khớp CSS .mod-item không lưới sẽ lệch).
+// Chiều cao 1 hàng theo kiểu thẻ: dọc = rộng × 1.4 (gọn × 0.6) như cũ;
+// ngang = rộng × 250/350 (gọn × 0.45). Phải khớp CSS .mod-item không lưới
+// sẽ lệch.
 function targetRowHeight() {
-    return props.compactMode ? effectiveCardWidth.value * 0.45 : effectiveCardWidth.value * 0.75;
+    const w = effectiveCardWidth.value;
+    if (props.cardLayout === 'vertical') {
+        return props.compactMode ? w * 0.6 : w * 1.4;
+    }
+    return props.compactMode ? w * 0.45 : w * 250 / 350;
 }
 
 // Đặt chiều cao hàng ngay (lúc đổi mức phóng to).
@@ -606,9 +621,9 @@ defineExpose({
     /* grid-column: span 4;
     grid-column-start: span 4; */
     grid-column-end: auto;
-    grid-template-columns: repeat(auto-fill, var(--card-width, 400px));
+    grid-template-columns: repeat(auto-fill, var(--card-width, 350px));
     grid-row-end: auto;
-    grid-auto-rows: calc(var(--card-width, 400px) * 0.75);
+    grid-auto-rows: calc(var(--card-width, 350px) * 250 / 350);
     gap: 12px;
     /* Căn giữa khối thẻ: chiều rộng vùng hiển thị hiếm khi chia hết cho
        (rộng thẻ + khe) nên luôn thừa một khoảng; để start thì khoảng
@@ -622,6 +637,12 @@ defineExpose({
     must change instantly when scrolling, so it is kept out of the
     transition — `all` would make it lag 0.5s behind every scroll. */
     transition: grid-auto-rows 0.5s;
+}
+
+/* Kiểu dọc: hàng cao = rộng × 1.4 như cũ. */
+#mod-container[data-layout="vertical"] {
+    grid-template-columns: repeat(auto-fill, var(--card-width, 250px));
+    grid-auto-rows: calc(var(--card-width, 250px) * 1.4);
 }
 
 #mod-card-manager {

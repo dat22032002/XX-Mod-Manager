@@ -45,7 +45,7 @@
             </template>
         </leftMenu>
         <modCardManager id="mod-card-manager" :compactMode="compactMode" :cardWidth="cardWidth"
-            ref="modCardManagerRef">
+            :cardLayout="cardLayout" ref="modCardManagerRef">
         </modCardManager>
         <modInfo :mod="displayModRef"></modInfo>
     </div>
@@ -93,6 +93,14 @@
                 </s-icon-button>
                 <p> {{ $t('buttons.zoomIn') }} </p>
             </s-tooltip>
+            <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, bên phải nút
+                 phóng to (Đạt dặn 20/11). -->
+            <div class="layout-capsule" id="layout-capsule">
+                <button :class="{ active: cardLayout === 'vertical' }" data-layout="vertical"
+                    @click="handleLayoutClicked('vertical')">{{ $t('buttons.layoutVertical') }}</button>
+                <button :class="{ active: cardLayout === 'horizontal' }" data-layout="horizontal"
+                    @click="handleLayoutClicked('horizontal')">{{ $t('buttons.layoutHorizontal') }}</button>
+            </div>
         </div>
         <div class="bottom-center">
             <span class="mod-stats">{{ $t('stats.line', { total: statsTotal, enabled: selectedModIdSet.size, characters: statsCharacters }) }}</span>
@@ -420,14 +428,20 @@ function handleCompactButtonClicked() {
 
 //-============================== Phóng to ==============================
 //#region Zoom
-// Mức phóng to (chiều rộng thẻ, px). 400 là cỡ gốc = 100% (thẻ 400×300).
-const ZOOM_LEVELS = [200, 250, 300, 350, 400, 450];
+// Kiểu thẻ + mức phóng to (chiều rộng thẻ, px). Dọc: 100–350, 250 là cỡ
+// gốc = 100% (thẻ 250×350 như cũ). Ngang: 200–450, 350 là cỡ gốc = 100%
+// (thẻ 350×250 — Đạt dặn 20/11).
 // Đọc qua g_config_vue (ref phản ứng): lúc mở app, loadConfig ghi giá trị
 // đã lưu vào đây, khung lưới tự cập nhật theo. Ghi thì đi qua Proxy
 // iManager.config để _config + ref cùng đổi (ghi thẳng vào ref thì file
 // config không đổi theo).
+const cardLayout = g_config_vue.cardLayout;
 const cardWidth = g_config_vue.cardWidth;
-const zoomPercent = computed(() => Math.round(cardWidth.value / 400 * 100));
+const LAYOUT_BASE = { vertical: 250, horizontal: 350 };
+const ZOOM_LEVELS = computed(() => cardLayout.value === 'vertical'
+    ? [100, 150, 200, 250, 300, 350]
+    : [200, 250, 300, 350, 400, 450]);
+const zoomPercent = computed(() => Math.round(cardWidth.value / LAYOUT_BASE[cardLayout.value] * 100));
 
 // Ghi config dồn: bấm +/− lia lịa thì chờ 300ms sau lần bấm cuối mới ghi
 // 1 lần (giống cách ghi preset dồn).
@@ -441,9 +455,10 @@ function saveViewSettings() {
 }
 
 function handleZoomOutClicked() {
-    // Mức gần nhất NHỎ HƠN chiều rộng hiện tại (chiều rộng lạ từ bản cũ —
-    // vd 100/150 không còn trong thang mới — vẫn phóng được, không kẹt nút).
-    const lower = ZOOM_LEVELS.filter(l => l < cardWidth.value);
+    // Mức gần nhất NHỎ HƠN chiều rộng hiện tại (chiều rộng lạ với kiểu
+    // thẻ hiện tại — vd đang ngang mà rộng 100/150 — vẫn phóng được,
+    // không kẹt nút).
+    const lower = ZOOM_LEVELS.value.filter(l => l < cardWidth.value);
     if (lower.length > 0) {
         iManager.config.cardWidth = lower[lower.length - 1];
         saveViewSettings();
@@ -451,11 +466,20 @@ function handleZoomOutClicked() {
 }
 
 function handleZoomInClicked() {
-    const higher = ZOOM_LEVELS.find(l => l > cardWidth.value);
+    const higher = ZOOM_LEVELS.value.find(l => l > cardWidth.value);
     if (higher !== undefined) {
         iManager.config.cardWidth = higher;
         saveViewSettings();
     }
+}
+
+// Đổi kiểu thẻ (viên con nhộng bên phải nút phóng to): rộng về cỡ gốc
+// của kiểu đó (dọc 250 / ngang 350), ghi config dồn như phóng to.
+function handleLayoutClicked(layout) {
+    if (layout === cardLayout.value) return;
+    iManager.config.cardLayout = layout;
+    iManager.config.cardWidth = LAYOUT_BASE[layout];
+    saveViewSettings();
 }
 //#endregion
 
@@ -669,6 +693,34 @@ EventSystem.on('toggledMod', (mod) => {
     color: var(--s-color-on-surface-variant);
     font-size: 0.85em;
     align-self: center;
+}
+
+/* Viên con nhộng chuyển kiểu thẻ (Dọc/Ngang), bên phải nút phóng to
+   (Đạt dặn 20/11). Kiểu đang chọn nền vàng như nút MOD; kiểu còn lại
+   nền trong suốt. Cao 40px bằng nút phóng to. */
+.layout-capsule {
+    display: flex;
+    align-items: stretch;
+    height: 40px;
+    box-sizing: border-box;
+    background-color: var(--s-color-surface-container-low);
+    border: 1px solid var(--s-color-outline-variant);
+    border-radius: 20px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.layout-capsule button {
+    border: none;
+    background: transparent;
+    color: var(--s-color-on-surface);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 0 14px;
+    cursor: pointer;
+}
+.layout-capsule button.active {
+    background-color: var(--s-color-primary);
+    color: var(--s-color-on-primary);
 }
 
 .bottom {

@@ -90,6 +90,8 @@
     "compactMode": "compact mode",
     "zoomOut": "Zoom out",
     "zoomIn": "Zoom in",
+    "layoutVertical": "Vertical",
+    "layoutHorizontal": "Horizontal",
     "edit": "edit",
     "managePreset": "Manage presets",
     "reset": "reset",
