@@ -1,10 +1,13 @@
 <template>
-    <div class="mod-info-card OO-box" ref="modInfoRef">
-        <div class="mod-title">{{ props.mod ? props.mod.name : $t('modInfo.emptyTitle') }}</div>
-        <!-- Khung trên: ảnh + tag (Đạt dặn 20/11 — tách khung phải
-             thành 2 khung nhỏ). Tag nằm DƯỚI hình, nền xám giống ô
-             tìm kiếm; phím tắt ở khung dưới riêng nên không đè lên tag. -->
+    <!-- Khung phải = 2 khung RIÊNG ngang hàng (Đạt đính chính 20/11:
+         KHÔNG phải khung ngoài lồng 2 khung nhỏ bên trong — khung chính
+         tự chia đôi). Gốc chỉ là khung bọc trơn xếp dọc, không viền. -->
+    <div class="mod-info-panel" ref="modInfoRef">
+        <!-- Khung trên: tên + ảnh + tag. Tag nằm DƯỚI hình, nền xám
+             giống ô tìm kiếm; phím tắt ở khung dưới riêng nên không
+             đè lên tag. -->
         <div class="mod-panel-top OO-box">
+            <div class="mod-title">{{ props.mod ? props.mod.name : $t('modInfo.emptyTitle') }}</div>
             <div class="mod-image" @click="openShowcase" style="cursor: pointer;">
                 <img style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;"
                     :alt="t('mod-image')" :src="img" />
@@ -171,13 +174,14 @@ s-scroll-view {
 }
 
 
-.mod-info-card {
+.mod-info-panel {
     position: relative;
     width: 250px;
     margin-right: 10px;
     height: calc(100% - 20px);
     text-align: center;
-    /* 3 tầng xếp dọc: tiêu đề + khung ảnh/tag + khung phím tắt. */
+    /* Khung bọc trơn (không viền, không nền): 3 tầng xếp dọc — khung
+       trên (tên + ảnh + tag), khung dưới (phím tắt), hàng nút. */
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -188,16 +192,13 @@ s-scroll-view {
     flex-shrink: 0;
 }
 
-/* Khung dưới: chỉ phím tắt, căng phần còn lại của khung phải.
-   margin-bottom 56px để khung kết thúc trên 2 nút tuyệt đối ở đáy
-   (nút cao 50, mép trên của nút cách đáy khung 56px) — phím tắt
-   không còn bị nút che như trước. */
+/* Khung dưới: chỉ phím tắt, căng phần còn lại. Nút nằm ở hàng riêng
+   dưới khung nên khung không cần chừa chỗ cho nút nữa. */
 .mod-panel-bottom {
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    margin-bottom: 56px;
 }
 .mod-panel-bottom h4 {
     flex-shrink: 0;
@@ -211,7 +212,9 @@ s-scroll-view {
     padding: 10px 0;
     text-align: left;
     word-break: break-all;
-    width: 250px;
+    /* Lấp đầy chiều rộng trong của khung trên (250px cố định cũ tràn
+       ra ngoài khung vì khung trên hẹp hơn khung ngoài cũ). */
+    width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -300,19 +303,17 @@ s-scroll-view {
     color: var(--s-color-on-surface-variant);
 }
 
+/* Hàng nút dưới cùng (Sửa + Mở Thư Mục): hàng riêng ngoài 2 khung,
+   không còn đặt tuyệt đối đè lên khung — khung dưới chứa đúng phím
+   tắt, nút không che dòng phím tắt nào. Cao 50px = cao nút thật
+   (khung chứa cũ cao 30px mà nút cao 50px nên nút tràn ra ngoài). */
 .buttons {
-    position: absolute;
+    flex-shrink: 0;
     display: flex;
     justify-content: space-between;
-    margin-top: 16px;
-    bottom: 0px;
-    left: 8px;
-    right: 8px;
-    margin-bottom: 26px;
     background-color: #00000000;
     border-radius: 20px;
-    height: 30px;
-    /* backdrop-filter: blur(2px); */
+    height: 50px;
 }
 
 .edit-button {
