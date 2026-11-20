@@ -29,7 +29,7 @@ import IManager, { g_data_vue } from '../../electron/IManager';
 import { g_config_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 import ModCharacterFilter from './modCharacterFilter.vue';
-import { computeColumns, computeWindow, CARD_GAP, OVERSCAN_ROWS } from './modWindowing.js';
+import { computeWindow, CARD_GAP, OVERSCAN_ROWS, rangeCheckedWidth, computeFillLayout } from './modWindowing.js';
 import { selectedModIdSet, setSelectedModIdsExclusive, getModTag } from '../../helper/SelectedMods';
 import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
 
@@ -214,53 +214,12 @@ function scheduleWindowUpdate() {
     });
 }
 
-// Rộng thẻ hợp lệ theo kiểu thẻ — dọc: 100–350 (gốc 250); ngang:
-// 200–450 (gốc 350). Giá trị NGOÀI khoảng thì về gốc của kiểu đang
-// dùng để lưới không vỡ. Giá trị trong khoảng nhưng không đúng nấc
-// phóng to — vd mặc định ngang 301px = 86% (Đạt dặn 20/11) — vẫn
-// dùng được (trước đây chỉ chấp nhận đúng nấc nên 301 bị đẩy về 350).
-const LAYOUT_BASE = { vertical: 250, horizontal: 350 };
-const ZOOM_RANGE = { vertical: [100, 350], horizontal: [200, 450] };
-const nominalCardWidth = computed(() => {
-    const [min, max] = ZOOM_RANGE[props.cardLayout];
-    return props.cardWidth >= min && props.cardWidth <= max ? props.cardWidth : LAYOUT_BASE[props.cardLayout];
-});
-
-// Kéo rộng thẻ vừa đủ lấp đầy hàng (Đạt chọn cách 3, 20/11): khung lưới
-// hiếm khi chia hết cho (rộng thẻ + khe) nên luôn thừa một khoảng, chia
-// đều 2 bên thành vệt đen. Thay vì giữ rộng cố định, đo rộng khung rồi
-// tính rộng thẻ sao cho hàng đầy khít — nhưng CHỈ trong giới hạn ±15%
-// quanh rộng đã chọn (FILL_WIDTH_LIMIT), để cỡ thẻ vẫn gần đúng số %
-// hiển thị. Giới hạn 10% thử trước thì ở các cỡ màn hình thường
-// (1280/1600/1920, thẻ ngang 301) cả 2 ứng viên đều ngoài giới hạn
-// nên hàng vẫn trống — nới ra 15% thì lấp được (chỉ còn cửa sổ hẹp
-// 2 cột là ngoài giới hạn). Có 2 ứng viên lấp đầy: kéo giãn n cột
-// hiện tại, hoặc thu
-// nhỏ để vừa thêm 1 cột (n+1); chọn ứng viên trong giới hạn mà gần
-// rộng đã chọn nhất. Cả 2 đều ngoài giới hạn thì giữ nguyên rộng đã
-// chọn, lưới căn giữa như trước (khoảng trống còn lại là cố ý).
-// Trả cả số cột để vẽ từng phần dùng đúng số cột CSS đang xếp — tính
-// lại số cột từ rộng đã kéo bằng computeColumns sẽ sai do làm tròn số
-// thập phân (vd 4.9999... thành 4).
-const FILL_WIDTH_LIMIT = 0.15;
+// Rộng thẻ danh nghĩa (đã kiểm khoảng) + rộng thẻ thật lấp đầy hàng
+// (toán dùng chung trong modWindowing.js — nút phóng to ở modCardSection
+// dùng cùng hàm nên 2 bên luôn tính ra 1 số).
+const nominalCardWidth = computed(() => rangeCheckedWidth(props.cardWidth, props.cardLayout));
 const containerWidth = ref(0);
-const gridLayout = computed(() => {
-    const nominal = nominalCardWidth.value;
-    const w = containerWidth.value;
-    if (!Number.isFinite(w) || w <= 0) return { width: nominal, columns: 1 };
-    const [rangeMin, rangeMax] = ZOOM_RANGE[props.cardLayout];
-    const lo = Math.max(nominal * (1 - FILL_WIDTH_LIMIT), rangeMin);
-    const hi = Math.min(nominal * (1 + FILL_WIDTH_LIMIT), rangeMax);
-    const n = computeColumns(w, nominal, CARD_GAP);
-    const stretch = (w - (n - 1) * CARD_GAP) / n;
-    const shrink = (w - n * CARD_GAP) / (n + 1);
-    const candidates = [];
-    if (stretch >= lo && stretch <= hi) candidates.push({ width: stretch, columns: n });
-    if (shrink >= lo && shrink <= hi) candidates.push({ width: shrink, columns: n + 1 });
-    if (candidates.length === 0) return { width: nominal, columns: n };
-    candidates.sort((a, b) => Math.abs(a.width - nominal) - Math.abs(b.width - nominal));
-    return candidates[0];
-});
+const gridLayout = computed(() => computeFillLayout(containerWidth.value, nominalCardWidth.value, props.cardLayout));
 const effectiveCardWidth = computed(() => gridLayout.value.width);
 
 // Kiểu của khung lưới: khoảng đệm vẽ từng phần + biến rộng thẻ. Thẻ lưới
