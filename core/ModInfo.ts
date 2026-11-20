@@ -455,7 +455,7 @@ modDataTemplate.add('character', 'Unknown', ModMetaDataType.String);
 modDataTemplate.add('url', 'Unknown', ModMetaDataType.String);
 modDataTemplate.add('tags', [], ModMetaDataType.Array);
 modDataTemplate.add('category', 'Unknown', ModMetaDataType.String);
-modDataTemplate.add('description', 'no description', ModMetaDataType.String);
+modDataTemplate.add('description', '', ModMetaDataType.String);
 modDataTemplate.add('hotkeys', [], ModMetaDataType.Array);
 modDataTemplate.add('preview', 'Unknown', ModMetaDataType.String);
 modDataTemplate.add('pinned', false, ModMetaDataType.Boolean);

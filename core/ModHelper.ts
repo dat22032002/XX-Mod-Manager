@@ -30,6 +30,13 @@ class ImageBase64 {
     }
 }
 
+// Mô tả mod: thiếu hoặc là chữ mặc định cũ của app thì trả về rỗng
+// (thẻ không hiện gì) thay vì hiện "no description" (Đạt dặn 20/11).
+function normalizeDescription(desc: any): string {
+    if (!desc || desc === 'no description') return '';
+    return desc;
+}
+
 class ModData {
     public name: string;
     public character: string;
@@ -119,7 +126,7 @@ class ModData {
         const modData = new ModData(
             json.name,
             json.character || "Unknown",
-            json.description || "no description",
+            normalizeDescription(json.description),
             json.url || "",
             json.preview || "",
             json.hotkeys || []
@@ -144,7 +151,7 @@ class ModData {
         const modData = new ModData(
             JSON.parse(JSON.stringify(modInfo.metaData.get('name') || modInfo.modName)),
             JSON.parse(JSON.stringify(modInfo.metaData.get('character') || "Unknown")),
-            JSON.parse(JSON.stringify(modInfo.metaData.get('description') || "no description")),
+            JSON.parse(JSON.stringify(normalizeDescription(modInfo.metaData.get('description')))),
             JSON.parse(JSON.stringify(modInfo.metaData.get('url') || "no url")),
             "", // preview will be handled below
             JSON.parse(JSON.stringify(modInfo.metaData.get('hotkeys') || []))
@@ -168,7 +175,7 @@ class ModData {
         const modData = new ModData(
             modInfo.modName,
             meta.character || "Unknown",
-            meta.description || "no description",
+            normalizeDescription(meta.description),
             meta.url || "no url",
             entry.previewPath || "",
             meta.hotkeys || []
