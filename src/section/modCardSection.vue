@@ -52,18 +52,14 @@
 
     <div class="bottom">
         <div class="bottom-left">
-            <!-- Nút Refresh dạng dài có chữ, giống nút Open Folder ở khung
-                 chi tiết (Đạt dặn 20/11): s-button + icon ở đầu + chữ. -->
-            <s-button @click="handleRefreshButtonClicked" id="refresh-button" class="OO-button font-hongmeng">
-                <s-icon slot="start">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                        <path
-                            d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z">
-                        </path>
-                    </svg>
-                </s-icon>
-                <p>{{ $t('buttons.refresh') }}</p>
-            </s-button>
+            <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, bên phải nút
+                 phóng to (Đạt dặn 20/11). -->
+            <div class="layout-capsule" id="layout-capsule">
+                <button :class="{ active: cardLayout === 'vertical' }" data-layout="vertical"
+                    @click="handleLayoutClicked('vertical')">{{ $t('buttons.layoutVertical') }}</button>
+                <button :class="{ active: cardLayout === 'horizontal' }" data-layout="horizontal"
+                    @click="handleLayoutClicked('horizontal')">{{ $t('buttons.layoutHorizontal') }}</button>
+            </div>
             <s-tooltip>
                 <s-switch class="OO-color-gradient-word" v-model="compactMode" @change="handleCompactButtonClicked"
                     slot="trigger" />
@@ -93,14 +89,6 @@
                 </s-icon-button>
                 <p> {{ $t('buttons.zoomIn') }} </p>
             </s-tooltip>
-            <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, bên phải nút
-                 phóng to (Đạt dặn 20/11). -->
-            <div class="layout-capsule" id="layout-capsule">
-                <button :class="{ active: cardLayout === 'vertical' }" data-layout="vertical"
-                    @click="handleLayoutClicked('vertical')">{{ $t('buttons.layoutVertical') }}</button>
-                <button :class="{ active: cardLayout === 'horizontal' }" data-layout="horizontal"
-                    @click="handleLayoutClicked('horizontal')">{{ $t('buttons.layoutHorizontal') }}</button>
-            </div>
         </div>
         <div class="bottom-center">
             <span class="mod-stats">{{ $t('stats.line', { total: statsTotal, enabled: selectedModIdSet.size, characters: statsCharacters }) }}</span>
@@ -108,7 +96,7 @@
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
             <s-popup align="top">
-                <s-tooltip slot="trigger" style="position: relative;left: 15px;">
+                <s-tooltip slot="trigger" style="position: relative;">
                     <s-icon-button icon="image" class="OO-button"
                         style="border: 5px solid var(--s-color-surface-container-high);transform: scale(1);"
                         slot="trigger" @click="syncBatchTagBar">
@@ -162,6 +150,19 @@
             </div>
                 
             </s-popup>
+
+            <!-- Nút Refresh dạng dài có chữ, giống nút Open Folder ở khung
+                 chi tiết (Đạt dặn 20/11): s-button + icon ở đầu + chữ. -->
+            <s-button @click="handleRefreshButtonClicked" id="refresh-button" class="OO-button font-hongmeng">
+                <s-icon slot="start">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                        <path
+                            d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z">
+                        </path>
+                    </svg>
+                </s-icon>
+                <p>{{ $t('buttons.refresh') }}</p>
+            </s-button>
             <div v-if="applying" class="apply-progress">
                 <div class="apply-progress-text">{{ $t('apply.progress', { done: applyDone, total: applyTotal }) }}</div>
                 <div class="apply-progress-bar">
@@ -760,6 +761,10 @@ EventSystem.on('toggledMod', (mod) => {
     display: flex;
     justify-content: flex-end;
     align-items: center;
+    /* Khoảng cách batch - Refresh - Apply (Refresh chuyển sang đây
+       20/11; trước đây chỉ có batch + Apply, Apply đã có margin
+       riêng nên không cần gap). */
+    gap: 8px;
 }
 
 #apply-button {

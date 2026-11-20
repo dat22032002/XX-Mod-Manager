@@ -179,7 +179,12 @@ s-scroll-view {
     position: relative;
     width: 250px;
     margin-right: 10px;
-    height: calc(100% - 20px);
+    /* Cao bằng khung lưới chính (Đạt báo lệch 20/11 — đo ra khung phải
+       ngắn hơn khung lưới 26px): khung lưới cao 100% + viền OO-box
+       3px×2 (box-sizing content-box nên viền cộng thêm ra ngoài, tổng
+       100%+6px); khung bọc không có viền nên cộng 6px vào chiều cao
+       thì mép dưới mới bằng nhau ở mọi cỡ cửa sổ. */
+    height: calc(100% + 6px);
     text-align: center;
     /* Khung bọc trơn (không viền, không nền): 2 khung xếp dọc — khung
        trên (tên + ảnh + tag), khung dưới (phím tắt + 2 nút ở đáy). */
