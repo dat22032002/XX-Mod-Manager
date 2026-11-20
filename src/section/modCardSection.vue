@@ -52,19 +52,18 @@
 
     <div class="bottom">
         <div class="bottom-left">
-            <s-tooltip>
-                <!-- -刷新按钮 -->
-                <s-icon-button @click="handleRefreshButtonClicked" slot="trigger" class="OO-button"
-                    style="color: var(--s-color-on-surface);transform: scale(0.95);">
-                    <s-icon>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                            <path
-                                d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z">
-                            </path>
-                        </svg></s-icon>
-                </s-icon-button>
-                <p> {{ $t('buttons.refresh') }} </p>
-            </s-tooltip>
+            <!-- Nút Refresh dạng dài có chữ, giống nút Open Folder ở khung
+                 chi tiết (Đạt dặn 20/11): s-button + icon ở đầu + chữ. -->
+            <s-button @click="handleRefreshButtonClicked" id="refresh-button" class="OO-button font-hongmeng">
+                <s-icon slot="start">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                        <path
+                            d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z">
+                        </path>
+                    </svg>
+                </s-icon>
+                <p>{{ $t('buttons.refresh') }}</p>
+            </s-button>
             <s-tooltip>
                 <s-switch class="OO-color-gradient-word" v-model="compactMode" @change="handleCompactButtonClicked"
                     slot="trigger" />

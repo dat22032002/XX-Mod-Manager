@@ -1,10 +1,10 @@
 <template>
     <s-card ref="modItemRef" class="mod-item" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id" inWindow="none"
         :name="props.modRef.name" :character="props.modRef.character" @click="click" :compact="props.compactMode"
+        @mouseenter="onCardHoverStart" @mouseleave="onCardHoverEnd"
         @contextmenu.prevent.stop="openEditModDialog">
 
-        <div slot="image" style="height: calc(var(--card-width, 250px) * 0.8);" v-if="ifDisplayImage"
-            @mouseenter="onImageHoverStart" @mouseleave="onImageHoverEnd">
+        <div slot="image" style="height: calc(var(--card-width, 250px) * 0.8);" v-if="ifDisplayImage">
             <img id="editDialog-mod-info-image"
                 style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;" alt="Mod Image"
                 :src="img || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D'" @load="enterWindow" />
@@ -49,14 +49,6 @@
             </horizontalScrollBar>
         </div>
     </s-card>
-    <!-- Xem trước ảnh gốc khi di chuột lên ảnh thẻ 2 giây: hiện đúng file
-         gốc (không phóng to), vừa trong cửa sổ app. Lớp phủ không bắt
-         chuột (pointer-events: none) nên di chuột khỏi ảnh thẻ là tắt. -->
-    <Teleport to="body">
-        <div v-if="hoverPreviewUrl" class="hover-preview-overlay">
-            <img :src="hoverPreviewUrl" alt="" />
-        </div>
-    </Teleport>
 </template>
 
 <script setup>
@@ -184,42 +176,37 @@ const togglePin = async () => {
     await toggleModPin(props.modRef);
 };
 
-//===================== xem trước ảnh gốc khi di chuột =====================//
-// Di chuột lên ảnh thẻ, giữ yên 2 giây → hiện ảnh preview gốc (file gốc,
-// kích thước thật, không phóng to) ở giữa màn hình, vừa trong cửa sổ app.
-// Di chuột khỏi ảnh là tắt. Mod không có ảnh preview thì không hiện gì.
-const hoverPreviewUrl = ref(null);
-let hoverPreviewTimer = null;
+//===================== di chuột đổi khung chi tiết =====================//
+// Di chuột lên thẻ, giữ yên 0,25 giây → khung chi tiết bên phải đổi sang
+// mod của thẻ này (giống bấm chọn, nhưng không đổi chọn vàng). Độ trễ để
+// lia chuột nhanh qua nhiều thẻ không làm khung nhảy liên tục (Đạt dặn
+// 20/11: sợ lag khi di chuột nhanh). Di chuột khỏi thẻ là hủy hẹn.
+const HOVER_FOLLOW_DELAY_MS = 250;
+let hoverFollowTimer = null;
 
-const HOVER_PREVIEW_DELAY_MS = 2000;
-
-const hideHoverPreview = () => {
-    if (hoverPreviewTimer !== null) {
-        clearTimeout(hoverPreviewTimer);
-        hoverPreviewTimer = null;
+const clearHoverFollow = () => {
+    if (hoverFollowTimer !== null) {
+        clearTimeout(hoverFollowTimer);
+        hoverFollowTimer = null;
     }
-    hoverPreviewUrl.value = null;
 };
 
-const onImageHoverStart = () => {
-    if (props.modRef.preview == null) {
-        return;
-    }
-    hideHoverPreview();
-    hoverPreviewTimer = setTimeout(async () => {
-        hoverPreviewTimer = null;
-        // Ảnh gốc đầy đủ (thẻ chỉ dùng bản thu nhỏ 250px).
-        hoverPreviewUrl.value = await props.modRef.getPreviewBase64(true, true);
-    }, HOVER_PREVIEW_DELAY_MS);
+const onCardHoverStart = () => {
+    clearHoverFollow();
+    hoverFollowTimer = setTimeout(() => {
+        hoverFollowTimer = null;
+        // Đã là mod đang xem thì thôi, khỏi vẽ lại khung.
+        if (iManager.temp.currentMod !== props.modRef) {
+            iManager.setCurrentMod(props.modRef);
+        }
+    }, HOVER_FOLLOW_DELAY_MS);
 };
 
-const onImageHoverEnd = () => {
-    hideHoverPreview();
+const onCardHoverEnd = () => {
+    clearHoverFollow();
 };
 
 onMounted(() => {
-    // Cuộn lưới cũng tắt xem trước (thẻ đã chạy khỏi chỗ chuột đang để).
-    window.addEventListener('scroll', hideHoverPreview, true);
     // Đổi ảnh preview (kéo thả ảnh mới vào thẻ, chọn ảnh khác trong hộp
     // sửa mod) thì thẻ phải đọc lại ảnh: trước đây thẻ chỉ tải ảnh 1 lần
     // lúc mới hiện (enterWindow) nên file đã đổi mà thẻ vẫn hiện ảnh cũ.
@@ -228,9 +215,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-    window.removeEventListener('scroll', hideHoverPreview, true);
     EventSystem.off(EventType.modInfoChanged, onModInfoChanged);
-    hideHoverPreview();
+    clearHoverFollow();
 });
 
 // Thông tin mod đổi: chỉ đọc lại ảnh khi đúng là mod của thẻ này.
@@ -632,24 +618,4 @@ defineExpose({
     right: 5px;
 }
 
-/* Lớp phủ xem trước ảnh gốc: giữa màn hình, không bắt chuột để di chuột
-   khỏi ảnh thẻ là tắt ngay. Ảnh giữ kích thước thật, chỉ thu lại khi
-   vượt quá cửa sổ (không bao giờ phóng to). */
-.hover-preview-overlay {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.55);
-    pointer-events: none;
-    z-index: 9999;
-}
-
-.hover-preview-overlay img {
-    max-width: calc(100vw - 48px);
-    max-height: calc(100vh - 48px);
-    object-fit: contain;
-    border-radius: 8px;
-}
 </style>
