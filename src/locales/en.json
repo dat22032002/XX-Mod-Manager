@@ -55,9 +55,8 @@
   "modInfo": {
     "emptyTitle": "Click on a mod card to view detailed information",
     "emptyCharacter": "No Character",
-    "emptyDescription": "No Description",
     "hotkeys": "Hotkeys",
-    "description": "Description",
+    "noHotkeys": "No hotkeys",
     "edit": "Edit information",
     "openUrl": "Open mod link",
     "openFolder": "open folder"
