@@ -123,6 +123,19 @@
   "stats": {
     "line": "{total} mod · {enabled} đang bật · {characters} nhân vật"
   },
+  "filter": {
+    "button": "Bộ lọc",
+    "allTypes": "Mọi loại",
+    "outfit": "Đồ",
+    "weapon": "Vũ khí",
+    "effect": "Hiệu ứng",
+    "accessory": "Phụ kiện",
+    "sortDefault": "Mặc định",
+    "sortNameAsc": "Tên A–Z",
+    "sortNameDesc": "Tên Z–A",
+    "sortTimeDesc": "Mới nhất",
+    "sortTimeAsc": "Cũ nhất"
+  },
   "author": "tác giả",
   "caimogu": "Caimogu",
   "firstLoad": {

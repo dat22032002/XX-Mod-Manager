@@ -111,13 +111,15 @@ class ModLoader {
                 // Validity checks are async disk stats: run them together.
                 const validity = await Promise.all(chunk.map(async mod => {
                     const entry = cache.sources[folder] ? cache.sources[folder][mod.name] : undefined;
+                    const checked = entry ? await ModCache.validateEntry(entry) : { valid: false, birthtimeMs: 0 };
                     return {
                         mod: mod,
                         entry: entry,
-                        valid: entry ? await ModCache.isEntryValid(entry) : false,
+                        valid: checked.valid,
+                        birthtimeMs: checked.birthtimeMs,
                     };
                 }));
-                for (const { mod, entry, valid } of validity) {
+                for (const { mod, entry, valid, birthtimeMs } of validity) {
                     let modPath = path.join(folder, mod.name);
                     seenFolders.add(mod.name);
                     if (valid && entry) {
@@ -125,7 +127,11 @@ class ModLoader {
                         let modInfo = ModInfo.fromCache(modPath, entry);
                         this.modsRaw.push(modInfo);
                         this.addToIdIndex(modInfo);
-                        this.mods.push(ModData.fromCache(modInfo, entry).setModSourcePath(folder));
+                        const modData = ModData.fromCache(modInfo, entry).setModSourcePath(folder);
+                        // Giờ tạo thư mục lấy lúc kiểm tra cache ở trên —
+                        // ghi đè giá trị dự phòng (giờ sửa) trong fromCache.
+                        modData.addedMs = birthtimeMs || entry.folderMtimeMs || 0;
+                        this.mods.push(modData);
                         cachedCount++;
                         continue;
                     }
@@ -185,6 +191,10 @@ class ModLoader {
                 modJsonStat ? modJsonStat.size : 0,
                 modData.preview || ''
             );
+            // Giờ tạo thư mục vừa đo được ở trên — ghi luôn vào ModData để
+            // sắp xếp theo thời gian thêm mod (không cần đo thêm lần nữa);
+            // hệ thống file không có giờ tạo thì dùng giờ sửa cuối.
+            modData.addedMs = folderStat.birthtimeMs || folderStat.mtimeMs;
             return true;
         } catch (e) {
             console.warn(`ModLoader.updateCacheEntry: cannot stat mod, skipping cache entry`, modInfo.location, e);

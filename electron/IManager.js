@@ -77,6 +77,8 @@ let g_config = {
     ifKeepModNameAsModFolderName: false,
     ifUseTraditionalApply: false,
     cardWidth: 250,
+    modTypeFilter: 'all',
+    modSortBy: 'default',
 };
 let g_data = {
     modList: [],
@@ -118,6 +120,8 @@ const g_config_vue = {
     ifKeepModNameAsModFolderName: ref(false),
     ifUseTraditionalApply: ref(false),
     cardWidth: ref(250),
+    modTypeFilter: ref('all'),
+    modSortBy: ref('default'),
 };
 
 const g_data_vue = {
@@ -214,6 +218,8 @@ class IManager {
         ifKeepModNameAsModFolderName: false, // 是否保持 mod 名称和文件夹名称一致
         ifUseTraditionalApply: false, // 是否使用传统的应用方式
         cardWidth: 250, // Chiều rộng thẻ ở dạng lưới (100/150/200/250/300/350)
+        modTypeFilter: 'all', // Lọc theo loại mod: all/outfit/weapon/effect
+        modSortBy: 'default', // Sắp xếp mod: default/name-asc/name-desc/time-desc/time-asc
     };
 
     // 程序运行时的数据

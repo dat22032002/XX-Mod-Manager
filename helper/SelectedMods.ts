@@ -30,16 +30,18 @@ export function setSelectedModIds(ids: Iterable<string>): void {
 
 //===================== một mod một loại mỗi nhân vật =====================
 // Mỗi nhân vật chỉ bật cùng lúc 1 mod mỗi loại: đồ (mặc định), vũ khí (tên
-// bắt đầu "(WP)"), hiệu ứng (tên bắt đầu "(EF)"). Bật mod mới thì mod cũ
-// cùng nhân vật + cùng loại tự tắt. Mod chưa rõ nhân vật ("Unknown" hoặc
-// trống) không bị luật này ràng buộc — không gom chúng lại với nhau được.
+// bắt đầu "(WP)"), hiệu ứng (tên bắt đầu "(EF)"), phụ kiện (tên bắt đầu
+// "(ACC)"). Bật mod mới thì mod cũ cùng nhân vật + cùng loại tự tắt. Mod
+// chưa rõ nhân vật ("Unknown" hoặc trống) không bị luật này ràng buộc —
+// không gom chúng lại với nhau được.
 
-export type ModSlot = 'outfit' | 'weapon' | 'effect';
+export type ModSlot = 'outfit' | 'weapon' | 'effect' | 'accessory';
 
 export function getModSlot(mod: ModData): ModSlot {
     const name = (mod.name || '').trim().toLowerCase();
     if (name.startsWith('(wp)')) return 'weapon';
     if (name.startsWith('(ef)')) return 'effect';
+    if (name.startsWith('(acc)')) return 'accessory';
     return 'outfit';
 }
 
@@ -79,7 +81,7 @@ export function toggleModSelection(allMods: ModData[], mod: ModData): boolean {
     const evicted = evictSameSlotMods(allMods, mod);
     selectedModIdSet.add(mod.id);
     if (evicted.length > 0) {
-        const slotWords = { outfit: ['outfit', 'đồ'], weapon: ['weapon', 'vũ khí'], effect: ['effect', 'hiệu ứng'] };
+        const slotWords = { outfit: ['outfit', 'đồ'], weapon: ['weapon', 'vũ khí'], effect: ['effect', 'hiệu ứng'], accessory: ['accessory', 'phụ kiện'] };
         const [slotEn, slotVi] = slotWords[getModSlot(mod)];
         const names = evicted.map(m => m.name).join(', ');
         t_snack(new TranslatedText(

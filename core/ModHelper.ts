@@ -36,6 +36,13 @@ class ModData {
     public preview: string;
     public hotkeys: { key: string; description: string; }[];
     public pinned: boolean = false; // mod đã ghim (lên đầu danh sách) hay chưa
+    // Thời gian thêm mod vào kho (ms từ epoch) — dùng để sắp xếp theo thời
+    // gian. Lấy theo GIỜ TẠO thư mục (birthtime), không lấy giờ sửa cuối:
+    // app tự ghi lại mod.json lúc tải mod (khi file thiếu trường) nên giờ
+    // sửa cuối của thư mục toàn bằng giờ mở app gần nhất, không còn nghĩa
+    // là "mod mới thêm" nữa. 0 = chưa rõ (hệ thống file không có birthtime
+    // và cũng không đo được giờ sửa).
+    public addedMs: number = 0;
 
     private index = 0; // mod的id
     private static indexCount = 0; // mod的id计数器
@@ -156,6 +163,10 @@ class ModData {
         );
         modData.id = modInfo.id;
         modData.pinned = !!meta.pinned;
+        // Giá trị dự phòng: giờ sửa thư mục đã nằm sẵn trong cache (dùng
+        // để kiểm tra mod có đổi không). ModLoader sẽ ghi đè bằng giờ tạo
+        // thư mục thật (lấy lúc kiểm tra cache, không tốn thêm lần đọc đĩa).
+        modData.addedMs = entry.folderMtimeMs || 0;
         return modData;
     }
 

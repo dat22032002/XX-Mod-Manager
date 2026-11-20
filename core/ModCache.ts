@@ -222,19 +222,30 @@ class ModCache {
     // A cached entry is still valid when the mod folder and its mod.json
     // are untouched since the entry was written. Any doubt -> invalid.
     public static async isEntryValid(entry: CachedModEntry): Promise<boolean> {
+        return (await this.validateEntry(entry)).valid;
+    }
+
+    // Kiểm tra cache còn đúng không. Trả kèm giờ tạo thư mục (birthtime)
+    // lấy từ lần đo đã làm ở đây — dùng để sắp xếp theo thời gian thêm
+    // mod, không tốn thêm lần đọc đĩa nào. birthtimeMs = 0 khi không đo được.
+    public static async validateEntry(entry: CachedModEntry): Promise<{ valid: boolean; birthtimeMs: number }> {
         try {
             const folderStat = await fs.promises.stat(entry.location);
+            const birthtimeMs = folderStat.birthtimeMs || 0;
             if (!folderStat.isDirectory()) {
-                return false;
+                return { valid: false, birthtimeMs };
             }
             if (folderStat.mtimeMs !== entry.folderMtimeMs) {
-                return false;
+                return { valid: false, birthtimeMs };
             }
             const modJsonStat = await fs.promises.stat(path.join(entry.location, 'mod.json'));
-            return modJsonStat.mtimeMs === entry.modJsonMtimeMs
-                && modJsonStat.size === entry.modJsonSize;
+            return {
+                valid: modJsonStat.mtimeMs === entry.modJsonMtimeMs
+                    && modJsonStat.size === entry.modJsonSize,
+                birthtimeMs,
+            };
         } catch {
-            return false;
+            return { valid: false, birthtimeMs: 0 };
         }
     }
 }

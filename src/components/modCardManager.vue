@@ -4,6 +4,10 @@
             :translatedItems="translateCharacters" ref="characterFilterRef" /> -->
         <ModCharacterFilter class="characterFilter" @itemChange="handleFilterChange" ref="characterFilterRef" @filterChangeToAll="handleFilterChangeToAll"
             @filterChangeToSelected="handleFilterChangeToSelected" @filterChangeToSearch="handleFilterChangeToSearch" />
+        <!-- Giao diện lọc theo loại mod + sắp xếp (nút "Bộ lọc" + bảng
+             overlay) nằm trong ModCharacterFilter; chỗ này chỉ đọc lựa
+             chọn đã lưu trong config để lọc/xếp danh sách (xem
+             filteredMods). -->
         <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
             <div id="mod-container" :compact="compactMode" ref="modContainerRef" :style="containerStyle">
@@ -17,7 +21,6 @@
 
 <script setup>
 import 'sober';
-import chipRadioBar from './chipRadioBar.vue';
 import { ref, onMounted, onUnmounted, computed, useTemplateRef, watch, reactive, nextTick } from 'vue';
 import modCard from './modCard.vue';
 import { Tween, Group } from "@tweenjs/tween.js";
@@ -26,7 +29,7 @@ import { g_config_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 import ModCharacterFilter from './modCharacterFilter.vue';
 import { computeColumns, computeWindow, CARD_GAP, OVERSCAN_ROWS } from './modWindowing.js';
-import { selectedModIdSet, setSelectedModIdsExclusive } from '../../helper/SelectedMods';
+import { selectedModIdSet, setSelectedModIdsExclusive, getModSlot } from '../../helper/SelectedMods';
 
 const iManager = new IManager();
 
@@ -61,6 +64,8 @@ watch(currentCharacter, (newVal) => {
 });
 
 // 切换语言的时候，all 和 全部 的长度不一样，所以需要切换
+// (Thanh trượt hàng chip lọc/xếp đặt lại trong modCharacterFilter khi
+// đổi ngôn ngữ — thanh đó nằm ở bảng overlay bên đó.)
 watch(g_config_vue.language, (newVal) => {
     setTimeout(() => {
         characterFilterRef.value.selectItemByName(currentCharacter.value);
@@ -82,6 +87,23 @@ const translateCharacters = computed(() => {
         return ['All', 'Selected'];
     }
 });
+
+//-==================== Lọc theo loại mod + sắp xếp ====================//
+// Giao diện lọc/xếp (nút "Bộ lọc" + bảng overlay) nằm ở
+// modCharacterFilter; chỗ này chỉ đọc lựa chọn đã lưu trong config để
+// lọc/xếp danh sách. Loại mod theo getModSlot (SelectedMods): đồ mặc
+// định, (WP) = vũ khí, (EF) = hiệu ứng, (ACC) = phụ kiện. Thêm loại mới
+// thì thêm vào ModSlot + getModSlot, thêm 1 mục vào TYPE_ITEMS ở
+// modCharacterFilter + 1 khóa locale filter.*.
+const TYPE_ITEMS = ['all', 'outfit', 'weapon', 'effect', 'accessory'];
+const SORT_VALUES = ['default', 'name-asc', 'name-desc', 'time-desc', 'time-asc'];
+
+// Đọc qua g_config_vue (lưu trong config.json nên mở app lại vẫn giữ);
+// giá trị lạ trong config cũ thì về mặc định.
+const typeFilter = computed(() =>
+    TYPE_ITEMS.includes(g_config_vue.modTypeFilter.value) ? g_config_vue.modTypeFilter.value : 'all');
+const sortBy = computed(() =>
+    SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default');
 
 //-==================== 只渲染视口附近的卡片（虚拟列表） ====================//
 // The grid used to mount every mod card at once; with hundreds of mods that
@@ -128,10 +150,26 @@ const filteredMods = computed(() => {
             result = list.filter(mod => mod.character === character);
         }
     }
-    // Ghim lên đầu: mod đã ghim đứng trước, thứ tự còn lại giữ nguyên
-    // (sort của JS là ổn định nên mod không ghim không bị xáo trộn).
-    // slice() để không sửa mảng gốc.
-    return result.slice().sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
+    // Lọc theo loại mod (kết hợp với lọc nhân vật/tìm kiếm ở trên).
+    const type = typeFilter.value;
+    if (type !== 'all') {
+        result = result.filter(mod => getModSlot(mod) === type);
+    }
+    // Sắp xếp: ghim luôn lên đầu, sau đó theo kiểu xếp đã chọn (mặc định
+    // giữ thứ tự tải vào như trước; sort của JS là ổn định nên mod ngang
+    // nhau không bị xáo trộn). slice() để không sửa mảng gốc.
+    const sort = sortBy.value;
+    return result.slice().sort((a, b) => {
+        const pinDiff = Number(!!b.pinned) - Number(!!a.pinned);
+        if (pinDiff !== 0) return pinDiff;
+        switch (sort) {
+            case 'name-asc': return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+            case 'name-desc': return (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base' });
+            case 'time-desc': return (b.addedMs || 0) - (a.addedMs || 0);
+            case 'time-asc': return (a.addedMs || 0) - (b.addedMs || 0);
+            default: return 0;
+        }
+    });
 });
 
 // Whenever the filtered list changes (filter, search, reload), recompute the
@@ -513,6 +551,9 @@ onMounted(async () => {
     // (không thì lần đầu mở app vẫn dùng cỡ mặc định của CSS).
     syncRowHeight();
     updateWindow();
+
+    // Thanh trượt hàng chip lọc/xếp đo lại mỗi lần bảng overlay bung ra
+    // (modCharacterFilter) — bảng đóng lúc mở app nên không đo ở đây.
 
     // 接受文件拖拽事件，可以直接通过拖拽文件到窗口中导入 mod，或者拖拽图片到窗口中为 mod 添加预览图
     modCardManagerRef.value.addEventListener('dragover', (event) => {
