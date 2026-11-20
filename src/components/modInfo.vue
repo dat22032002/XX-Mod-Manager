@@ -1,15 +1,18 @@
 <template>
     <div class="mod-info-card OO-box" ref="modInfoRef">
         <div class="mod-title">{{ props.mod ? props.mod.name : $t('modInfo.emptyTitle') }}</div>
-        <div class="mod-character OO-color-gradient" style="font-weight: 600;">
-            <p> {{ props.mod ? props.mod.character : $t('modInfo.emptyCharacter') }}</p>
-        </div>
-        <div class="mod-image">
+        <div class="mod-image" @click="openShowcase" style="cursor: pointer;">
             <img style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;"
                 :alt="t('mod-image')" :src="img" />
         </div>
 
         <s-scroll-view class="mod-info-content">
+            <!-- Dong tag: ten nhan vat + loai mod (Dat dan 20/11) — thay
+                 cho o ten nhan vat de len hinh truoc day. -->
+            <div v-if="props.mod" class="mod-tag-row">
+                <span class="mod-tag mod-tag-character">{{ props.mod.character }}</span>
+                <span class="mod-tag mod-tag-type">{{ t(`modTag.${props.mod.tag || 'character'}`) }}</span>
+            </div>
             <h4 v-if="props.mod && props.mod.hotkeys && props.mod.hotkeys.length > 0"> {{ $t('modInfo.hotkeys') }}</h4>
             <div id="hotkey-container" class="OO-colunm-center">
                 <div v-for="hotkey in props.mod ? props.mod.hotkeys : []" class="hotkey OO-setting-bar OO-shade-box a-little-left" style="margin-bottom: 5px;">
@@ -55,10 +58,17 @@
             </s-tooltip>
         </div>
     </div>
+    <!-- Xem anh goc: bam vao hinh trong khung phai thi anh hien to giua
+         man hinh; bam them 1 lan bat ky dau hoac phim Esc de dong. -->
+    <Teleport to="body">
+        <div v-if="showcaseOpen" class="showcase-overlay" @click="closeShowcase">
+            <img :src="img" alt="" />
+        </div>
+    </Teleport>
 </template>
 
 <script setup>
-import { computed, defineProps, ref, watch } from 'vue';
+import { computed, defineProps, onUnmounted, ref, watch } from 'vue';
 import fsProxy from '../../electron/fsProxy';
 import { ModData } from '../../core/ModHelper';
 import { snack } from '../../helper/SnackHelper';
@@ -75,7 +85,32 @@ const props = defineProps({
     }
 });
 const img = ref('data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D');
+
+//===================== xem anh goc (showcase) =====================//
+// Bam vao hinh trong khung phai → anh goc hien to giua man hinh (dung
+// dung anh goc khung phai dang hien, khoi tai them). Bam them 1 lan bat
+// ky dau (lop phu che het man hinh) hoac phim Esc de dong. Doi mod thi
+// tu dong (xem watch props.mod ben duoi).
+const showcaseOpen = ref(false);
+const onShowcaseKeydown = (e) => {
+    if (e.key === 'Escape') closeShowcase();
+};
+const openShowcase = () => {
+    if (props.mod == null || props.mod.preview == null) return;
+    showcaseOpen.value = true;
+    window.addEventListener('keydown', onShowcaseKeydown);
+};
+const closeShowcase = () => {
+    if (!showcaseOpen.value) return;
+    showcaseOpen.value = false;
+    window.removeEventListener('keydown', onShowcaseKeydown);
+};
+onUnmounted(() => {
+    window.removeEventListener('keydown', onShowcaseKeydown);
+});
+
 watch(() => props.mod, (newMod) => {
+    closeShowcase();
     if (newMod == null) {
         img.value = null;
         return;
@@ -153,25 +188,9 @@ s-scroll-view {
     text-overflow: ellipsis;
 }
 
-.mod-character {
-    font-size: 15px;
-    font-weight: 500;
-    margin-top: 10px;
-    margin-bottom: 16px;
-    text-align: left;
 
-    position: relative;
-    z-index: 1;
-    width: fit-content;
-    padding: 2px 10px;
-    background-color: var(--s-color-primary);
-    opacity: 0.8;
-    backdrop-filter: blur(10px);
-    color: var(--s-color-on-primary);
-    border-radius: 30px;
-
-}
-
+/* Hinh khung phai: truoc day margin-top -50px de chui xuong duoi o ten
+   nhan vat; bo o do roi thi hinh ve cho binh thuong (Dat dan 20/11). */
 .mod-image {
     width: calc(100% + 20px);
     height: auto;
@@ -179,8 +198,51 @@ s-scroll-view {
     background-size: cover;
     height: 200px;
 
-    margin-top: -50px;
+    margin-top: 10px;
     margin-left: -10px;
+}
+
+/* Dong tag tren Hotkeys: o nhan vat vang + o loai vien. */
+.mod-tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 17px 0;
+}
+.mod-tag {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 3px 12px;
+    border-radius: 30px;
+    width: fit-content;
+}
+.mod-tag-character {
+    background-color: var(--s-color-primary);
+    color: var(--s-color-on-primary);
+}
+.mod-tag-type {
+    background-color: transparent;
+    color: var(--s-color-on-surface);
+    border: 1px solid var(--s-color-outline-variant);
+}
+
+/* Lop phu xem anh goc: giua man hinh, bam bat ky dau de dong. Anh giu
+   kich thuoc that, chi thu lai khi vuot qua cua so (khong phong to). */
+.showcase-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+    cursor: pointer;
+    z-index: 9999;
+}
+.showcase-overlay img {
+    max-width: calc(100vw - 48px);
+    max-height: calc(100vh - 48px);
+    object-fit: contain;
+    border-radius: 8px;
 }
 
 .hotkey {

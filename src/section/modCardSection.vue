@@ -420,14 +420,14 @@ function handleCompactButtonClicked() {
 
 //-============================== Phóng to ==============================
 //#region Zoom
-// Mức phóng to (chiều rộng thẻ, px). 250 là cỡ gốc = 100%.
-const ZOOM_LEVELS = [100, 150, 200, 250, 300, 350];
+// Mức phóng to (chiều rộng thẻ, px). 400 là cỡ gốc = 100% (thẻ 400×300).
+const ZOOM_LEVELS = [200, 250, 300, 350, 400, 450];
 // Đọc qua g_config_vue (ref phản ứng): lúc mở app, loadConfig ghi giá trị
 // đã lưu vào đây, khung lưới tự cập nhật theo. Ghi thì đi qua Proxy
 // iManager.config để _config + ref cùng đổi (ghi thẳng vào ref thì file
 // config không đổi theo).
 const cardWidth = g_config_vue.cardWidth;
-const zoomPercent = computed(() => Math.round(cardWidth.value / 250 * 100));
+const zoomPercent = computed(() => Math.round(cardWidth.value / 400 * 100));
 
 // Ghi config dồn: bấm +/− lia lịa thì chờ 300ms sau lần bấm cuối mới ghi
 // 1 lần (giống cách ghi preset dồn).
@@ -441,17 +441,19 @@ function saveViewSettings() {
 }
 
 function handleZoomOutClicked() {
-    const i = ZOOM_LEVELS.indexOf(cardWidth.value);
-    if (i > 0) {
-        iManager.config.cardWidth = ZOOM_LEVELS[i - 1];
+    // Mức gần nhất NHỎ HƠN chiều rộng hiện tại (chiều rộng lạ từ bản cũ —
+    // vd 100/150 không còn trong thang mới — vẫn phóng được, không kẹt nút).
+    const lower = ZOOM_LEVELS.filter(l => l < cardWidth.value);
+    if (lower.length > 0) {
+        iManager.config.cardWidth = lower[lower.length - 1];
         saveViewSettings();
     }
 }
 
 function handleZoomInClicked() {
-    const i = ZOOM_LEVELS.indexOf(cardWidth.value);
-    if (i >= 0 && i < ZOOM_LEVELS.length - 1) {
-        iManager.config.cardWidth = ZOOM_LEVELS[i + 1];
+    const higher = ZOOM_LEVELS.find(l => l > cardWidth.value);
+    if (higher !== undefined) {
+        iManager.config.cardWidth = higher;
         saveViewSettings();
     }
 }

@@ -75,7 +75,7 @@ let g_config = {
         y: -1,
     },
     ifUseTraditionalApply: false,
-    cardWidth: 250,
+    cardWidth: 400,
     modTypeFilter: 'all',
     modSortBy: 'default',
 };
@@ -117,7 +117,7 @@ const g_config_vue = {
         y: -1,
     }),
     ifUseTraditionalApply: ref(false),
-    cardWidth: ref(250),
+    cardWidth: ref(400),
     modTypeFilter: ref('all'),
     modSortBy: ref('default'),
 };
@@ -214,7 +214,7 @@ class IManager {
             y: -1,
         },
         ifUseTraditionalApply: false, // 是否使用传统的应用方式
-        cardWidth: 250, // Chiều rộng thẻ ở dạng lưới (100/150/200/250/300/350)
+        cardWidth: 400, // Chiều rộng thẻ ở dạng lưới (200/250/300/350/400/450)
         modTypeFilter: 'all', // Lọc theo loại mod: all/outfit/weapon/effect
         modSortBy: 'default', // Sắp xếp mod: default/name-asc/name-desc/time-desc/time-asc
     };
@@ -354,6 +354,13 @@ class IManager {
                 console.log(`Loading config error: ${error}`);
                 snack(`Loading config error: ${error}`);
             }
+        }
+
+        // Thẻ đổi cỡ mặc định 250 → 400 (Đạt dặn 20/11, thẻ 400×300):
+        // file cũ còn 250 (cỡ gốc cũ, người dùng chưa từng phóng to) thì
+        // lên 400 cho đúng cỡ mới; ai đã phóng tay thì giữ nguyên.
+        if (this._config.cardWidth === 250) {
+            this.config.cardWidth = 400;
         }
 
         //debug
