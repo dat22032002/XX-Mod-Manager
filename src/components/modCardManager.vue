@@ -221,10 +221,47 @@ function scheduleWindowUpdate() {
 // dùng được (trước đây chỉ chấp nhận đúng nấc nên 301 bị đẩy về 350).
 const LAYOUT_BASE = { vertical: 250, horizontal: 350 };
 const ZOOM_RANGE = { vertical: [100, 350], horizontal: [200, 450] };
-const effectiveCardWidth = computed(() => {
+const nominalCardWidth = computed(() => {
     const [min, max] = ZOOM_RANGE[props.cardLayout];
     return props.cardWidth >= min && props.cardWidth <= max ? props.cardWidth : LAYOUT_BASE[props.cardLayout];
 });
+
+// Kéo rộng thẻ vừa đủ lấp đầy hàng (Đạt chọn cách 3, 20/11): khung lưới
+// hiếm khi chia hết cho (rộng thẻ + khe) nên luôn thừa một khoảng, chia
+// đều 2 bên thành vệt đen. Thay vì giữ rộng cố định, đo rộng khung rồi
+// tính rộng thẻ sao cho hàng đầy khít — nhưng CHỈ trong giới hạn ±15%
+// quanh rộng đã chọn (FILL_WIDTH_LIMIT), để cỡ thẻ vẫn gần đúng số %
+// hiển thị. Giới hạn 10% thử trước thì ở các cỡ màn hình thường
+// (1280/1600/1920, thẻ ngang 301) cả 2 ứng viên đều ngoài giới hạn
+// nên hàng vẫn trống — nới ra 15% thì lấp được (chỉ còn cửa sổ hẹp
+// 2 cột là ngoài giới hạn). Có 2 ứng viên lấp đầy: kéo giãn n cột
+// hiện tại, hoặc thu
+// nhỏ để vừa thêm 1 cột (n+1); chọn ứng viên trong giới hạn mà gần
+// rộng đã chọn nhất. Cả 2 đều ngoài giới hạn thì giữ nguyên rộng đã
+// chọn, lưới căn giữa như trước (khoảng trống còn lại là cố ý).
+// Trả cả số cột để vẽ từng phần dùng đúng số cột CSS đang xếp — tính
+// lại số cột từ rộng đã kéo bằng computeColumns sẽ sai do làm tròn số
+// thập phân (vd 4.9999... thành 4).
+const FILL_WIDTH_LIMIT = 0.15;
+const containerWidth = ref(0);
+const gridLayout = computed(() => {
+    const nominal = nominalCardWidth.value;
+    const w = containerWidth.value;
+    if (!Number.isFinite(w) || w <= 0) return { width: nominal, columns: 1 };
+    const [rangeMin, rangeMax] = ZOOM_RANGE[props.cardLayout];
+    const lo = Math.max(nominal * (1 - FILL_WIDTH_LIMIT), rangeMin);
+    const hi = Math.min(nominal * (1 + FILL_WIDTH_LIMIT), rangeMax);
+    const n = computeColumns(w, nominal, CARD_GAP);
+    const stretch = (w - (n - 1) * CARD_GAP) / n;
+    const shrink = (w - n * CARD_GAP) / (n + 1);
+    const candidates = [];
+    if (stretch >= lo && stretch <= hi) candidates.push({ width: stretch, columns: n });
+    if (shrink >= lo && shrink <= hi) candidates.push({ width: shrink, columns: n + 1 });
+    if (candidates.length === 0) return { width: nominal, columns: n };
+    candidates.sort((a, b) => Math.abs(a.width - nominal) - Math.abs(b.width - nominal));
+    return candidates[0];
+});
+const effectiveCardWidth = computed(() => gridLayout.value.width);
 
 // Kiểu của khung lưới: khoảng đệm vẽ từng phần + biến rộng thẻ. Thẻ lưới
 // đọc --card-width để tự co giãn theo mức phóng to.
@@ -241,8 +278,15 @@ function updateWindow() {
     const scrollView = scrollViewRef.value;
     if (!container || !scrollView) return;
     const list = filteredMods.value;
-    // Số cột theo chiều rộng thẻ hiện tại.
-    const columns = computeColumns(container.clientWidth, effectiveCardWidth.value, CARD_GAP);
+    // Đo rộng khung trước để tính rộng thẻ lấp đầy (gridLayout); số cột
+    // lấy từ gridLayout cho khớp số cột CSS đang xếp (xem ghi chú ở
+    // gridLayout — không tính lại từ rộng đã kéo).
+    containerWidth.value = container.clientWidth;
+    const columns = gridLayout.value.columns;
+    // Rộng thẻ có thể vừa đổi theo cỡ khung (kéo vừa đủ) — đồng bộ chiều
+    // cao hàng theo rộng mới, trừ lúc đang chạy hiệu ứng gọn/thường (để
+    // hiệu ứng tự chạy hết, không giật).
+    if (!isAnimating) syncRowHeight();
     const rowHeight = readRowHeight();
     const viewRect = scrollView.getBoundingClientRect();
     const contRect = container.getBoundingClientRect();
