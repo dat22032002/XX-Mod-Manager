@@ -447,15 +447,14 @@ defineExpose({
     border-radius: 12px;
 }
 
-/* Cả 2 loại chọn: giữ viền vàng + thêm vòng xanh biển bên ngoài để
-   nhìn thấy cả 2 trạng thái cùng lúc. */
+/* Cả 2 loại chọn: 1 viền đỏ duy nhất (Đạt dặn 20/11) — thay cho kiểu
+   cũ viền vàng + vòng xanh chồng nhau. background-image: none để tắt
+   vệt vàng gradient của trạng thái chọn vàng (nền tối của thẻ vẫn giữ
+   nguyên nhờ background-color). */
 .mod-item[clicked="true"][batch-clicked="true"] {
-    border: 5px solid transparent;
-    background-clip: padding-box, border-box;
-    background-origin: padding-box, border-box;
-    background-image: linear-gradient(to right, var(--s-color-surface-container-low), var(--s-color-surface-container-low)), linear-gradient(90deg, var(--s-color-primary), var(--s-color-secondary));
-    outline: 3px solid #2196F3;
-    outline-offset: 3px;
+    border: 5px solid #F44336;
+    background-image: none;
+    outline: none;
 }
 
 .mod-item {
