@@ -84,6 +84,7 @@
   },
   "buttons": {
     "addPreset": "Add preset",
+    "deletePreset": "Delete preset",
     "apply": "Apply",
     "cancel": "Cancel",
     "compactMode": "compact mode",
@@ -210,6 +211,11 @@
     "title": "Delete this mod?",
     "messageRecycle": "Move mod “{name}” to the recycle bin? You can still restore it from the recycleBin folder inside your mod library.",
     "messagePermanent": "Permanently delete mod “{name}”? This cannot be undone."
+  },
+  "deletePresetDialog": {
+    "title": "Delete preset?",
+    "message": "Delete preset “{name}”? This cannot be undone.",
+    "cannotDeleteDefault": "Cannot delete the Default preset"
   },
   "conflictDialog": {
     "title": "Mods conflict",
