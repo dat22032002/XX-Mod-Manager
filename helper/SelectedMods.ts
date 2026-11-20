@@ -90,6 +90,24 @@ export function toggleModSelection(allMods: ModData[], mod: ModData): boolean {
     return true;
 }
 
+//===================== chọn làm hàng loạt (Ctrl+bấm) =====================
+// Tập chọn RIÊNG cho thao tác hàng loạt (đặt nhân vật/tag): Ctrl+bấm
+// thẻ để thêm/bớt mod, không tắt mod nào khác, không đụng tới tập
+// chọn vàng (để Áp Dụng) — 2 tập độc lập, 1 mod có thể ở cả 2 tập.
+// Chỉ sống trong phiên mở app, không lưu file, không vào preset.
+export const batchSelectedModIdSet = reactive(new Set<string>());
+
+// Thêm/bớt 1 mod khỏi tập chọn hàng loạt. Không có luật độc quyền —
+// chọn bao nhiêu mod cùng nhân vật + cùng tag cũng được.
+export function toggleBatchSelection(mod: ModData): boolean {
+    if (batchSelectedModIdSet.has(mod.id)) {
+        batchSelectedModIdSet.delete(mod.id);
+        return false;
+    }
+    batchSelectedModIdSet.add(mod.id);
+    return true;
+}
+
 // Ghim/bỏ ghim 1 mod, lưu ngay vào mod.json. Ghi lỗi thì trả lại trạng
 // thái cũ để màn hình không lệch với file.
 export async function toggleModPin(mod: ModData): Promise<void> {

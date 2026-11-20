@@ -79,7 +79,8 @@
     "batch-set-character": "Character",
     "saveFailed": "Failed to save mod info: {error}",
     "mod-info-tag": "Tag",
-    "batch-set-tag": "Tag"
+    "batch-set-tag": "Tag",
+    "batch-hint": "Hold Ctrl and click cards to pick mods for batch (blue border)."
   },
   "buttons": {
     "addPreset": "Add preset",

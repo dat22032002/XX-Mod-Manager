@@ -1,5 +1,5 @@
 <template>
-    <s-card ref="modItemRef" class="mod-item" :clicked=clicked clickable="true" :id="props.modRef.id" inWindow="none"
+    <s-card ref="modItemRef" class="mod-item" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id" inWindow="none"
         :name="props.modRef.name" :character="props.modRef.character" @click="click" :compact="props.compactMode"
         @contextmenu.prevent.stop="openEditModDialog">
 
@@ -71,7 +71,7 @@ import { EventSystem, EventType } from '../../helper/EventSystem';
 import { TranslatedText } from '../../helper/Language';
 import { ModData } from '../../core/ModHelper';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
-import { selectedModIdSet, toggleModSelection, toggleModPin } from '../../helper/SelectedMods';
+import { selectedModIdSet, toggleModSelection, toggleModPin, batchSelectedModIdSet, toggleBatchSelection } from '../../helper/SelectedMods';
 
 const displayHotKeysModes = {
     none: 0,
@@ -135,10 +135,20 @@ const enterWindow = async () => {
 // way back, so the clicked state is a computed over the shared selection
 // set — the single source of truth — instead of a snapshot taken at mount.
 const clicked = computed(() => selectedModIdSet.has(props.modRef.id));
+// Chọn hàng loạt (Ctrl+bấm): viền xanh biển, riêng với chọn vàng.
+const batchClicked = computed(() => batchSelectedModIdSet.has(props.modRef.id));
 const modItemRef = useTemplateRef('modItemRef');
 const emit = defineEmits(['click'])
 
 const click = (event) => {
+    // Ctrl+bấm: thêm/bớt mod khỏi tập chọn hàng loạt (viền xanh biển),
+    // không đụng tới chọn vàng, không tắt mod nào khác.
+    if (event != null && (event.ctrlKey || event.metaKey)) {
+        const newBatchClicked = toggleBatchSelection(props.modRef);
+        modItemRef.value.setAttribute('batch-clicked', newBatchClicked);
+        iManager.setCurrentMod(props.modRef);
+        return;
+    }
     // Chọn/bỏ chọn qua helper dùng chung với hàng danh sách (kèm luật
     // 1 mod/1 loại + báo mod bị tắt).
     const newClicked = toggleModSelection(iManager.data.modList || [], props.modRef);
@@ -443,6 +453,24 @@ defineExpose({
     border: "";
     transform: rotate3d(1, 1, 0, 0deg);
     border-radius: 12px;
+}
+
+/* Chọn hàng loạt (Ctrl+bấm): viền xanh biển, riêng với chọn vàng. */
+.mod-item[batch-clicked="true"] {
+    border: 5px solid #2196F3;
+    box-sizing: border-box;
+    border-radius: 12px;
+}
+
+/* Cả 2 loại chọn: giữ viền vàng + thêm vòng xanh biển bên ngoài để
+   nhìn thấy cả 2 trạng thái cùng lúc. */
+.mod-item[clicked="true"][batch-clicked="true"] {
+    border: 5px solid transparent;
+    background-clip: padding-box, border-box;
+    background-origin: padding-box, border-box;
+    background-image: linear-gradient(to right, var(--s-color-surface-container-low), var(--s-color-surface-container-low)), linear-gradient(90deg, var(--s-color-primary), var(--s-color-secondary));
+    outline: 3px solid #2196F3;
+    outline-offset: 3px;
 }
 
 .mod-item {

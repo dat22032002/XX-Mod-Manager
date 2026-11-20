@@ -93,6 +93,7 @@
                 <!-- Bảng gọn: ôm sát hàng rộng nhất (hàng tag), không cố
                      định 760px nữa; nút + của cả 2 hàng đều ở mép phải. -->
                 <div style="width: fit-content;height: max-content;">
+                    <p style="margin: 6px 20px 0;font-size: 0.8rem;color: var(--s-color-outline);">{{ $t('editDialog.batch-hint') }}</p>
                     <div class="OO-setting-bar">
                     <h3>{{ $t('editDialog.batch-set-character') }}</h3>
                     <div style="display: flex;align-items: center;gap: 8px;">
@@ -199,7 +200,7 @@ import fsProxy from '../../electron/fsProxy';
 const iManager = new IManager();
 import { EventSystem, EventType } from '../../helper/EventSystem';
 import { SnackType, t_snack, snack } from '../../helper/SnackHelper';
-import { selectedModIdSet } from '../../helper/SelectedMods';
+import { selectedModIdSet, batchSelectedModIdSet } from '../../helper/SelectedMods';
 import { MOD_TAGS, isValidTag } from '../../helper/ModTag';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
 import { checkConflicts } from '../../helper/ConflictCheck';
@@ -238,7 +239,9 @@ function handleBatchSetCharacterButtonClicked(){
     // TC16: cắt khoảng trắng thừa — tên toàn khoảng trắng trước đây vẫn qua
     // được kiểm tra rỗng.
     const newCharacter = targetCharacter.value.trim();
-    const ModIds = selectedModIds();
+    // Thao tác hàng loạt chạy trên tập chọn xanh biển (Ctrl+bấm),
+    // không dùng tập chọn vàng (để Áp Dụng).
+    const ModIds = batchSelectedModIds();
 
     if (!newCharacter) {
         t_snack({
@@ -250,10 +253,10 @@ function handleBatchSetCharacterButtonClicked(){
     }
     if (ModIds.length == 0) {
         t_snack({
-            vi: 'Hãy chọn ít nhất một mod',
-            en: 'Please select at least one mod',
+            vi: 'Giữ Ctrl rồi bấm thẻ để chọn mod làm hàng loạt trước đã',
+            en: 'Hold Ctrl and click cards to pick mods for batch first',
         },SnackType.error);
-        console.error('selectedModIds is empty');
+        console.error('batchSelectedModIds is empty');
         return;
     }
     // TC16: hỏi xác nhận (ghi số mod + tên mới) trước khi ghi đè hàng loạt.
@@ -318,13 +321,15 @@ function syncBatchTagBar() {
     }));
 }
 function handleBatchSetTagButtonClicked() {
-    const ModIds = selectedModIds();
+    // Thao tác hàng loạt chạy trên tập chọn xanh biển (Ctrl+bấm),
+    // không dùng tập chọn vàng (để Áp Dụng).
+    const ModIds = batchSelectedModIds();
     if (ModIds.length == 0) {
         t_snack({
-            vi: 'Hãy chọn ít nhất một mod',
-            en: 'Please select at least one mod',
+            vi: 'Giữ Ctrl rồi bấm thẻ để chọn mod làm hàng loạt trước đã',
+            en: 'Hold Ctrl and click cards to pick mods for batch first',
         }, SnackType.error);
-        console.error('selectedModIds is empty');
+        console.error('batchSelectedModIds is empty');
         return;
     }
     batchTagConfirmCount.value = ModIds.length;
@@ -469,6 +474,8 @@ function handlePresetChange(tab) {
 // scrolled out of view are not in the DOM, so reading .mod-item elements
 // would silently drop them from presets, Apply, and batch-set-character.
 const selectedModIds = () => [...selectedModIdSet];
+// Id các mod chọn làm hàng loạt (Ctrl+bấm, viền xanh biển).
+const batchSelectedModIds = () => [...batchSelectedModIdSet];
 const selectedModNames = () => [...selectedModIdSet].map(id => iManager.data.modList.find(mod => mod.id === id)?.name).filter(Boolean);
 
 
