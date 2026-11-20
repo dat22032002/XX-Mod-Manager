@@ -275,6 +275,10 @@ const handleCancel = async () => {
 }
 
 const handleSave = async () => {
+  // Bấm Lưu 2 lần liên tiếp (thói quen từ lúc còn lỗi phải bấm 2 lần) sẽ
+  // chạy lưu 2 lần chồng nhau — lần sau tính toán trên dữ liệu lần trước
+  // đã đổi dở. Đang lưu thì lần bấm sau bỏ qua (Đạt gặp 20/11).
+  if (savePending) return;
   //debug
   // Đặt cờ trước mọi await. Nút Lưu nằm trong vùng action của Sober nên
   // bấm là hộp tự đóng theo mặc định thư viện — bộ nghe dismiss (dưới)
