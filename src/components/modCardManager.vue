@@ -610,7 +610,11 @@ defineExpose({
     grid-row-end: auto;
     grid-auto-rows: calc(var(--card-width, 250px) * 1.4);
     gap: 12px;
-    justify-content: start;
+    /* Căn giữa khối thẻ: chiều rộng vùng hiển thị hiếm khi chia hết cho
+       (rộng thẻ + khe) nên luôn thừa một khoảng; để start thì khoảng
+       thừa dồn hết sang phải thành vệt đen (Đạt thấy ở toàn màn hình
+       19/11), center thì chia đều 2 bên. */
+    justify-content: center;
     justify-items: center;
     min-height: 500px;
 
