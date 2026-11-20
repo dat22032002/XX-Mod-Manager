@@ -58,12 +58,20 @@ const props = defineProps({
         type: String,
         default: 'horizontal'
     },
+    // Hiện ảnh gốc đầy đủ thay vì ảnh thu nhỏ 250px (nút bên phải +).
+    fullImage: Boolean,
 })
 const enteredWindow = ref(false);
 
 const ifDisplayImage = ref(true);
 
 const img = ref(null);
+
+// Số thứ tự lần tải ảnh gần nhất: bấm nút chuyển đổi lia lịa (hay bấm
+// đúng lúc ảnh đầu tiên chưa tải xong) thì chỉ lần tải MỚI NHẤT mới được
+// gán vào img, các lần cũ hơn về sau thì bỏ — không thì thẻ có thể kẹt
+// ở bản ảnh trái với nút đang chọn.
+let imageLoadToken = 0;
 
 const getImage = async () => {
     // return 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D';
@@ -76,10 +84,10 @@ const getImage = async () => {
             return '';
         }
         ifDisplayImage.value = true;
-        return await props.modRef.getPreviewBase64(true);
+        return await props.modRef.getPreviewBase64(true, props.fullImage);
     }
     else {
-        return await props.modRef.getPreviewBase64(true);
+        return await props.modRef.getPreviewBase64(true, props.fullImage);
     }
 }
 
@@ -89,9 +97,22 @@ const enterWindow = async () => {
     // console.log(`modItem ${props.mod} enterWindow: lazyLoad, img loaded`);
     enteredWindow.value = true;
     if (props.lazyLoad && img.value == null) {
-        img.value = await getImage();
+        const token = ++imageLoadToken;
+        const url = await getImage();
+        if (token === imageLoadToken) img.value = url;
     }
 }
+
+// Đổi ảnh gốc / ảnh thu nhỏ (nút bên phải +): thẻ nào đã hiện ảnh thì
+// tải lại đúng bản mới — ảnh cũ vẫn hiện cho tới khi ảnh mới tải xong
+// nên không chớp trắng. Thẻ chưa vào khung nhìn thì thôi, lúc lăn tới
+// enterWindow sẽ tải đúng bản đang chọn.
+watch(() => props.fullImage, async () => {
+    if (!enteredWindow.value || !ifDisplayImage.value) return;
+    const token = ++imageLoadToken;
+    const url = await getImage();
+    if (token === imageLoadToken) img.value = url;
+});
 
 
 //===================== 动画效果 =====================//

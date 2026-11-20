@@ -12,7 +12,7 @@
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
             <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle">
                 <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true
-                    :compactMode="compactMode" :cardWidth="effectiveCardWidth" :cardLayout="cardLayout"
+                    :compactMode="compactMode" :cardWidth="effectiveCardWidth" :cardLayout="cardLayout" :fullImage="fullImage"
                     :ref="setModCardRef(mod.id)" />
             </div>
             <div class="placeholder"></div>
@@ -47,7 +47,9 @@ const props = defineProps({
     cardLayout: {
         type: String,
         default: 'horizontal'
-    }
+    },
+    // Thẻ hiện ảnh gốc đầy đủ thay vì ảnh thu nhỏ 250px.
+    fullImage: Boolean
 });
 
 // 定义 mods 变量
