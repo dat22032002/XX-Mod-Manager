@@ -25,6 +25,9 @@
                 <p id="mod-item-description">{{ props.modRef.description }}</p>
                 <div class="placeholder"></div>
             </s-scroll-view>
+            <!-- Dung lượng thư mục mod (Đạt dặn 20/11): chữ nhỏ kiểu dòng
+                 đếm mod dưới đáy, căn giữa, dưới cùng thẻ. -->
+            <div class="mod-item-size">{{ sizeText }}</div>
         </div>
     </s-card>
 </template>
@@ -39,6 +42,7 @@ const iManager = new IManager();
 import { EventSystem, EventType } from '../../helper/EventSystem';
 import { TranslatedText } from '../../helper/Language';
 import { ModData } from '../../core/ModHelper';
+import { formatModSize } from '../../helper/ModSizeScanner';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
 import { selectedModIdSet, toggleModSelection, toggleModPin, batchSelectedModIdSet, toggleBatchSelection } from '../../helper/SelectedMods';
 
@@ -66,6 +70,17 @@ const enteredWindow = ref(false);
 const ifDisplayImage = ref(true);
 
 const img = ref(null);
+
+// Dung lượng mod: đọc từ thẻ lúc gắn (đã quét thì có ngay từ bộ nhớ
+// sẵn), quét nền xong thì sự kiện modSizeReady cập nhật riêng thẻ này
+// (không tải lại cả lưới).
+const sizeBytesRef = ref(props.modRef.sizeBytes ?? -1);
+const sizeText = computed(() => formatModSize(sizeBytesRef.value));
+const onModSizeReady = (mod) => {
+    if (mod && mod.id === props.modRef.id) {
+        sizeBytesRef.value = mod.sizeBytes;
+    }
+};
 
 // Số thứ tự lần tải ảnh gần nhất: bấm nút chuyển đổi lia lịa (hay bấm
 // đúng lúc ảnh đầu tiên chưa tải xong) thì chỉ lần tải MỚI NHẤT mới được
@@ -205,10 +220,12 @@ onMounted(() => {
     // lúc mới hiện (enterWindow) nên file đã đổi mà thẻ vẫn hiện ảnh cũ.
     // Chi tiết bên phải (modInfo) đã nghe sự kiện này từ trước, thẻ thì chưa.
     EventSystem.on(EventType.modInfoChanged, onModInfoChanged);
+    EventSystem.on(EventType.modSizeReady, onModSizeReady);
 });
 
 onUnmounted(() => {
     EventSystem.off(EventType.modInfoChanged, onModInfoChanged);
+    EventSystem.off(EventType.modSizeReady, onModSizeReady);
     clearHoverFollow();
 });
 
@@ -567,6 +584,30 @@ defineExpose({
 .mod-item s-scroll-view {
     height: 100%;
     width: 110%;
+}
+
+/* Dung lượng thư mục mod: chữ nhỏ kiểu dòng đếm mod dưới đáy (14px,
+   xám nhạt), căn giữa, dưới cùng thẻ (Đạt dặn 20/11). Neo tuyệt đối
+   theo đáy THẺ (không đặt cuối ô chữ): ô chữ vốn đã tràn khỏi đáy thẻ
+   vài px (quy tắc cao 0.171×rộng không trừ hết tên + ảnh) nên dòng
+   chữ đặt cuối ô chữ sẽ bị thẻ cắt mất nửa dưới. Nền trùng màu thẻ
+   để chữ mô tả lướt qua phía dưới không chồng lên chữ dung lượng;
+   không nhận chuột để lăn mô tả bình thường. */
+.mod-item .mod-item-size {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--s-color-on-surface-variant);
+    background-color: var(--s-color-surface-container-low);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
 }
 
 .mod-item .placeholder {

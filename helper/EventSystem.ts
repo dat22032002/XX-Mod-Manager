@@ -33,6 +33,8 @@ enum EventType {
     currentPresetChanged = 'currentPresetChanged',
     currentModChanged = 'currentModChanged',
     modListChanged = 'modListChanged',
+    // Quét nền vừa tính xong dung lượng 1 mod (thẻ đó tự cập nhật dòng dung lượng)
+    modSizeReady = 'modSizeReady',
     // Làm mới danh sách mà không tải lại cửa sổ (giữ vị trí cuộn, bộ lọc, tìm kiếm, lựa chọn)
     refreshModList = 'refreshModList',
     //----------事件节点----------

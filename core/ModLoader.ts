@@ -4,6 +4,7 @@ import { ModInfo } from './ModInfo';
 import ModCache from './ModCache';
 import type { ModCacheFile } from './ModCache';
 import { EventSystem, EventType } from '../helper/EventSystem';
+import ModSizeScanner from '../helper/ModSizeScanner';
 
 const fs = require('fs');
 const path = require('path');
@@ -170,8 +171,12 @@ class ModLoader {
 
         // 触发回调函数
         this.triggerAfterLoadCallbacks();
-        // 返回 mod 列表
 
+        // Quét dung lượng nền cho mod chưa có số (không chờ — app vẫn
+        // dùng bình thường, thẻ tự hiện số khi quét xong từng mod).
+        ModSizeScanner.scanMissing(this.mods);
+
+        // 返回 mod 列表
         return this.mods;
     }
 
@@ -233,6 +238,8 @@ class ModLoader {
         if (this.updateCacheEntry(cache, folder, path.basename(modPath), modInfo, modData)) {
             ModCache.save(cache);
         }
+        // Mod mới nhập chưa có dung lượng — quét nền riêng nó.
+        ModSizeScanner.scanMissing([modData]);
         return {
             modInfo: modInfo,
             modData: modData

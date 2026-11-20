@@ -41,6 +41,8 @@ export interface CachedModEntry {
     meta: Record<string, any>;
     // Resolved absolute preview image path (or the default image path).
     previewPath: string;
+    // Dung lượng thư mục mod (byte), quét nền ghi vào. Thiếu = chưa quét.
+    sizeBytes?: number;
 }
 
 export interface ModCacheFile {

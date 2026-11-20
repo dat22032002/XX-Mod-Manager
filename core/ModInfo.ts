@@ -388,7 +388,7 @@ class ModInfo {
     // Serialize the loaded state for the cache. Callers supply fresh stat
     // data (folder mtime, mod.json mtime + size) and the resolved preview
     // path, so later loads can tell whether this mod changed.
-    public toCacheEntry(folderMtimeMs: number, modJsonMtimeMs: number, modJsonSize: number, previewPath: string): CachedModEntry {
+    public toCacheEntry(folderMtimeMs: number, modJsonMtimeMs: number, modJsonSize: number, previewPath: string, sizeBytes: number = -1): CachedModEntry {
         const meta: Record<string, any> = {};
         for (const item of ModInfo.modDataTemplate.items) {
             meta[item.key] = this.metaData.get(item.key);
@@ -402,6 +402,7 @@ class ModInfo {
             modName: this.modName,
             meta: meta,
             previewPath: previewPath,
+            sizeBytes: sizeBytes,
         };
     }
 
