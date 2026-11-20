@@ -4,7 +4,7 @@
         @mouseenter="onCardHoverStart" @mouseleave="onCardHoverEnd"
         @contextmenu.prevent.stop="openEditModDialog">
 
-        <div slot="image" style="height: calc(var(--card-width, 250px) * 0.8);" v-if="ifDisplayImage">
+        <div slot="image" style="height: calc(var(--card-width, 400px) * 0.5);" v-if="ifDisplayImage">
             <img id="editDialog-mod-info-image"
                 style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;" alt="Mod Image"
                 :src="img || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D'" @load="enterWindow" />
@@ -19,34 +19,12 @@
                 </svg>
             </button>
         </div>
-        <div slot="subhead" id="mod-item-subhead">{{ props.modRef.character }}</div>
         <div slot="text" id="mod-item-text">
             <s-scroll-view>
                 <!-- <p id="mod-hotkeys">Hotkeys: {{ displayHotKeys }}</p> -->
                 <p id="mod-item-description">{{ props.modRef.description }}</p>
-                <p v-if="props.displayHotKeysMode == displayHotKeysModes.inline">
-                    <!-- 将按键拼合为文本 -->
-                    {{props.modRef.hotkeys.map(hotkey => hotkey.description + "->" +hotkey.key).join('  ')}}
-                </p>
                 <div class="placeholder"></div>
             </s-scroll-view>
-            <horizontalScrollBar v-if="props.displayHotKeysMode == displayHotKeysModes.scrollbar"
-                class="OO-box OO-shade-box hotkey-container" scrollSpeed=0.1 dragSpeed=1>
-                <div style="display: flex;flex-direction: row;flex-wrap: nowrap;">
-                    <div v-for="(hotkey, index) in props.modRef.hotkeys" :key="index">
-                        <s-tooltip>
-                            <div style="margin: 0px 3px;height: 35px;padding: 20px 5px 20px 5px;transform: skew(-20deg);border-radius: 0;min-width: 35px;align-items: center;justify-content: center;"
-                                slot="trigger" class="OO-button">
-                                <p style="transform: skew(20deg);">
-                                    {{ hotkey.key }}
-                                </p>
-                            </div>
-                            <p style="line-height: 1.2;">
-                                {{ hotkey.description }} </p>
-                        </s-tooltip>
-                    </div>
-                </div>
-            </horizontalScrollBar>
         </div>
     </s-card>
 </template>
@@ -57,19 +35,12 @@ import { useTemplateRef, computed, defineProps, onMounted, onUnmounted, ref, wat
 import IManager from '../../electron/IManager';
 const iManager = new IManager();
 
-import horizontalScrollBar from './horizontalScrollBar.vue';
 
 import { EventSystem, EventType } from '../../helper/EventSystem';
 import { TranslatedText } from '../../helper/Language';
 import { ModData } from '../../core/ModHelper';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
 import { selectedModIdSet, toggleModSelection, toggleModPin, batchSelectedModIdSet, toggleBatchSelection } from '../../helper/SelectedMods';
-
-const displayHotKeysModes = {
-    none: 0,
-    inline: 1,
-    scrollbar: 2,
-}
 
 const props = defineProps({
     modRef: {
@@ -80,11 +51,7 @@ const props = defineProps({
     compactMode: Boolean,
     cardWidth: {
         type: Number,
-        default: 250
-    },
-    displayHotKeysMode: {
-        type: Number,
-        default: 1
+        default: 400
     },
 })
 const enteredWindow = ref(false);
@@ -300,8 +267,8 @@ function playClickAnim(modItem, event = null, rect = null) {
 
 //-==================== compact mode ====================-//
 const enterCompactMode = (item) => {
-    const normalH = props.cardWidth * 1.4;
-    const compactH = props.cardWidth * 0.6;
+    const normalH = props.cardWidth * 0.75;
+    const compactH = props.cardWidth * 0.45;
     item.animate([
         { height: `${normalH}px` },
         { height: `${compactH}px` }
@@ -340,8 +307,8 @@ const enterCompactMode = (item) => {
     });
 };
 const exitCompactMod = (item) => {
-    const normalH = props.cardWidth * 1.4;
-    const compactH = props.cardWidth * 0.6;
+    const normalH = props.cardWidth * 0.75;
+    const compactH = props.cardWidth * 0.45;
     item.animate([
         { height: `${compactH}px` },
         { height: `${normalH}px` }
@@ -462,20 +429,21 @@ defineExpose({
 .mod-item {
     perspective: 500px;
     /* Kích thước theo mức phóng to: biến --card-width đặt trên
-       #mod-container (mặc định 250px); cao = rộng × 1.4, ảnh = rộng × 0.8.
+       #mod-container (mặc định 400px); cao = rộng × 0.75, ảnh = rộng × 0.5
+       (thẻ 400×300 — Đạt dặn 20/11).
        Sober s-card mặc định max-width 280px — bỏ giới hạn đó thì thẻ mới
-       phóng to được tới 300/350px. */
-    width: var(--card-width, 250px);
+       phóng to được tới 450px. */
+    width: var(--card-width, 400px);
     max-width: none;
-    height: calc(var(--card-width, 250px) * 1.4);
+    height: calc(var(--card-width, 400px) * 0.75);
     margin-bottom: 0px;
     will-change: transform;
 
     transition: x, y 0.5s cubic-bezier(.36, -0.64, .34, 1.76);
 
     >div[slot="image"] {
-        width: var(--card-width, 250px);
-        height: calc(var(--card-width, 250px) * 0.8);
+        width: var(--card-width, 400px);
+        height: calc(var(--card-width, 400px) * 0.5);
     }
 }
 
@@ -505,7 +473,7 @@ defineExpose({
     /* Tiêu đề nhỏ theo thẻ khi thu nhỏ dưới 100% (24px ở 250px; 19.2px ở
     200px; 14.4px ở 150px; 9.6px ở 100px); thẻ to hơn 100% thì min() giữ
     nguyên 24px. line-height đi kèm để hàng tiêu đề co theo chữ. */
-    font-size: min(24px, calc(var(--card-width, 250px) * 0.096));
+    font-size: min(24px, calc(var(--card-width, 400px) * 0.096));
     line-height: 1.6;
 }
 
@@ -539,16 +507,12 @@ defineExpose({
     fill: currentColor;
 }
 
-.mod-item #mod-item-subhead {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: -2px;
-}
 
 .mod-item #mod-item-text {
-    height: 100px;
-    margin-top: -10px;
+    height: calc(var(--card-width, 400px) * 0.14);
+    /* margin-top âm cũ (-10px) dùng để kéo sát vào dòng tên nhân vật
+       phía trên; bỏ dòng đó rồi thì kéo âm làm mô tả chồng lên tên. */
+    margin-top: 0;
     border: 0;
 }
 
@@ -563,8 +527,8 @@ defineExpose({
 }
 
 .mod-item[compact="true"] {
-    width: var(--card-width, 250px);
-    height: calc(var(--card-width, 250px) * 0.6);
+    width: var(--card-width, 400px);
+    height: calc(var(--card-width, 400px) * 0.45);
     transition: all 0.4s;
 }
 
@@ -583,39 +547,4 @@ defineExpose({
     position: absolute;
     z-index: -1;
 }
-</style>
-
-<style scoped>
-.hotkey-container {
-    overflow-y: hidden;
-    overflow-x: auto;
-    height: 25px;
-    align-items: center;
-    max-width: 450px;
-    padding: 0px 0px;
-    border-radius: 0 20px 0 20px;
-
-    position: absolute;
-    bottom: 5px;
-    left: 10px;
-    right: 5px;
-}
-
-.hotkey-container-inline {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    height: 25px;
-    align-items: center;
-    max-width: 450px;
-    padding: 0px 0px;
-    border-radius: 0 20px 0 20px;
-
-    position: absolute;
-    bottom: 5px;
-    left: 10px;
-    right: 5px;
-}
-
 </style>

@@ -37,10 +37,10 @@ const iManager = new IManager();
 // 接受参数
 const props = defineProps({
     compactMode: Boolean,
-    // Chiều rộng thẻ ở dạng lưới (100/150/200/250/300/350).
+    // Chiều rộng thẻ ở dạng lưới (200/250/300/350/400/450).
     cardWidth: {
         type: Number,
-        default: 250
+        default: 400
     }
 });
 
@@ -208,11 +208,11 @@ function scheduleWindowUpdate() {
     });
 }
 
-// Rộng thẻ hợp lệ: chỉ nhận 1 trong 6 nấc (100/150/200/250/300/350);
-// giá trị lạ trong config cũ thì về 250 để lưới không vỡ.
-const ZOOM_LEVELS = [100, 150, 200, 250, 300, 350];
+// Rộng thẻ hợp lệ: chỉ nhận 1 trong 6 nấc (200/250/300/350/400/450);
+// giá trị lạ trong config cũ thì về 400 để lưới không vỡ.
+const ZOOM_LEVELS = [200, 250, 300, 350, 400, 450];
 const effectiveCardWidth = computed(() =>
-    ZOOM_LEVELS.includes(props.cardWidth) ? props.cardWidth : 250
+    ZOOM_LEVELS.includes(props.cardWidth) ? props.cardWidth : 400
 );
 
 // Kiểu của khung lưới: khoảng đệm vẽ từng phần + biến rộng thẻ. Thẻ lưới
@@ -436,9 +436,10 @@ EventSystem.on('currentPresetChanged', (preset) => {
 const animate = new Group();
 const modContainerRef = useTemplateRef('modContainerRef');
 
-// Chiều cao 1 hàng theo mức phóng to: thường = rộng × 1.4; gọn = rộng × 0.6.
+// Chiều cao 1 hàng theo mức phóng to: thường = rộng × 0.75; gọn = rộng × 0.45
+// (thẻ 400×300 — Đạt dặn 20/11; phải khớp CSS .mod-item không lưới sẽ lệch).
 function targetRowHeight() {
-    return props.compactMode ? effectiveCardWidth.value * 0.6 : effectiveCardWidth.value * 1.4;
+    return props.compactMode ? effectiveCardWidth.value * 0.45 : effectiveCardWidth.value * 0.75;
 }
 
 // Đặt chiều cao hàng ngay (lúc đổi mức phóng to).
@@ -605,9 +606,9 @@ defineExpose({
     /* grid-column: span 4;
     grid-column-start: span 4; */
     grid-column-end: auto;
-    grid-template-columns: repeat(auto-fill, var(--card-width, 250px));
+    grid-template-columns: repeat(auto-fill, var(--card-width, 400px));
     grid-row-end: auto;
-    grid-auto-rows: calc(var(--card-width, 250px) * 1.4);
+    grid-auto-rows: calc(var(--card-width, 400px) * 0.75);
     gap: 12px;
     /* Căn giữa khối thẻ: chiều rộng vùng hiển thị hiếm khi chia hết cho
        (rộng thẻ + khe) nên luôn thừa một khoảng; để start thì khoảng
