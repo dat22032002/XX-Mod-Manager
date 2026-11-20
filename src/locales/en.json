@@ -67,7 +67,6 @@
     "mod-info-name": "MOD Name",
     "mod-info-character": "Character",
     "mod-info-image": "MOD Cover",
-    "mod-info-url": "MOD Source URL",
     "mod-info-hotkeys": "Hotkeys",
     "mod-info-description": "MOD Description",
     "save": "Save",
@@ -76,9 +75,11 @@
     "changeNotSave": "Unsaved changes detected",
     "ifSaveChange": "Save changes?",
     "batch-operation": "Batch operation",
-    "batch-set-character": "Batch set character",
+    "badNameEnding": "Mod name cannot end with a space or a dot",
+    "batch-set-character": "Character",
     "saveFailed": "Failed to save mod info: {error}",
-    "badNameEnding": "Mod name cannot end with a space or a dot"
+    "mod-info-tag": "Tag",
+    "batch-set-tag": "Tag"
   },
   "buttons": {
     "addPreset": "Add preset",
@@ -119,15 +120,18 @@
   "filter": {
     "button": "Filter",
     "allTypes": "All types",
-    "outfit": "Outfit",
-    "weapon": "Weapon",
-    "effect": "Effect",
-    "accessory": "Accessory",
     "sortDefault": "Default",
     "sortNameAsc": "Name A–Z",
     "sortNameDesc": "Name Z–A",
     "sortTimeDesc": "Newest first",
     "sortTimeAsc": "Oldest first"
+  },
+  "modTag": {
+    "character": "Character",
+    "skin": "Skin",
+    "weapon": "Weapon",
+    "effect": "Effect",
+    "accessory": "Accessory"
   },
   "author": "author",
   "caimogu": "Caimogu",
@@ -218,6 +222,12 @@
     "message": "Set the character to “{name}” for {count} selected mods?",
     "done": "Character set for {count} mods",
     "doneWithFailures": "Character set for {ok} mods, {fail} failed: {names}"
+  },
+  "batchTag": {
+    "title": "Set tag for multiple mods",
+    "message": "Set the tag to “{name}” for {count} selected mods?",
+    "done": "Tag set for {count} mods",
+    "doneWithFailures": "Tag set for {ok} mods, {fail} failed: {names}"
   },
   "update": {
     "checkTitle": "App updates",

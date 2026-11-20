@@ -57,17 +57,14 @@
               <s-text-field :value="tempModInfo.character" @input="tempModInfo.character = $event.target.value" />
             </div>
 
-            <!-- -mod链接 -->
-            <div class="OO-setting-bar">
-              <h3> {{ $t('editDialog.mod-info-url') }} </h3>
-              <div class="OO-s-text-field-container">
-                <s-text-field :value="tempModInfo.url" @input="tempModInfo.url = $event.target.value" />
-                <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                  @click="iManager.openUrl(tempModInfo.url)">
-                  <s-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                      <path d="m256-240-56-56 384-384H240v-80h480v480h-80v-344L256-240Z"></path>
-                    </svg></s-icon>
-                </s-icon-button>
+            <!-- -tag mod: chọn trong 5 tag có sẵn, thay ô liên kết nguồn
+                 từ 1.5.18 (Đạt dặn 20/11). Liên kết nguồn cũ vẫn nằm
+                 trong mod.json, chỉ không sửa ở hộp này nữa. -->
+            <div class="OO-setting-bar" id="edit-mod-tag-row">
+              <h3> {{ $t('editDialog.mod-info-tag') }} </h3>
+              <div style="flex: 1;min-width: 0;display: flex;justify-content: flex-end;">
+                <chipRadioBar :items="tagItems" :translatedItems="translatedTags"
+                  @itemChange="handleTagChange" ref="tagBarRef" straight />
               </div>
             </div>
 
@@ -159,8 +156,10 @@ import { useI18n } from 'vue-i18n';
 import IManager from '../../electron/IManager';
 import DialogTemplate from './dialogTemplate.vue';
 import horizontalScrollBar from '../components/horizontalScrollBar.vue';
+import chipRadioBar from '../components/chipRadioBar.vue';
 import { ModData } from '../../core/ModHelper';
 import { TranslatedText } from '../../helper/Language';
+import { MOD_TAGS, isValidTag } from '../../helper/ModTag';
 const iManager = new IManager();
 
 // 参数为 字符串类型的 mod，之后通过 iManager.getModInfo(mod) 获取 mod 信息
@@ -243,6 +242,20 @@ const handleModNameChange = (event) => {
     iManager.t_snack(tt, `error`);
   }
 }
+
+//-==================== chọn tag mod ====================//
+// 5 tag có sẵn (ModTag), hiển thị bằng chipRadioBar giống hàng lọc.
+// Thanh vàng của thanh chip đo theo kích thước chip nên lúc hộp mới mở
+// (hộp còn ẩn, chip đo được 0) phải đo lại sau 2 khung hình — xem bộ
+// nghe 'show' ở dưới.
+const tagItems = MOD_TAGS;
+const translatedTags = computed(() => MOD_TAGS.map(tag => t(`modTag.${tag}`)));
+const tagBarRef = useTemplateRef('tagBarRef');
+
+const handleTagChange = (tag) => {
+  if (!isValidTag(tag)) return;
+  tempModInfo.value.tag = tag;
+};
 
 const handleHotkeyInput = (hotkey, value) => {
   //debug
@@ -429,6 +442,14 @@ onMounted(() => {
     changdPreviewByPaste = false;
     saveFailed = false;
     window.addEventListener('paste', handlePaste);
+    // Đặt thanh chip tag về đúng tag của mod: lúc hộp còn ẩn, chip đo
+    // được 0 nên phải đợi hộp hiện xong (2 khung hình) mới đo lại được
+    // (giống bảng lọc). selectItemByName có thể phát sự kiện đổi tag
+    // nếu thanh đang ở tag khác — nhưng giá trị đó trùng với tag của
+    // mod (tempModInfo vừa sao từ props.mod) nên không đổi gì.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (tagBarRef.value) tagBarRef.value.selectItemByName(tempModInfo.value.tag);
+    }));
   });
 
   // TC22: hộp đóng hẳn thì thôi nghe dán.

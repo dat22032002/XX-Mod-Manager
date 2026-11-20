@@ -23,10 +23,11 @@
 </div> -->
 
 <template>
-    <horizontalScrollBar class="chip-radio-bar">
+    <horizontalScrollBar class="chip-radio-bar" :class="{ straight: props.straight }">
         <chipButton v-for="(item, index) in items" :key="item" 
             :text="translatedItems[index] || item"
             :checked="item === currentItem" 
+            :straight="props.straight"
             style="margin-right: 5px;" 
             :ref="setChipButtonRef(item)"
             @click="selectItem(item, index)">
@@ -47,7 +48,10 @@ const props = defineProps({
     translatedItems: {
         type: Array,
         default: () => []
-    }
+    },
+    // straight: chip chữ nhật thẳng (không nghiêng), thanh ôm sát chip
+    // để bên ngoài căn phải được (ô chọn tag — Đạt muốn vậy, 20/11).
+    straight: Boolean
 });
 const emit = defineEmits(['itemChange']);
 
@@ -119,6 +123,17 @@ defineExpose({
     padding: 3px 10px;
     width: calc(100% - 20px);
     min-height: 35px;
+}
+
+/* Thanh thẳng: ôm sát chip (không căng hết chiều rộng) để khung
+   ngoài căn phải được; thanh vàng cũng hết nghiêng. */
+.chip-radio-bar.straight {
+    width: fit-content;
+    max-width: calc(100% - 20px);
+}
+
+.chip-radio-bar.straight .slider {
+    transform: none;
 }
 
 .slider {

@@ -17,6 +17,8 @@ import { reactive } from 'vue';
 import type { ModData } from '../core/ModHelper';
 import { TranslatedText } from './Language';
 import { SnackType, t_snack } from './SnackHelper';
+import { tagFromPrefix, isValidTag, isExclusiveTag } from './ModTag';
+import type { ModTag } from './ModTag';
 
 // Reactive so any computed that reads it stays up to date.
 export const selectedModIdSet = reactive(new Set<string>());
@@ -28,21 +30,16 @@ export function setSelectedModIds(ids: Iterable<string>): void {
     }
 }
 
-//===================== một mod một loại mỗi nhân vật =====================
-// Mỗi nhân vật chỉ bật cùng lúc 1 mod mỗi loại: đồ (mặc định), vũ khí (tên
-// bắt đầu "(WP)"), hiệu ứng (tên bắt đầu "(EF)"), phụ kiện (tên bắt đầu
-// "(ACC)"). Bật mod mới thì mod cũ cùng nhân vật + cùng loại tự tắt. Mod
-// chưa rõ nhân vật ("Unknown" hoặc trống) không bị luật này ràng buộc —
-// không gom chúng lại với nhau được.
+//===================== một mod một tag mỗi nhân vật =====================
+// Tag độc quyền (Character, Weapon, Effect): mỗi nhân vật chỉ bật cùng lúc
+// 1 mod mỗi tag — bật mod mới thì mod cũ cùng nhân vật + cùng tag tự tắt.
+// Tag không độc quyền (Skin, Accessory): bật bao nhiêu cũng được, không
+// tắt mod nào. Mod chưa rõ nhân vật ("Unknown" hoặc trống) không bị luật
+// này ràng buộc — không gom chúng lại với nhau được.
 
-export type ModSlot = 'outfit' | 'weapon' | 'effect' | 'accessory';
-
-export function getModSlot(mod: ModData): ModSlot {
-    const name = (mod.name || '').trim().toLowerCase();
-    if (name.startsWith('(wp)')) return 'weapon';
-    if (name.startsWith('(ef)')) return 'effect';
-    if (name.startsWith('(acc)')) return 'accessory';
-    return 'outfit';
+export function getModTag(mod: ModData): ModTag {
+    if (isValidTag(mod.tag)) return mod.tag;
+    return tagFromPrefix(mod.name);
 }
 
 function hasKnownCharacter(mod: ModData): boolean {
@@ -50,18 +47,19 @@ function hasKnownCharacter(mod: ModData): boolean {
     return c !== '' && c.toLowerCase() !== 'unknown';
 }
 
-// Tắt các mod đang chọn cùng nhân vật + cùng loại với `mod`, trước khi mod
+// Tắt các mod đang chọn cùng nhân vật + cùng tag với `mod`, trước khi mod
 // này được thêm vào tập chọn. Trả về danh sách mod bị tắt (để báo cho người
-// dùng biết). Không làm gì khi nhân vật chưa rõ.
-export function evictSameSlotMods(allMods: ModData[], mod: ModData): ModData[] {
+// dùng biết). Không làm gì khi nhân vật chưa rõ hoặc tag không độc quyền.
+export function evictSameTagMods(allMods: ModData[], mod: ModData): ModData[] {
     if (!hasKnownCharacter(mod)) return [];
-    const slot = getModSlot(mod);
+    const tag = getModTag(mod);
+    if (!isExclusiveTag(tag)) return [];
     const evicted: ModData[] = [];
     for (const other of allMods) {
         if (other.id === mod.id) continue;
         if (!selectedModIdSet.has(other.id)) continue;
         if (other.character !== mod.character) continue;
-        if (getModSlot(other) !== slot) continue;
+        if (getModTag(other) !== tag) continue;
         selectedModIdSet.delete(other.id);
         evicted.push(other);
     }
@@ -69,24 +67,24 @@ export function evictSameSlotMods(allMods: ModData[], mod: ModData): ModData[] {
 }
 
 //===================== hành động dùng chung (thẻ + hàng danh sách) =====================
-// Bấm chọn/bỏ chọn 1 mod: bật thì tắt mod cũ cùng nhân vật + cùng loại
-// trước rồi báo rõ đã tắt mod nào (luật 1 mod/1 loại); tắt thì chỉ xóa
-// khỏi tập chọn. Trả về trạng thái mới (true = đang bật). Thẻ lưới và
-// hàng danh sách dùng chung hàm này để hành vi giống hệt nhau.
+// Bấm chọn/bỏ chọn 1 mod: bật thì tắt mod cũ cùng nhân vật + cùng tag
+// độc quyền trước rồi báo rõ đã tắt mod nào (luật 1 mod/1 tag); tắt thì
+// chỉ xóa khỏi tập chọn. Trả về trạng thái mới (true = đang bật). Thẻ
+// lưới và hàng danh sách dùng chung hàm này để hành vi giống hệt nhau.
 export function toggleModSelection(allMods: ModData[], mod: ModData): boolean {
     if (selectedModIdSet.has(mod.id)) {
         selectedModIdSet.delete(mod.id);
         return false;
     }
-    const evicted = evictSameSlotMods(allMods, mod);
+    const evicted = evictSameTagMods(allMods, mod);
     selectedModIdSet.add(mod.id);
     if (evicted.length > 0) {
-        const slotWords = { outfit: ['outfit', 'đồ'], weapon: ['weapon', 'vũ khí'], effect: ['effect', 'hiệu ứng'], accessory: ['accessory', 'phụ kiện'] };
-        const [slotEn, slotVi] = slotWords[getModSlot(mod)];
+        const tagWords = { character: ['Character', 'Nhân vật'], skin: ['Skin', 'Skin'], weapon: ['Weapon', 'Vũ khí'], effect: ['Effect', 'Hiệu ứng'], accessory: ['Accessory', 'Phụ kiện'] };
+        const [tagEn, tagVi] = tagWords[getModTag(mod)];
         const names = evicted.map(m => m.name).join(', ');
         t_snack(new TranslatedText(
-            `Turned off ${names} — only one ${slotEn} mod per character can be on`,
-            `Đã tắt ${names} — mỗi nhân vật chỉ bật 1 mod ${slotVi} cùng lúc`
+            `Turned off ${names} — only one ${tagEn} mod per character can be on`,
+            `Đã tắt ${names} — mỗi nhân vật chỉ bật 1 mod ${tagVi} cùng lúc`
         ), SnackType.info);
     }
     return true;
@@ -105,7 +103,8 @@ export async function toggleModPin(mod: ModData): Promise<void> {
 }
 
 // Đặt lại tập chọn từ danh sách id (lúc tải preset), áp dụng cùng luật:
-// duyệt theo thứ tự, mod sau cùng nhân vật + cùng loại sẽ thắng mod trước.
+// duyệt theo thứ tự, mod sau cùng nhân vật + cùng tag độc quyền sẽ thắng
+// mod trước; tag không độc quyền (Skin, Accessory) giữ lại tất cả.
 export function setSelectedModIdsExclusive(allMods: ModData[], ids: Iterable<string>): void {
     const byId = new Map<string, ModData>();
     for (const m of allMods) byId.set(m.id, m);
@@ -115,12 +114,14 @@ export function setSelectedModIdsExclusive(allMods: ModData[], ids: Iterable<str
         if (!id || finalSet.has(id)) continue;
         const mod = byId.get(id);
         if (mod && hasKnownCharacter(mod)) {
-            const slot = getModSlot(mod);
-            for (let i = finalIds.length - 1; i >= 0; i--) {
-                const prev = byId.get(finalIds[i]);
-                if (prev && prev.character === mod.character && getModSlot(prev) === slot) {
-                    finalSet.delete(finalIds[i]);
-                    finalIds.splice(i, 1);
+            const tag = getModTag(mod);
+            if (isExclusiveTag(tag)) {
+                for (let i = finalIds.length - 1; i >= 0; i--) {
+                    const prev = byId.get(finalIds[i]);
+                    if (prev && prev.character === mod.character && getModTag(prev) === tag) {
+                        finalSet.delete(finalIds[i]);
+                        finalIds.splice(i, 1);
+                    }
                 }
             }
         }

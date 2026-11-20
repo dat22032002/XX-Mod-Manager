@@ -67,7 +67,6 @@
     "mod-info-name": "Tên MOD",
     "mod-info-character": "Nhân vật",
     "mod-info-image": "Ảnh bìa MOD",
-    "mod-info-url": "Liên kết nguồn MOD",
     "mod-info-hotkeys": "Phím tắt",
     "mod-info-description": "Mô tả MOD",
     "save": "Lưu",
@@ -76,9 +75,11 @@
     "changeNotSave": "Phát hiện thay đổi chưa lưu",
     "ifSaveChange": "Lưu thay đổi?",
     "batch-operation": "Thao tác hàng loạt",
-    "batch-set-character": "Đặt nhân vật hàng loạt",
+    "badNameEnding": "Tên mod không được kết thúc bằng khoảng trắng hay dấu chấm",
+    "batch-set-character": "Nhân vật",
     "saveFailed": "Lưu thông tin mod thất bại: {error}",
-    "badNameEnding": "Tên mod không được kết thúc bằng khoảng trắng hay dấu chấm"
+    "mod-info-tag": "Tag",
+    "batch-set-tag": "Tag"
   },
   "buttons": {
     "addPreset": "Thêm preset",
@@ -119,15 +120,18 @@
   "filter": {
     "button": "Bộ lọc",
     "allTypes": "Mọi loại",
-    "outfit": "Đồ",
-    "weapon": "Vũ khí",
-    "effect": "Hiệu ứng",
-    "accessory": "Phụ kiện",
     "sortDefault": "Mặc định",
     "sortNameAsc": "Tên A–Z",
     "sortNameDesc": "Tên Z–A",
     "sortTimeDesc": "Mới nhất",
     "sortTimeAsc": "Cũ nhất"
+  },
+  "modTag": {
+    "character": "Nhân vật",
+    "skin": "Skin",
+    "weapon": "Vũ khí",
+    "effect": "Hiệu ứng",
+    "accessory": "Phụ kiện"
   },
   "author": "tác giả",
   "caimogu": "Caimogu",
@@ -217,6 +221,12 @@
     "title": "Đặt nhân vật cho nhiều mod",
     "message": "Đổi nhân vật thành “{name}” cho {count} mod đã chọn?",
     "done": "Đã đặt nhân vật cho {count} mod",
+    "doneWithFailures": "Đã đặt cho {ok} mod, {fail} mod lỗi: {names}"
+  },
+  "batchTag": {
+    "title": "Đặt tag cho nhiều mod",
+    "message": "Đổi tag thành “{name}” cho {count} mod đã chọn?",
+    "done": "Đã đặt tag cho {count} mod",
     "doneWithFailures": "Đã đặt cho {ok} mod, {fail} mod lỗi: {names}"
   },
   "update": {

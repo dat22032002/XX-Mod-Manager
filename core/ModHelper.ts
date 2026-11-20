@@ -10,6 +10,8 @@ import { SnackType, snack, t_snack } from "../helper/SnackHelper";
 import { ImageHelper } from "../helper/ImageHelper";
 import ModLoader from "./ModLoader";
 import { ModMetaDataType } from "./ModInfo";
+import { tagFromPrefix, isValidTag } from "../helper/ModTag";
+import type { ModTag } from "../helper/ModTag";
 
 class ImageBase64 {
     private base64WithHeader: string = "";
@@ -36,6 +38,9 @@ class ModData {
     public preview: string;
     public hotkeys: { key: string; description: string; }[];
     public pinned: boolean = false; // mod đã ghim (lên đầu danh sách) hay chưa
+    // Tag phân loại mod (character/skin/weapon/effect/accessory), lưu
+    // trong mod.json. Tag lạ/mất thì đoán theo tiền tố tên thư mục.
+    public tag: ModTag = 'character';
     // Thời gian thêm mod vào kho (ms từ epoch) — dùng để sắp xếp theo thời
     // gian. Lấy theo GIỜ TẠO thư mục (birthtime), không lấy giờ sửa cuối:
     // app tự ghi lại mod.json lúc tải mod (khi file thiếu trường) nên giờ
@@ -117,6 +122,7 @@ class ModData {
             json.hotkeys || []
         );
         modData.pinned = !!json.pinned;
+        modData.tag = isValidTag(json.tag) ? json.tag : tagFromPrefix(json.name);
         return modData;
     }
     public toJson(): any {
@@ -127,7 +133,8 @@ class ModData {
             url: this.url,
             preview: this.preview,
             hotkeys: this.hotkeys,
-            pinned: this.pinned
+            pinned: this.pinned,
+            tag: this.tag
         };
     }
     public static fromModInfo(modInfo: ModInfo): ModData {
@@ -142,6 +149,8 @@ class ModData {
 
         modData.id = modInfo.id;
         modData.pinned = !!modInfo.metaData.get('pinned');
+        const tag = modInfo.metaData.get<string>('tag');
+        modData.tag = isValidTag(tag) ? tag : tagFromPrefix(modInfo.modName);
 
         ModData.handlePreview(modData, modInfo);
         return modData;
@@ -163,6 +172,7 @@ class ModData {
         );
         modData.id = modInfo.id;
         modData.pinned = !!meta.pinned;
+        modData.tag = isValidTag(meta.tag) ? meta.tag : tagFromPrefix(modInfo.modName);
         // Giá trị dự phòng: giờ sửa thư mục đã nằm sẵn trong cache (dùng
         // để kiểm tra mod có đổi không). ModLoader sẽ ghi đè bằng giờ tạo
         // thư mục thật (lấy lúc kiểm tra cache, không tốn thêm lần đọc đĩa).
@@ -227,6 +237,7 @@ class ModData {
         newModData.id = this.id;
         newModData.index = this.index;
         newModData.pinned = this.pinned;
+        newModData.tag = this.tag;
 
         return newModData;
     }
@@ -327,6 +338,7 @@ class ModData {
         this.url = newModData.url;
         this.preview = newModData.preview;
         this.hotkeys = newModData.hotkeys;
+        this.tag = newModData.tag;
 
         this.oldPreview = "";
         this.modPreviewBase64WithHeader.clear();

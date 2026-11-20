@@ -83,21 +83,40 @@
                 <s-tooltip slot="trigger" style="position: relative;left: 15px;">
                     <s-icon-button icon="image" class="OO-button"
                         style="border: 5px solid var(--s-color-surface-container-high);transform: scale(1);"
-                        slot="trigger">
+                        slot="trigger" @click="syncBatchTagBar">
                         <s-icon type="chevron_down"></s-icon>
                     </s-icon-button>
 
                     <p style="line-height: 1.2;">
                         {{ $t('editDialog.batch-operation') }} </p>
                 </s-tooltip>
-                <div style="width: 600px;height: max-content;">
-                    <div class="OO-setting-bar" style="width: 600px;">
+                <!-- Bảng gọn: ôm sát hàng rộng nhất (hàng tag), không cố
+                     định 760px nữa; nút + của cả 2 hàng đều ở mép phải. -->
+                <div style="width: fit-content;height: max-content;">
+                    <div class="OO-setting-bar">
                     <h3>{{ $t('editDialog.batch-set-character') }}</h3>
-                    <div class="OO-s-text-field-container" >
-                        <s-text-field v-model="targetCharacter">
+                    <div style="display: flex;align-items: center;gap: 8px;">
+                        <!-- Ô nhập 200px cố định (không căng hết hàng);
+                             position static để gỡ quy tắc absolute của
+                             .OO-setting-bar s-text-field. -->
+                        <s-text-field v-model="targetCharacter"
+                            style="position: static;width: 200px;height: 40px;">
                         </s-text-field>
-                        <s-icon-button type="filled" slot="start" class="OO-icon-button"
+                        <s-icon-button type="filled" class="OO-icon-button"
                             @click="handleBatchSetCharacterButtonClicked">
+                            <s-icon type="add"></s-icon>
+                        </s-icon-button>
+                    </div>
+                </div>
+                <!-- Đặt tag hàng loạt: chọn tag rồi bấm + (giống đặt nhân
+                     vật hàng loạt ở trên). Chip thẳng + căn phải. -->
+                <div class="OO-setting-bar">
+                    <h3>{{ $t('editDialog.batch-set-tag') }}</h3>
+                    <div style="display: flex;align-items: center;gap: 8px;flex: 1;min-width: 0;justify-content: flex-end;">
+                        <chipRadioBar :items="batchTagItems" :translatedItems="translatedBatchTags"
+                            @itemChange="handleBatchTagChange" ref="batchTagBarRef" straight />
+                        <s-icon-button type="filled" class="OO-icon-button"
+                            @click="handleBatchSetTagButtonClicked">
                             <s-icon type="add"></s-icon>
                         </s-icon-button>
                     </div>
@@ -138,6 +157,25 @@
         </template>
     </dialogTemplate>
 
+    <!-- hộp xác nhận đặt tag hàng loạt (giống hộp nhân vật ở trên) -->
+    <dialogTemplate id="dialog-confirm-batch-tag" type="block">
+        <template v-slot:content>
+            <h1 style="z-index: 1;">{{ $t('batchTag.title') }}</h1>
+            <p style="z-index: 1; text-align: center;">{{ $t('batchTag.message', { count: batchTagConfirmCount, name: batchTagConfirmName }) }}</p>
+        </template>
+        <template v-slot:action>
+            <s-button slot="action" type="text" id="dialog-cancel" class="OO-button font-hongmeng" style="margin-left: 20px;
+    margin-right: 20px;">
+                <p>{{ $t('buttons.cancel') }}</p>
+            </s-button>
+            <s-button slot="action" type="text" id="batch-tag-confirm" @click="runBatchSetTag"
+                class="OO-button font-hongmeng OO-color-gradient" style="color: var(--s-color-dark-surface);margin-left: 20px;
+    margin-right: 20px;">
+                <p>{{ $t('buttons.confirm') }}</p>
+            </s-button>
+        </template>
+    </dialogTemplate>
+
     <svg width="0" height="0">
         <defs>
             <clipPath id="svgCircle">
@@ -151,6 +189,7 @@
 import modCardManager from '../components/modCardManager.vue';
 import leftMenu from '../components/leftMenu.vue';
 import modInfo from '../components/modInfo.vue';
+import chipRadioBar from '../components/chipRadioBar.vue';
 import { ref, onMounted, onUnmounted, useTemplateRef, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dialogTemplate from '../dialogs/dialogTemplate.vue';
@@ -161,6 +200,7 @@ const iManager = new IManager();
 import { EventSystem, EventType } from '../../helper/EventSystem';
 import { SnackType, t_snack, snack } from '../../helper/SnackHelper';
 import { selectedModIdSet } from '../../helper/SelectedMods';
+import { MOD_TAGS, isValidTag } from '../../helper/ModTag';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
 import { checkConflicts } from '../../helper/ConflictCheck';
 
@@ -252,6 +292,72 @@ async function runBatchSetCharacter(){
         snack(t('batchCharacter.doneWithFailures', { ok: changedCount, fail: failedMods.length, names }), 'error');
     } else {
         snack(t('batchCharacter.done', { count: changedCount }), 'success');
+    }
+}
+
+//-==================== Đặt tag hàng loạt ====================//
+// Giống đặt nhân vật hàng loạt (TC16): chọn tag rồi bấm +, hỏi xác nhận
+// (ghi số mod + tên tag) rồi ghi vào từng mod đã chọn. Dùng để gắn tag
+// lại cho nhiều mod cũ cùng lúc (vd các mod skin trước đây chưa có
+// tiền tố nên tự gắn tag Character).
+const batchTag = ref('character');
+const batchTagItems = MOD_TAGS;
+const translatedBatchTags = computed(() => MOD_TAGS.map(tag => t(`modTag.${tag}`)));
+const batchTagBarRef = useTemplateRef('batchTagBarRef');
+const batchTagConfirmCount = ref(0);
+const batchTagConfirmName = ref('');
+const batchTagConfirmIds = ref([]);
+function handleBatchTagChange(tag) {
+    if (isValidTag(tag)) batchTag.value = tag;
+}
+// Đồng bộ thanh vàng khi mở bảng thao tác hàng loạt: lúc bảng đóng, chip
+// đo được 0 nên thanh lệch — đo lại sau 2 khung hình (giống bảng lọc).
+function syncBatchTagBar() {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (batchTagBarRef.value) batchTagBarRef.value.selectItemByName(batchTag.value);
+    }));
+}
+function handleBatchSetTagButtonClicked() {
+    const ModIds = selectedModIds();
+    if (ModIds.length == 0) {
+        t_snack({
+            vi: 'Hãy chọn ít nhất một mod',
+            en: 'Please select at least one mod',
+        }, SnackType.error);
+        console.error('selectedModIds is empty');
+        return;
+    }
+    batchTagConfirmCount.value = ModIds.length;
+    batchTagConfirmName.value = t(`modTag.${batchTag.value}`);
+    batchTagConfirmIds.value = ModIds;
+    iManager.showDialog('dialog-confirm-batch-tag');
+}
+async function runBatchSetTag() {
+    const newTag = batchTag.value;
+    const ModIds = batchTagConfirmIds.value;
+    const failedMods = [];
+    let changedCount = 0;
+    for (const modId of ModIds) {
+        try {
+            const ModData = await iManager.getModInfoById(modId);
+            if (ModData) {
+                ModData.tag = newTag;
+                await ModData.saveModInfo();
+                ModData.triggerChanged();
+                changedCount++;
+            } else {
+                failedMods.push(modId);
+            }
+        } catch (error) {
+            console.error('batch set tag: failed to save mod', modId, error);
+            failedMods.push(modId);
+        }
+    }
+    if (failedMods.length > 0) {
+        const names = failedMods.slice(0, 5).join(', ') + (failedMods.length > 5 ? ', …' : '');
+        snack(t('batchTag.doneWithFailures', { ok: changedCount, fail: failedMods.length, names }), 'error');
+    } else {
+        snack(t('batchTag.done', { count: changedCount }), 'success');
     }
 }
 

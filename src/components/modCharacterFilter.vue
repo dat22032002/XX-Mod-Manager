@@ -81,6 +81,7 @@ import { ref, reactive, watch, Ref, onMounted, onBeforeUnmount, nextTick, comput
 import { useI18n } from 'vue-i18n';
 import chipButton from './chipButton.vue';
 import chipRadioBar from './chipRadioBar.vue';
+import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
 import IManager from '../../electron/IManager';
 const iManager = new IManager();
 
@@ -98,18 +99,19 @@ const panelOpen = ref(false);
 const hasActiveFilter = computed(() =>
     g_config_vue.modTypeFilter.value !== 'all' || g_config_vue.modSortBy.value !== 'default');
 
-//-==================== Lọc theo loại mod + sắp xếp ====================//
-// Loại mod theo getModSlot (SelectedMods): đồ mặc định, (WP) = vũ khí,
-// (EF) = hiệu ứng, (ACC) = phụ kiện. Thêm loại mới thì thêm vào ModSlot +
-// getModSlot, thêm 1 mục vào TYPE_ITEMS + 1 khóa locale filter.*. Lựa
-// chọn lưu trong config (modCardManager đọc để lọc/xếp danh sách).
-const TYPE_ITEMS = ['all', 'outfit', 'weapon', 'effect', 'accessory'];
+//-==================== Lọc theo tag mod + sắp xếp ====================//
+// Tag mod (ModTag): Character, Skin, Weapon, Effect, Accessory — chuẩn
+// phân loại duy nhất từ 1.5.18, thay tiền tố tên thư mục. Thêm tag mới
+// thì thêm vào MOD_TAGS + 1 khóa locale modTag.*. Lựa chọn lưu trong
+// config (modCardManager đọc để lọc/xếp danh sách).
+const TYPE_ITEMS = ['all', ...MOD_TAGS];
 const TYPE_LABEL_KEYS = {
     all: 'filter.allTypes',
-    outfit: 'filter.outfit',
-    weapon: 'filter.weapon',
-    effect: 'filter.effect',
-    accessory: 'filter.accessory',
+    character: 'modTag.character',
+    skin: 'modTag.skin',
+    weapon: 'modTag.weapon',
+    effect: 'modTag.effect',
+    accessory: 'modTag.accessory',
 };
 const SORT_OPTIONS = [
     { value: 'default', labelKey: 'filter.sortDefault' },
@@ -136,7 +138,7 @@ const sortBarRef = useTemplateRef('sortBarRef');
 watch(panelOpen, (open) => {
     if (!open) return;
     requestAnimationFrame(() => requestAnimationFrame(() => {
-        const type = TYPE_ITEMS.includes(g_config_vue.modTypeFilter.value) ? g_config_vue.modTypeFilter.value : 'all';
+        const type = normalizeTypeFilter(g_config_vue.modTypeFilter.value);
         const sort = SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default';
         if (typeFilterRef.value) typeFilterRef.value.selectItemByName(type);
         if (sortBarRef.value) sortBarRef.value.selectItemByName(sort);
@@ -176,7 +178,7 @@ watch(language, (newValue) => {
     // trượt 2 hàng đó nếu bảng đang mở (bảng đóng thì lần bung sau đo lại).
     if (panelOpen.value) {
         nextTick(() => {
-            const type = TYPE_ITEMS.includes(g_config_vue.modTypeFilter.value) ? g_config_vue.modTypeFilter.value : 'all';
+            const type = normalizeTypeFilter(g_config_vue.modTypeFilter.value);
             const sort = SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default';
             if (typeFilterRef.value) typeFilterRef.value.selectItemByName(type);
             if (sortBarRef.value) sortBarRef.value.selectItemByName(sort);
@@ -226,6 +228,12 @@ const repositionSlider = () => {
     if (lastClickedElement.value) updateSlider(lastClickedElement.value);
 };
 onMounted(() => {
+    // Config cũ còn lưu loại 'outfit' (tên cũ trước khi có tag): đổi 1 lần
+    // thành 'character' cho khớp tag mới.
+    if (g_config_vue.modTypeFilter.value === 'outfit') {
+        iManager.config.modTypeFilter = 'character';
+        saveFilterSettings();
+    }
     if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(repositionSlider);
     }
