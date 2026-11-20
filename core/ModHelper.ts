@@ -346,8 +346,21 @@ class ModData {
         //debug
         console.log(`ModData.saveModInfo: ${this.name}`, this, modInfoJson);
         // 保存 mod 信息
+        const oldLocation = modInfo.location;
         modInfo.setMetaDataFromJson(modInfoJson);
         modInfo.saveMetaData();
+        // Đổi tên thư mục thì ảnh bìa cũng dời theo (nó nằm trong thư mục
+        // mod) — cập nhật đường dẫn ảnh trong bộ nhớ sang thư mục mới ngay:
+        // để nó còn trỏ thư mục cũ đã không còn thì lần Lưu sau thấy ảnh
+        // lệch sẽ sao chép từ đường dẫn cũ không tồn tại rồi báo lỗi đỏ
+        // dù đổi tên đã xong (Đạt gặp 20/11, bản -5).
+        if (modInfo.location !== oldLocation && this.preview) {
+            const relative = path.relative(oldLocation, this.preview);
+            if (relative && !relative.startsWith('..') && !path.isAbsolute(relative)) {
+                ImageHelper.evictImage(this.preview);
+                this.preview = path.join(modInfo.location, relative);
+            }
+        }
     }
 
     //-========== 获取mod信息 ===========
