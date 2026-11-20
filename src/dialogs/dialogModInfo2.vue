@@ -54,7 +54,27 @@
             <!-- -mod角色 -->
             <div class="OO-setting-bar">
               <h3> {{ $t('editDialog.mod-info-character') }} </h3>
-              <s-text-field :value="tempModInfo.character" @input="tempModInfo.character = $event.target.value" />
+              <!-- Ô nhập dời sang trái 47px để chừa chỗ cho nút chọn nhân
+                   vật có sẵn ở mép phải hàng (Đạt dặn 20/11). Gõ tay tên
+                   mới vẫn được như cũ. -->
+              <s-text-field :value="tempModInfo.character" @input="tempModInfo.character = $event.target.value"
+                style="right: 52px;" id="edit-mod-character" />
+              <!-- Nút chọn nhân vật có sẵn: bấm thì hiện danh sách chip
+                   nhân vật đã có (đúng thứ tự chip trên thanh lọc), bấm
+                   tên thì điền vào ô nhập. Dùng s-popup như nút xem phím
+                   tắt ở hàng Hotkeys (bấm ra ngoài thì tự đóng). -->
+              <s-popup id="character-picker-popup" ref="characterPopupRef" style="position: absolute; right: 5px; top: 5px;">
+                <s-icon-button slot="trigger" class="OO-icon-button" id="character-picker-button"
+                  style="border: 5px solid var(--s-color-surface-container-high); transform: scale(1);">
+                  <s-icon type="chevron_down"></s-icon>
+                </s-icon-button>
+                <div class="OO-box OO-shade-box character-picker-list">
+                  <div v-for="name in characterList" :key="name" class="character-picker-item"
+                    :class="{ current: name === tempModInfo.character }" @click="selectCharacter(name)">
+                    {{ name }}
+                  </div>
+                </div>
+              </s-popup>
             </div>
 
             <!-- -tag mod: chọn trong 5 tag có sẵn, thay ô liên kết nguồn
@@ -154,6 +174,7 @@ import { ref } from 'vue';
 import { defineProps, defineEmits, onMounted, computed, watch, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import IManager from '../../electron/IManager';
+import { g_data_vue } from '../../electron/IManager';
 import DialogTemplate from './dialogTemplate.vue';
 import horizontalScrollBar from '../components/horizontalScrollBar.vue';
 import chipRadioBar from '../components/chipRadioBar.vue';
@@ -256,6 +277,17 @@ const handleTagChange = (tag) => {
   if (!isValidTag(tag)) return;
   tempModInfo.value.tag = tag;
 };
+
+//-==================== chọn nhân vật có sẵn ====================//
+// Danh sách chip nhân vật đã có — characterList vốn đã xếp theo tên,
+// đúng thứ tự chip trên thanh lọc. Bấm tên trong danh sách thì điền
+// vào ô Character rồi đóng bảng chọn.
+const characterList = g_data_vue.characterList;
+const characterPopupRef = useTemplateRef('characterPopupRef');
+function selectCharacter(name) {
+  tempModInfo.value.character = name;
+  if (characterPopupRef.value) characterPopupRef.value.dismiss();
+}
 
 const handleHotkeyInput = (hotkey, value) => {
   //debug
@@ -469,6 +501,36 @@ onMounted(() => {
   max-width: 450px;
   padding: 0 10px;
   border-radius: 20px;
+}
+
+/* Danh sách chọn nhân vật có sẵn trong bảng chọn: cao tối đa 300px,
+   nhiều nhân vật thì lăn dọc. Hàng đang là nhân vật của mod thì vàng
+   lên như chip đang chọn. */
+.character-picker-list {
+  width: 260px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.character-picker-item {
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.character-picker-item:hover {
+  background-color: var(--s-color-surface-container-high);
+}
+
+.character-picker-item.current {
+  background-color: var(--s-color-primary);
+  color: var(--s-color-on-primary);
+  font-weight: 700;
 }
 
 </style>
