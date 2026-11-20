@@ -20,14 +20,14 @@
             </button>
         </div>
         <div slot="text" id="mod-item-text">
+            <!-- Dung lượng thư mục mod (Đạt dặn 20/11): chữ nhỏ kiểu dòng
+                 đếm mod, ngay dưới tên mod, thẳng lề trái với tên. -->
+            <div class="mod-item-size">{{ sizeText }}</div>
             <s-scroll-view>
                 <!-- <p id="mod-hotkeys">Hotkeys: {{ displayHotKeys }}</p> -->
                 <p id="mod-item-description">{{ props.modRef.description }}</p>
                 <div class="placeholder"></div>
             </s-scroll-view>
-            <!-- Dung lượng thư mục mod (Đạt dặn 20/11): chữ nhỏ kiểu dòng
-                 đếm mod dưới đáy, căn giữa, dưới cùng thẻ. -->
-            <div class="mod-item-size">{{ sizeText }}</div>
         </div>
     </s-card>
 </template>
@@ -575,6 +575,8 @@ defineExpose({
        phía trên; bỏ dòng đó rồi thì kéo âm làm mô tả chồng lên tên. */
     margin-top: 0;
     border: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .mod-item[data-layout="vertical"] #mod-item-text {
@@ -582,32 +584,25 @@ defineExpose({
 }
 
 .mod-item s-scroll-view {
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     width: 110%;
 }
 
-/* Dung lượng thư mục mod: chữ nhỏ kiểu dòng đếm mod dưới đáy (14px,
-   xám nhạt), căn giữa, dưới cùng thẻ (Đạt dặn 20/11). Neo tuyệt đối
-   theo đáy THẺ (không đặt cuối ô chữ): ô chữ vốn đã tràn khỏi đáy thẻ
-   vài px (quy tắc cao 0.171×rộng không trừ hết tên + ảnh) nên dòng
-   chữ đặt cuối ô chữ sẽ bị thẻ cắt mất nửa dưới. Nền trùng màu thẻ
-   để chữ mô tả lướt qua phía dưới không chồng lên chữ dung lượng;
-   không nhận chuột để lăn mô tả bình thường. */
+/* Dung lượng thư mục mod: chữ nhỏ kiểu dòng đếm mod (14px, xám
+   nhạt), ngay dưới tên mod, thẳng lề trái với tên (Đạt dặn 20/11).
+   Dòng cố định 20px trên đầu ô chữ (flex cột); ô lăn mô tả chiếm
+   phần còn lại nên không còn chữ nào bị che. */
 .mod-item .mod-item-size {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    flex-shrink: 0;
     height: 20px;
     line-height: 20px;
-    text-align: center;
+    text-align: left;
     font-size: 14px;
     color: var(--s-color-on-surface-variant);
-    background-color: var(--s-color-surface-container-low);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    pointer-events: none;
 }
 
 .mod-item .placeholder {
