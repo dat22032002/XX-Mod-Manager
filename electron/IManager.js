@@ -74,7 +74,6 @@ let g_config = {
         x: -1,
         y: -1,
     },
-    ifKeepModNameAsModFolderName: false,
     ifUseTraditionalApply: false,
     cardWidth: 250,
     modTypeFilter: 'all',
@@ -88,7 +87,7 @@ let g_data = {
 
 //-==================== vue 版本的全局变量 ====================//
 import { ref, watch } from 'vue';
-import { applyMods, applyModsTranditional } from '../core/ApplyMods';
+import { applyMods, applyModsTranditional, moveAppliedLink } from '../core/ApplyMods';
 const g_temp_vue = {
     lastClickedMod: ref(null),
     currentMod: ref(null),
@@ -117,7 +116,6 @@ const g_config_vue = {
         x: -1,
         y: -1,
     }),
-    ifKeepModNameAsModFolderName: ref(false),
     ifUseTraditionalApply: ref(false),
     cardWidth: ref(250),
     modTypeFilter: ref('all'),
@@ -215,7 +213,6 @@ class IManager {
             x: -1,
             y: -1,
         },
-        ifKeepModNameAsModFolderName: false, // 是否保持 mod 名称和文件夹名称一致
         ifUseTraditionalApply: false, // 是否使用传统的应用方式
         cardWidth: 250, // Chiều rộng thẻ ở dạng lưới (100/150/200/250/300/350)
         modTypeFilter: 'all', // Lọc theo loại mod: all/outfit/weapon/effect
@@ -346,6 +343,10 @@ class IManager {
 
         // 这样会导致 较新的配置项 丢失，所以需要逐个赋值
         for (const key in currentConfig) {
+            // Khóa lạ trong file (cài đặt đã bỏ ở bản mới, vd
+            // ifKeepModNameAsModFolderName) thì bỏ qua lặng lẽ thay vì
+            // báo lỗi — lần ghi config sau sẽ dọn nó khỏi file.
+            if (!(key in this._config)) continue;
             try {
                 this.config[key] = currentConfig[key];
             }
@@ -358,11 +359,13 @@ class IManager {
         //debug
         console.log('loadConfig adjust to:', this._config);
 
-        ModInfo.ifKeepModNameAsModFolderName = this.config.ifKeepModNameAsModFolderName;
-        watch(g_config_vue.ifKeepModNameAsModFolderName, (newValue) => {
-            ModInfo.ifKeepModNameAsModFolderName = newValue;
+        // ModInfo cần biết có đang dùng cách áp dụng truyền thống không để
+        // nhận biết tiền tố "disabled_" (xem ModInfo.folderNameToModName).
+        ModInfo.ifUseTraditionalApply = this.config.ifUseTraditionalApply;
+        watch(g_config_vue.ifUseTraditionalApply, (newValue) => {
+            ModInfo.ifUseTraditionalApply = newValue;
             // debug
-            console.log('ifKeepModNameAsModFolderName changed to:', newValue);
+            console.log('ifUseTraditionalApply changed to:', newValue);
         });
 
         // Chỉ ghi lại file khi nội dung thật sự thay đổi — trước đây mỗi lần mở
@@ -1577,6 +1580,23 @@ class IManager {
     async saveDefaultPreset(modIds){
         this.config.defaultPresetModIds = [...modIds];
         this.saveConfig();
+    }
+
+    // Đổi tên mod trong app (chế độ thường) thì dời luôn liên kết trong
+    // thư mục đích theo tên mới — hộp sửa mod gọi sau khi lưu xong. Chế
+    // độ truyền thống không có liên kết nên không làm gì. Lỗi dời liên
+    // kết chỉ báo cho biết (thư mục đã đổi tên xong, bấm Apply lại là
+    // xong), không tính là lưu thất bại.
+    moveAppliedLink(oldName, newName) {
+        if (this.config.ifUseTraditionalApply) return true;
+        const ok = moveAppliedLink(oldName, newName, this.config.modSourcePath, this.config.modTargetPath);
+        if (!ok) {
+            t_snack({
+                vi: `Đã đổi tên mod nhưng chưa dời được liên kết trong thư mục đích — bấm Apply lại để áp dụng với tên mới`,
+                en: `Mod renamed but its link in the target folder could not be moved — press Apply again to apply it under the new name`,
+            }, 'error');
+        }
+        return ok;
     }
 
     async applyMods(modList, onProgress) {

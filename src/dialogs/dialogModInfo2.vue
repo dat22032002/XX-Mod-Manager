@@ -272,6 +272,15 @@ const handleModNameChange = (event) => {
       iManager.t_snack(tt, `error`);
     }
   }
+
+  // Tên sẽ thành tên thư mục trên đĩa nên không được chứa ký tự Windows
+  // cấm. (Khoảng trắng/dấu chấm ở cuối tên thì kiểm lúc bấm Lưu — kiểm
+  // lúc gõ sẽ chặn cả khi đang gõ tên có khoảng trắng ở giữa.)
+  if (/[<>:"\/\\|?*\x00-\x1f]/.test(tempModInfo.value.name)) {
+    tempModInfo.value.name = props.mod.name;
+    const tt = new TranslatedText(`Mod name cannot contain < > : " / \\ | ? *`, `Tên mod không được chứa ký tự < > : " / \\ | ? *`);
+    iManager.t_snack(tt, `error`);
+  }
 }
 
 const handleHotkeyInput = (hotkey, value) => {
@@ -324,28 +333,56 @@ const handleSave = async () => {
       return;
     }
 
+    // Tên sẽ thành tên thư mục trên đĩa: không được kết thúc bằng khoảng
+    // trắng hay dấu chấm (Windows tự cắt, tên sẽ lệch với những gì đã gõ).
+    // Ném lỗi để khối catch dưới giữ hộp mở + báo lỗi như mọi lỗi lưu khác.
+    if (tempModInfo.value.name !== props.mod.name && /[\s.]$/.test(tempModInfo.value.name)) {
+      throw new Error(t('editDialog.badNameEnding'));
+    }
+
+    // Lưu tên cũ trước khi đổi: đổi tên xong thì dời luôn liên kết trong
+    // thư mục đích theo tên mới (không thì liên kết cũ gãy).
+    const oldName = props.mod.name;
+
     // 处理 图片 更改
     let needChangePreview = false;
     if (props.mod.preview !== tempModInfo.value.preview) {
       needChangePreview = true;
     }
 
-    // 保存修改的 mod 信息
-    props.mod.editModInfo(tempModInfo.value);
-
+    // Sao chép/dán ảnh bìa TRƯỚC khi đổi tên trong bộ nhớ: đích sao
+    // chép tính theo thư mục mod hiện tại (còn tồn tại). Làm sau khi
+    // đổi tên thì đích tính theo tên mới — thư mục chưa tồn tại nên
+    // lỗi "không tìm thấy file" và phải bấm Lưu 2 lần (Đạt gặp 19/11
+    // khi đổi (ac) thành (mod): copyfile ...(ac)... -> ...(mod)...).
+    // editModInfo bên dưới ghi đè this.preview bằng đường dẫn ảnh đã
+    // chọn nên phải đặt lại đường dẫn đích sau đó.
+    let newPreviewPath = null;
     if (needChangePreview) {
-      await props.mod.setPreviewByPath(tempModInfo.value.preview);
+      newPreviewPath = await props.mod.setPreviewByPath(tempModInfo.value.preview);
     }
 
     // 如果是通过粘贴操作更改的预览图片，则保存到本地
     if (changdPreviewByPaste) {
-      await props.mod.setPreviewByBase64(img.value);
+      newPreviewPath = await props.mod.setPreviewByBase64(img.value);
+    }
+
+    // 保存修改的 mod 信息
+    props.mod.editModInfo(tempModInfo.value);
+    if (newPreviewPath) {
+      props.mod.preview = newPreviewPath;
     }
 
     // TC23: chờ ghi đĩa thật + bắt lỗi — trước đây saveModInfo() không
     // await/không try/catch nên ổ đầy/thư mục bị xóa ngoài thì lỗi chìm
     // trong khi hộp đã tự đóng, người dùng tưởng đã lưu.
     await props.mod.saveModInfo();
+
+    // Đổi tên thì dời luôn liên kết trong thư mục đích theo tên mới
+    // (chế độ thường; chế độ truyền thống không có liên kết).
+    if (oldName !== props.mod.name) {
+      iManager.moveAppliedLink(oldName, props.mod.name);
+    }
 
     tempModInfo.value = props.mod.copy();
     saved = true;

@@ -312,14 +312,10 @@ async function applyModsTranditional(
     const fs = require('fs');
     const path = require('path');
 
-    // 如果 开启了 mod名称和mod文件夹名称一致，将无法使用该功能，因为这里会需要修改文件夹名称
-    if (ModInfo.ifKeepModNameAsModFolderName) {
-        t_snack(new TranslatedText(
-            `Mod name and mod folder name are the same, unable to use the traditional way to apply mod.`,
-            `Tên mod và tên thư mục mod giống nhau, không dùng được cách áp dụng truyền thống.`
-        ),SnackType.error);
-        return null;
-    }
+    // (Trước đây ở đây có chặn "tên mod giống tên thư mục thì không dùng
+    // được cách truyền thống" — giờ tên mod luôn đồng bộ với tên thư mục
+    // nhưng tiền tố "disabled_" được nhận biết riêng (ModInfo.
+    // folderNameToModName) nên không còn xung đột, bỏ chặn.)
 
     // await ModLoader.loadMods();
     const { notInSelectedMods, inBoth } = resolveApplySets(modIds);
@@ -370,5 +366,54 @@ async function applyModsTranditional(
     return result;
 }
 
-export {applyMods, applyModsTranditional};
+// Đổi tên mod trong app (chế độ thường) thì dời luôn liên kết trong thư
+// mục đích theo tên mới — không thì liên kết cũ trỏ vào thư mục đã đổi
+// tên (gãy) và nằm lại đó mãi, còn mod thì coi như chưa áp dụng. Chỉ
+// dời khi liên kết cũ thật sự trỏ đúng vào thư mục nguồn cũ; liên kết
+// trỏ chỗ khác, thư mục thật, hay mod chưa áp dụng thì không đụng vào.
+// Trả về true khi đã dời (hoặc không có gì cần dời), false khi lỗi.
+function moveAppliedLink(oldName: string, newName: string, modSourcePath: string, modTargetPath: string): boolean {
+    const fs = require('fs');
+    const path = require('path');
+    const oldLink = path.join(modTargetPath, oldName);
+    const oldSrc = path.join(modSourcePath, oldName);
+    const newLink = path.join(modTargetPath, newName);
+    const newSrc = path.join(modSourcePath, newName);
+    let stat = null;
+    try {
+        stat = fs.lstatSync(oldLink);
+    } catch (e: any) {
+        if (e && e.code === 'ENOENT') return true; // Chưa áp dụng: không có gì để dời.
+        console.error(`moveAppliedLink: không kiểm tra được liên kết cũ: ${oldLink}`, e);
+        return false;
+    }
+    if (!stat.isSymbolicLink()) return true; // Thư mục/file thật: không phải liên kết của app.
+    let linkTarget: string;
+    try {
+        linkTarget = fs.readlinkSync(oldLink);
+    } catch (e) {
+        console.error(`moveAppliedLink: không đọc được liên kết cũ: ${oldLink}`, e);
+        return false;
+    }
+    if (path.resolve(modTargetPath, linkTarget) !== path.resolve(oldSrc)) return true; // Trỏ chỗ khác: không đụng.
+    try {
+        fs.unlinkSync(oldLink);
+    } catch (e) {
+        console.error(`moveAppliedLink: không xóa được liên kết cũ: ${oldLink}`, e);
+        return false;
+    }
+    try {
+        fs.symlinkSync(newSrc, newLink, 'junction');
+    } catch (e) {
+        console.error(`moveAppliedLink: không tạo được liên kết mới: ${newLink}`, e);
+        // Cố gắn lại liên kết cũ để mod không bị mất áp dụng.
+        try { fs.symlinkSync(oldSrc, oldLink, 'junction'); } catch (restoreErr) {
+            console.error(`moveAppliedLink: không gắn lại được liên kết cũ: ${oldLink}`, restoreErr);
+        }
+        return false;
+    }
+    return true;
+}
+
+export {applyMods, applyModsTranditional, moveAppliedLink};
 export type { ApplyResult, ApplyFailure, ApplyProgressCallback };

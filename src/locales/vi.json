@@ -85,7 +85,8 @@
     "ifSaveChange": "Lưu thay đổi?",
     "batch-operation": "Thao tác hàng loạt",
     "batch-set-character": "Đặt nhân vật hàng loạt",
-    "saveFailed": "Lưu thông tin mod thất bại: {error}"
+    "saveFailed": "Lưu thông tin mod thất bại: {error}",
+    "badNameEnding": "Tên mod không được kết thúc bằng khoảng trắng hay dấu chấm"
   },
   "buttons": {
     "addPreset": "Thêm preset",

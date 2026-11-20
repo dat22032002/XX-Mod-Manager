@@ -85,7 +85,7 @@ class ModLoader {
 
         // "记住"：先读一次缓存。缓存缺失/损坏/过期时按没有缓存处理，
         // 走和以前一样的完整扫描，不会因此启动失败。
-        const cache = forceRescan ? ModCache.fresh(ModInfo.ifKeepModNameAsModFolderName) : ModCache.load(ModInfo.ifKeepModNameAsModFolderName);
+        const cache = forceRescan ? ModCache.fresh() : ModCache.load();
         let cacheDirty = forceRescan;
         let cachedCount = 0;
         let freshCount = 0;
@@ -229,7 +229,7 @@ class ModLoader {
         // HP6: load() now returns the in-memory cache (no disk re-read)
         // and save() only marks it dirty — importing many mods in a row
         // no longer rewrites the whole cache file per mod.
-        const cache = ModCache.load(ModInfo.ifKeepModNameAsModFolderName);
+        const cache = ModCache.load();
         if (this.updateCacheEntry(cache, folder, path.basename(modPath), modInfo, modData)) {
             ModCache.save(cache);
         }

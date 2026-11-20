@@ -85,7 +85,8 @@
     "ifSaveChange": "Save changes?",
     "batch-operation": "Batch operation",
     "batch-set-character": "Batch set character",
-    "saveFailed": "Failed to save mod info: {error}"
+    "saveFailed": "Failed to save mod info: {error}",
+    "badNameEnding": "Mod name cannot end with a space or a dot"
   },
   "buttons": {
     "addPreset": "Add preset",

@@ -260,7 +260,18 @@ class ModData {
         const previeFileName = path.basename(previewPath);
         // const previewDest = path.join(modSourcePath, this.name, previeFileName);
         const previewDest = path.join(this.getModPathSync(), previeFileName);
-        fs.copyFileSync(previewPath, previewDest);
+        // Nguồn và đích là cùng 1 file thì không sao chép: đổi tên mod
+        // chỉ khác chữ hoa/thường trên Windows (ổ không phân biệt
+        // hoa/thường) thì 2 đường dẫn khác chữ nhưng cùng 1 file — sao
+        // chép đè lên chính nó vừa vô nghĩa vừa lỗi ENOENT (Đạt gặp
+        // 19/11 khi đổi (ACC) thành (ac)). Vẫn cập nhật this.preview
+        // xuống dưới để đường dẫn theo tên thư mục mới.
+        const sameFile = process.platform === 'win32'
+            ? path.resolve(previewPath).toLowerCase() === path.resolve(previewDest).toLowerCase()
+            : path.resolve(previewPath) === path.resolve(previewDest);
+        if (!sameFile) {
+            fs.copyFileSync(previewPath, previewDest);
+        }
         // Ảnh cũ còn nằm trong bộ nhớ đệm theo đường dẫn — đuổi cả đường
         // cũ lẫn đường mới ra để lần đọc sau không lấy nhầm ảnh cũ.
         ImageHelper.evictImage(this.preview);
@@ -271,6 +282,11 @@ class ModData {
         this.oldPreview = "";
         // this.modPreviewBase64 = "";
         this.modPreviewBase64WithHeader.clear();
+
+        // Trả về đường dẫn đích để nơi gọi đặt lại this.preview sau
+        // editModInfo (editModInfo ghi đè preview bằng đường dẫn ảnh
+        // đã chọn, xem handleSave trong dialogModInfo2.vue).
+        return previewDest;
     }
 
     public async setPreviewByBase64(previewBase64: string) {
