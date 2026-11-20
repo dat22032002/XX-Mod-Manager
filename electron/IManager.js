@@ -1666,6 +1666,16 @@ class IManager {
         XXMMCore.saveCurrentConfig(this._config);
     }
 
+    // Lúc đóng app (src/main.js onbeforeunload) gọi hàm này để lưu cài
+    // đặt lần cuối (vị trí cửa sổ, preset đang dùng). Trước đây hàm này
+    // KHÔNG tồn tại nên mỗi lần đóng app là 1 lỗi lặng TypeError và cài
+    // đặt lúc đóng không được lưu (Đạt báo 19/11). saveCurrentConfig
+    // vốn đã ghi đồng bộ (ghi file tạm rồi đổi tên) nên gọi thẳng là
+    // xong trước khi cửa sổ đóng.
+    saveConfigSync() {
+        XXMMCore.saveCurrentConfig(this._config);
+    }
+
 
     async getFilePath(fileName, fileType, defaultPath) {
         const filePath = await ipcRenderer.invoke('get-file-path', fileName, fileType, defaultPath);
