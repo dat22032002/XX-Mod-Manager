@@ -27,21 +27,15 @@
             </div>
 
             <div class="OO-setting-bar">
-              <s-tooltip>
-                <h3 slot="trigger"> {{ $t('editDialog.mod-info-image') }} </h3>
-                <p style="line-height: 1.2;">
-                  {{ $t('editDialog.mod-info-image-tip') }} </p>
-              </s-tooltip>
+              <!-- Bỏ chú thích khi rê chuột (Đạt thấy không cần thiết,
+                   20/11): nhãn và nút giữ nguyên, chỉ gỡ khung tooltip
+                   cùng dòng giải thích. -->
+              <h3> {{ $t('editDialog.mod-info-image') }} </h3>
 
-              <s-tooltip style="position: relative; left: 15px;">
-                <s-icon-button icon="image" @click="handleSelectImage" class="OO-icon-button"
-                  style="border: 5px solid var(--s-color-surface-container-high);transform: scale(1);" slot="trigger">
-                  <s-icon type="add"></s-icon>
-                </s-icon-button>
-
-                <p style="line-height: 1.2;">
-                  {{ $t('editDialog.edit-mod-image-preview') }} </p>
-              </s-tooltip>
+              <s-icon-button icon="image" @click="handleSelectImage" class="OO-icon-button"
+                style="position: relative; left: 15px; border: 5px solid var(--s-color-surface-container-high); transform: scale(1);">
+                <s-icon type="add"></s-icon>
+              </s-icon-button>
             </div>
           </div>
 
@@ -49,14 +43,7 @@
 
             <!-- -mod名称 -->
             <div class="OO-setting-bar">
-              <s-tooltip>
-                <h3 slot="trigger"> {{ $t('editDialog.mod-info-name') }} </h3>
-                <horizontalScrollBar class="hotkey-container">
-                  <p
-                    style="line-height: 1.2; word-wrap: break-word; max-width: 120px; overflow-wrap: break-word; white-space: normal;">
-                    {{ $t('editDialog.mod-info-name-tip') }} </p>
-                </horizontalScrollBar>
-              </s-tooltip>
+              <h3> {{ $t('editDialog.mod-info-name') }} </h3>
 
               <!-- <s-button>
                 <p id="edit-mod-name"> {{ tempModInfo ? tempModInfo.name : "no name" }} </p>
@@ -66,21 +53,13 @@
 
             <!-- -mod角色 -->
             <div class="OO-setting-bar">
-              <s-tooltip>
-                <h3 slot="trigger"> {{ $t('editDialog.mod-info-character') }} </h3>
-                <p style="line-height: 1.2;">
-                  {{ $t('editDialog.mod-info-character-tip') }} </p>
-              </s-tooltip>
+              <h3> {{ $t('editDialog.mod-info-character') }} </h3>
               <s-text-field :value="tempModInfo.character" @input="tempModInfo.character = $event.target.value" />
             </div>
 
             <!-- -mod链接 -->
             <div class="OO-setting-bar">
-              <s-tooltip>
-                <h3 slot="trigger"> {{ $t('editDialog.mod-info-url') }} </h3>
-                <p style="line-height: 1.2;">
-                  {{ $t('editDialog.mod-info-url-tip') }} </p>
-              </s-tooltip>
+              <h3> {{ $t('editDialog.mod-info-url') }} </h3>
               <div class="OO-s-text-field-container">
                 <s-text-field :value="tempModInfo.url" @input="tempModInfo.url = $event.target.value" />
                 <s-icon-button type="filled" slot="start" class="OO-icon-button"
@@ -94,40 +73,26 @@
 
             <!-- -mod快捷键 -->
             <div class="OO-setting-bar">
-              <s-tooltip>
-                <h3 slot="trigger"> {{ $t('editDialog.mod-info-hotkeys') }} </h3>
-                <p style="line-height: 1.2;">
-                  {{ $t('editDialog.mod-info-hotkeys-tip') }} </p>
-              </s-tooltip>
+              <h3> {{ $t('editDialog.mod-info-hotkeys') }} </h3>
               <div style="display: flex;flex-direction: row;align-items: center;justify-content: space-between;">
                 <horizontalScrollBar class="OO-box OO-shade-box hotkey-container" scrollSpeed=0.5 dragSpeed=1>
                   <div style="display: flex;flex-direction: row;flex-wrap: nowrap;padding: 0 10px;">
                     <div v-for="(hotkey, index) in tempModInfo.hotkeys" :key="index">
-                      <s-tooltip>
-                        <div
-                          style="margin: 0px 3px;height: 35px;padding: 20px 15px 20px 15px;transform: skew(-20deg);border-radius: 0;min-width: 50px"
-                          slot="trigger" class="OO-button">
-                          <p style="transform: skew(20deg);">
-                            {{ hotkey.key }}
-                          </p>
-                        </div>
-                        <p style="line-height: 1.2;">
-                          {{ hotkey.description }} </p>
-                      </s-tooltip>
+                      <div
+                        style="margin: 0px 3px;height: 35px;padding: 20px 15px 20px 15px;transform: skew(-20deg);border-radius: 0;min-width: 50px"
+                        class="OO-button">
+                        <p style="transform: skew(20deg);">
+                          {{ hotkey.key }}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </horizontalScrollBar>
                 <s-popup align="left">
-                  <s-tooltip slot="trigger" style="position: relative;left: 15px;">
-                    <s-icon-button icon="image" class="OO-icon-button"
-                      style="border: 5px solid var(--s-color-surface-container-high);transform: scale(1);"
-                      slot="trigger">
-                      <s-icon type="chevron_down"></s-icon>
-                    </s-icon-button>
-
-                    <p style="line-height: 1.2;">
-                      {{ $t('editDialog.edit-mod-hotkeys') }} </p>
-                  </s-tooltip>
+                  <s-icon-button slot="trigger" icon="image" class="OO-icon-button"
+                    style="position: relative;left: 15px;border: 5px solid var(--s-color-surface-container-high);transform: scale(1);">
+                    <s-icon type="chevron_down"></s-icon>
+                  </s-icon-button>
 
                   <div class="OO-box OO-shade-box" style="width: 70vb;height: fit-content;max-height: calc(100vh - 200px);overflow-y: auto;">
                     <div v-for="(hotkey, index) in tempModInfo.hotkeys" :key="index" class="hotkey-item OO-setting-bar">
@@ -144,11 +109,7 @@
             <!-- -mod描述 -->
             <div class="OO-setting-bar"
               style="display: flex;flex-direction: column;align-items: flex-start;justify-content: space-between;height:150px;">
-              <s-tooltip style="padding:15px 0;">
-                <h3 slot="trigger"> {{ $t('editDialog.mod-info-description') }} </h3>
-                <p style="line-height: 1.2;">
-                  {{ $t('editDialog.mod-info-description-tip') }} </p>
-              </s-tooltip>
+              <h3 style="padding:15px 0;"> {{ $t('editDialog.mod-info-description') }} </h3>
               <s-text-field class="OO-shade-box"
                 style="min-height: calc(100% - 50px);height: 0px;border-radius: 20px;bottom: 5px;top: 45px;left: 5px;right: 5px;max-width: calc(100% - 10px);width: calc(100% - 10px);"
                 multiLine="true" :value="tempModInfo.description" @input="tempModInfo.description = $event.target.value"
