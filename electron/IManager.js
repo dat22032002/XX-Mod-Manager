@@ -1667,6 +1667,29 @@ class IManager {
         }, 200);
     }
 
+    // Xóa preset đang chọn (Đạt dặn 20/11): xóa file preset, làm mới
+    // danh sách, quay về preset Mặc định (luôn có sẵn). Preset Mặc định
+    // không có file riêng nên không xóa được. Lần ghi preset đang chờ
+    // (nếu có) vô hại: lúc nó chạy thì preset hiện tại đã là Mặc định,
+    // nó ghi lựa chọn mới vào Mặc định, không chạm file đã xóa.
+    async deletePreset(presetName) {
+        if (presetName === 'default') {
+            t_snack({ vi: 'Không xóa được preset Mặc định', en: 'Cannot delete the Default preset' }, 'error');
+            return;
+        }
+        const presetFile = path.join(this.config.presetPath, presetName + '.json');
+        try {
+            fs.unlinkSync(presetFile);
+        } catch (err) {
+            t_snack({ vi: `Xóa preset thất bại: ${err.message}`, en: `Failed to delete preset: ${err.message}` }, 'error');
+            console.error('deletePreset failed', presetName, err);
+            return;
+        }
+        await this.loadPresets();
+        this.setCurrentPreset('default');
+        t_snack({ vi: `Đã xóa preset ${presetName}`, en: `Preset ${presetName} deleted` });
+    }
+
     async changePreview(modName, previewPath) {
         // 将 previewPath 的 文件 复制到 modSourcePath 的 preview 文件夹下，并且将 mod 的 preview 属性设置为 previewPath，然后保存
 

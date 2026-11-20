@@ -500,7 +500,10 @@ const observer = new IntersectionObserver((entries) => {
             if (entry.isIntersecting) {
                 //debug
                 // console.log(`item ${modItem.id} enter window , load image`,entry.isIntersecting);
-                modCardRefs.value[modItem.id].enterWindow();
+                // Thẻ có thể đã bị gỡ khỏi danh sách ảo (lăn nhanh /
+                // đổi lọc) trước khi callback này chạy — ref không còn
+                // thì bỏ qua, không văng lỗi console.
+                modCardRefs.value[modItem.id]?.enterWindow();
 
                 modItem.setAttribute('inWindow', entry.isIntersecting);
                 modItem.inWindow = entry.isIntersecting;

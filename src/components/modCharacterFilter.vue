@@ -44,6 +44,22 @@
                 <span class="filter-toggle-chevron">▼</span>
             </div>
         </div>
+        <!-- Tất cả / Đã chọn: nút CỐ ĐỊNH cạnh ô tìm kiếm + nút Bộ lọc
+             (cùng kiểu khối nghiêng như nút Bộ lọc), không nằm trong
+             thanh tag lăn được nữa — Đạt muốn 2 nút này không trôi đi
+             khi kéo/lăn thanh tag (20/11). Vàng lên khi đang chọn.
+             Giữ nguyên id để selectItemByName + lúc mở app vẫn tìm
+             được nút mà bấm. -->
+        <div id="all-filter-chip" class="filter-toggle" :class="{ active: currentFilter === 'all' }" @click="selectFixedFilter('all')">
+            <div class="filter-toggle-inner">
+                <span>{{ $t('buttons.all') }}</span>
+            </div>
+        </div>
+        <div id="selected-filter-chip" class="filter-toggle" :class="{ active: currentFilter === 'selected' }" @click="selectFixedFilter('selected')">
+            <div class="filter-toggle-inner">
+                <span>{{ $t('buttons.selected') }}</span>
+            </div>
+        </div>
         <!-- Lớp bắt bấm trong suốt phủ cả màn hình khi bảng đang mở:
              bấm ra ngoài bảng thì đóng bảng. Nằm dưới nút và bảng
              (z-index) nên không chặn 2 cái đó. -->
@@ -65,12 +81,11 @@
             </div>
         </div>
         <horizontalScrollBar class="chip-radio-bar" id="character-filter-bar" style="height: fit-content;">
-            <chipButton :text="$t('buttons.all')" id="all-filter-chip" @click="updateSliderByEvent($event)"></chipButton>
-            <chipButton :text="$t('buttons.selected')" id="selected-filter-chip" @click="updateSliderByEvent($event)"></chipButton>
-            <!-- 所有角色的filter -->
+            <!-- Chỉ còn tag nhân vật — Tất cả / Đã chọn đã dời ra nút
+                 cố định bên trái (xem trên). -->
             <chipButton v-for="(item, index) in characterList" :key="index" :text="item" :filterCharacter="item"
                 @click="updateSliderByEvent($event)"></chipButton>
-            <div class="slider OO-color-gradient" :style="sliderStyle"></div>
+            <div class="slider OO-color-gradient" :style="sliderStyle" v-show="currentFilter !== 'all' && currentFilter !== 'selected'"></div>
         </horizontalScrollBar>
     </div>
 </template>
@@ -90,6 +105,10 @@ import { g_data_vue } from '../../electron/IManager';
 
 const lastClickedElement = ref<HTMLElement | null>(null);
 const searchInput = ref<string>('');
+// Lọc nhân vật đang chọn: 'all' | 'selected' | tên nhân vật. Nút Tất
+// cả / Đã chọn vàng theo biến này; thanh vàng chỉ hiện khi đang chọn
+// 1 nhân vật cụ thể (không thì nó không có chip nào để bám vào).
+const currentFilter = ref<string>('all');
 
 // Nút Bộ lọc: bảng overlay bung hay đóng — trạng thái chỉ trong phiên
 // làm việc (mở app lại thì bảng đóng, như mọi bảng thả xuống). Nút vàng
@@ -238,15 +257,14 @@ onMounted(() => {
         document.fonts.ready.then(repositionSlider);
     }
     window.addEventListener('resize', repositionSlider);
-    // Lúc mới mở app, thanh vàng chưa bao giờ được đặt vị trí: đường duy nhất
-    // đặt nó (watcher ở component cha) đọc một biến không ai ghi, nên nó
-    // không chạy; chỉ khi người dùng bấm tag thì thanh mới nhảy đúng chỗ.
-    // Đặt vị trí ngay khi mount xong, theo nhân vật đang chọn.
+    // Lúc mới mở app, đặt trạng thái chọn theo nhân vật đang chọn: Tất
+    // cả / Đã chọn thì chỉ vàng nút cố định (thanh vàng ẩn vì không có
+    // chip nhân vật nào để bám); nhân vật cụ thể thì nhảy thanh tới tag.
     nextTick(() => {
         const current = iManager.temp.currentCharacter || 'all';
         if (current === 'all' || current === 'selected') {
-            const el = document.getElementById(current === 'all' ? 'all-filter-chip' : 'selected-filter-chip');
-            if (el) updateSlider(el);
+            currentFilter.value = current;
+            lastClickedElement.value = null;
         } else {
             selectItemByName(current);
         }
@@ -256,6 +274,23 @@ onBeforeUnmount(() => {
     window.removeEventListener('resize', repositionSlider);
 });
 
+// Bấm nút cố định Tất cả / Đã chọn: đổi lọc, vàng nút đó, ẩn thanh
+// vàng (không còn chip nhân vật nào đang chọn), bỏ đánh dấu các tag
+// nhân vật. Bấm lại nút đang chọn thì không làm gì.
+const selectFixedFilter = (kind) => {
+    if (currentFilter.value === kind) return;
+    currentFilter.value = kind;
+    lastClickedElement.value = null;
+    const bar = document.getElementById('character-filter-bar');
+    if (bar) {
+        for (const child of bar.children as unknown as HTMLElement[]) {
+            child.setAttribute('checked', 'false');
+        }
+    }
+    if (kind === 'all') emit('filterChangeToAll');
+    else emit('filterChangeToSelected');
+};
+
 const updateSliderByEvent = (e) => {
     const elment = e.currentTarget;
     //debug
@@ -264,22 +299,15 @@ const updateSliderByEvent = (e) => {
     // debug
     // console.log(`updateSliderByEvent: `, elment, lastClickedElement.value)
 
+    // Thanh tag giờ chỉ còn tag nhân vật (Tất cả / Đã chọn đã dời ra
+    // nút cố định, bấm qua selectFixedFilter).
+    const filterCharacter = elment.getAttribute('filterCharacter');
     // 如果 lastClickedElement和当前点击的元素相同，则不处理
-    if (lastClickedElement.value != elment) {
-        // 对于点击的元素分别处理
-        const id = elment.id;
-        if (id === 'all-filter-chip') {
-            emit('filterChangeToAll');
-        } else if (id === 'selected-filter-chip') {
-            emit('filterChangeToSelected');
-        } else {
-            // 其他的元素
-            const filterCharacter = elment.getAttribute('filterCharacter');
-            if (filterCharacter) emit('itemChange', filterCharacter);
-        }
+    if (lastClickedElement.value != elment && filterCharacter) {
+        currentFilter.value = filterCharacter;
+        emit('itemChange', filterCharacter);
     }
 
-    
     // 将element的checked属性设置为true，并且将其他的设置为false
     const children = elment.parentElement?.children;
     if (!children) return;
@@ -326,12 +354,13 @@ const selectItemByName = (name) => {
     }
     const index = characterList.value.indexOf(name);
     if (index === -1) return;
-    // 那么 这个按钮应该是第 index + 2个按钮
-    // 因为前面有 all, selected两个按钮（搜索框已移到滚动条外面，不占位置）
+    // Tag nhân vật giờ là con thứ index của thanh (Tất cả / Đã chọn đã
+    // dời ra ngoài thanh nên không còn +2 nữa; thanh trượt là con cuối,
+    // sau các chip, nên không lệch chỉ số).
     // 主要的目的是滑块同步，lastClickedElement.value = elment
     const characterFilterBar = document.getElementById("character-filter-bar");
     if (!characterFilterBar) return;
-    const elment = characterFilterBar.children[index + 2] as HTMLElement;
+    const elment = characterFilterBar.children[index] as HTMLElement;
     if (!elment) return;
     // console.log(`selectItemByName: `, name, index, elment)
     lastClickedElement.value = elment;

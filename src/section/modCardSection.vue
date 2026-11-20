@@ -7,12 +7,33 @@
                 <s-icon type="arrow_drop_up"></s-icon>
             </template>
             <template #down-button>
-                <s-tooltip style="margin-right: calc(100% - 40px);">
+                <!-- Lề phải chừa 80px cho 2 nút bên phải (xóa + thêm),
+                     mỗi nút rộng 40px. -->
+                <s-tooltip style="margin-right: calc(100% - 80px);">
                     <s-icon-button slot="trigger" @click="handlePresetManageButtonClicked">
                         <s-icon type="menu"></s-icon>
                     </s-icon-button>
 
                     <p> {{ $t('buttons.managePreset') }} </p>
+                </s-tooltip>
+
+                <!-- Xóa preset đang chọn (Đạt dặn 20/11): nút thùng rác
+                     kế bên nút thêm; bấm thì hộp xác nhận hiện lên.
+                     Preset Mặc định không xóa được nên nút mờ đi — mờ
+                     bằng opacity chứ không dùng disabled (nút disabled
+                     của Sober biến mất hẳn, nhìn như thiếu nút). -->
+                <s-tooltip>
+                    <s-icon-button slot="trigger" @click="handlePresetDeleteButtonClicked"
+                        :style="currentPreset === 'default' ? 'opacity: 0.35' : ''">
+                        <!-- Sober không có sẵn icon 'delete' (type lạ thì
+                             vẽ rỗng) nên dùng SVG thùng rác inline. -->
+                        <s-icon>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                                <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-600v520-520Z" />
+                            </svg>
+                        </s-icon>
+                    </s-icon-button>
+                    <p> {{ $t('buttons.deletePreset') }} </p>
                 </s-tooltip>
 
                 <s-tooltip>
@@ -91,9 +112,18 @@
                         {{ $t('editDialog.batch-operation') }} </p>
                 </s-tooltip>
                 <!-- Bảng gọn: ôm sát hàng rộng nhất (hàng tag), không cố
-                     định 760px nữa; nút + của cả 2 hàng đều ở mép phải. -->
-                <div style="width: fit-content;height: max-content;">
-                    <p style="margin: 6px 20px 0;font-size: 0.8rem;color: var(--s-color-outline);">{{ $t('editDialog.batch-hint') }}</p>
+                     định 760px nữa; nút + của cả 2 hàng đều ở mép phải.
+                     Khung trắng ngoài như khung hộp sửa mod (Đạt dặn
+                     20/11), đệm đều quanh nội dung. Nền ĐEN TUYỀN
+                     #000000 (Đạt dặn 20/11): KHÔNG dùng
+                     surface-container (theme của app định nghĩa nó là
+                     #00000052, đen trong suốt 32%, nhìn xuyên thấy thẻ
+                     mod phía sau) và KHÔNG dùng surface-container-low
+                     (#222222 — trùng màu hàng + nút bấm, cả bảng thành
+                     một khối xám phẳng, không phân biệt được). Hàng và
+                     nút giữ màu gốc #222222 nên nổi rõ trên nền đen. -->
+                <div style="width: fit-content;height: max-content;background-color: #000000;border: 2px solid var(--s-color-outline-variant);border-radius: 16px;padding: 10px 6px;box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);box-sizing: border-box;">
+                    <p style="margin: 0 20px 2px;font-size: 0.8rem;color: var(--s-color-outline);">{{ $t('editDialog.batch-hint') }}</p>
                     <div class="OO-setting-bar">
                     <h3>{{ $t('editDialog.batch-set-character') }}</h3>
                     <div style="display: flex;align-items: center;gap: 8px;">
@@ -220,6 +250,17 @@ function handlePresetAddButtonClicked() {
     // const addPresetDialog = document.getElementById('add-preset-dialog');
     // addPresetDialog.show();
     iManager.showDialog('add-preset-dialog');
+}
+
+function handlePresetDeleteButtonClicked() {
+    console.log('preset delete button clicked');
+    // Preset Mặc định không có file riêng nên không xóa được: bấm vào
+    // thì chỉ báo cho biết, không mở hộp xác nhận.
+    if (currentPreset.value === 'default') {
+        iManager.snack(t('deletePresetDialog.cannotDeleteDefault'), 'error');
+        return;
+    }
+    iManager.showDialog('dialog-confirm-delete-preset');
 }
 
 function handleRefreshButtonClicked() {

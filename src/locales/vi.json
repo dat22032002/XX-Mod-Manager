@@ -84,6 +84,7 @@
   },
   "buttons": {
     "addPreset": "Thêm preset",
+    "deletePreset": "Xóa preset",
     "apply": "Áp dụng",
     "cancel": "Hủy",
     "compactMode": "chế độ gọn",
@@ -210,6 +211,11 @@
     "title": "Xóa mod này?",
     "messageRecycle": "Chuyển mod “{name}” vào thùng rác? Bạn vẫn khôi phục được từ thư mục recycleBin trong kho mod.",
     "messagePermanent": "Xóa vĩnh viễn mod “{name}”? Không thể hoàn tác."
+  },
+  "deletePresetDialog": {
+    "title": "Xóa preset?",
+    "message": "Xóa preset “{name}”? Không thể hoàn tác.",
+    "cannotDeleteDefault": "Không xóa được preset Mặc định"
   },
   "conflictDialog": {
     "title": "Mod đụng nhau",

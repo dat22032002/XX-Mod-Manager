@@ -58,6 +58,7 @@
     <dialogConfirmReset />
     <dialogConfirmClose />
     <dialogConfirmDeleteMod />
+    <dialogConfirmDeletePreset />
     <dialogConfirmConflict />
     <dialogUpdateAvailable />
     <dialogUpdateDownloaded />
@@ -79,6 +80,7 @@ import dialogApplyResult from './dialogs/dialogApplyResult.vue';
 import dialogConfirmReset from './dialogs/dialogConfirmReset.vue';
 import dialogConfirmClose from './dialogs/dialogConfirmClose.vue';
 import dialogConfirmDeleteMod from './dialogs/dialogConfirmDeleteMod.vue';
+import dialogConfirmDeletePreset from './dialogs/dialogConfirmDeletePreset.vue';
 import dialogConfirmConflict from './dialogs/dialogConfirmConflict.vue';
 import dialogUpdateAvailable from './dialogs/dialogUpdateAvailable.vue';
 import dialogUpdateDownloaded from './dialogs/dialogUpdateDownloaded.vue';
@@ -177,17 +179,39 @@ waitInitIManager().then((iManager) => {
     height: 50px;
 }
 
+/* 3 nút cửa sổ nối thành 1 viên nhộng (Đạt dặn 20/11): khung cao
+   40px như nút chọn mục MOD/HELP/Setting bên phải, 3 nút con vuông
+   khít nhau bên trong, ngăn cách bằng vạch mờ. */
 .window-controls {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    align-items: stretch;
+    gap: 0;
     margin-left: 8px;
     flex-shrink: 0;
+    height: 40px;
+    box-sizing: border-box;
+    background-color: var(--s-color-surface-container-low);
+    border: 1px solid var(--s-color-outline-variant);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.2);
 }
 
-/* OO-icon-button mặc định có margin dọc 10px, sẽ tràn khỏi header 50px */
-.window-control-btn {
+/* OO-icon-button mặc định tròn + thu nhỏ 0.83 + margin dọc 10px (tràn
+   khỏi header 50px) — gỡ hết để nút vuông khít viên nhộng, cao bằng
+   khung. */
+.window-controls .window-control-btn {
     margin: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: scale(1);
+    width: 46px;
+    height: 100%;
+}
+
+.window-controls .window-control-btn + .window-control-btn {
+    border-left: 1px solid var(--s-color-outline-variant);
 }
 
 .section-container {
