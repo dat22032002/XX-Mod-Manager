@@ -67,7 +67,7 @@
             </s-tooltip>
             <s-tooltip>
                 <s-icon-button @click="handleZoomOutClicked" slot="trigger" class="OO-button"
-                    :disabled="cardWidth <= ZOOM_LEVELS[0]" style="color: var(--s-color-on-surface);">
+                    :disabled="!canZoomOut" style="color: var(--s-color-on-surface);">
                     <s-icon>
                         <svg viewBox="0 0 24 24">
                             <path d="M19 13H5v-2h14v2z" />
@@ -79,7 +79,7 @@
             <span class="zoom-label">{{ zoomPercent }}%</span>
             <s-tooltip>
                 <s-icon-button @click="handleZoomInClicked" slot="trigger" class="OO-button"
-                    :disabled="cardWidth >= ZOOM_LEVELS[ZOOM_LEVELS.length - 1]"
+                    :disabled="!canZoomIn"
                     style="color: var(--s-color-on-surface);">
                     <s-icon>
                         <svg viewBox="0 0 24 24">
@@ -240,6 +240,7 @@ import { EventSystem, EventType } from '../../helper/EventSystem';
 import { SnackType, t_snack, snack } from '../../helper/SnackHelper';
 import { selectedModIdSet, batchSelectedModIdSet } from '../../helper/SelectedMods';
 import { MOD_TAGS, isValidTag } from '../../helper/ModTag';
+import { computeFillLayout, fillWidthForColumns, rangeCheckedWidth, LAYOUT_BASE, ZOOM_RANGE } from '../components/modWindowing.js';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
 import { checkConflicts } from '../../helper/ConflictCheck';
 
@@ -429,7 +430,7 @@ function handleCompactButtonClicked() {
 
 //-============================== Phóng to ==============================
 //#region Zoom
-// Kiểu thẻ + mức phóng to (chiều rộng thẻ, px). Dọc: 100–350, 250 là cỡ
+// Kiểu thẻ + phóng to (chiều rộng thẻ, px). Dọc: 100–350, 250 là cỡ
 // gốc = 100% (thẻ 250×350 như cũ). Ngang: 200–450, 350 là cỡ gốc = 100%
 // (thẻ 350×280), NHƯNG mặc định mở ở 86% = 301px (Đạt dặn 20/11).
 // Mỗi kiểu nhớ rộng riêng của nó (cardWidthVertical/cardWidthHorizontal):
@@ -440,11 +441,39 @@ function handleCompactButtonClicked() {
 // config không đổi theo).
 const cardLayout = g_config_vue.cardLayout;
 const cardWidth = g_config_vue.cardWidth;
-const LAYOUT_BASE = { vertical: 250, horizontal: 350 };
-const ZOOM_LEVELS = computed(() => cardLayout.value === 'vertical'
-    ? [100, 150, 200, 250, 300, 350]
-    : [200, 250, 300, 350, 400, 450]);
-const zoomPercent = computed(() => Math.round(cardWidth.value / LAYOUT_BASE[cardLayout.value] * 100));
+
+// Phóng to theo CỘT (Đạt dặn 20/11): nấc rộng cũ (301 → 350 → 400...)
+// hay cho cùng 1 rộng thật vì thẻ tự kéo lấp đầy hàng — bấm 1 lần
+// không thấy gì, phải bấm 2 lần mới đổi. Giờ mỗi lần bấm +/− là đổi
+// đúng 1 cột: + bớt 1 cột (thẻ to ra), − thêm 1 cột (thẻ nhỏ lại).
+// Rộng danh nghĩa lưu trong config là rộng lấp đầy đúng số cột đó.
+// Nhãn % hiện rộng THẬT so với cỡ gốc 100% (rộng thật / 250 hay 350),
+// không phải số danh nghĩa nữa.
+// Rộng khung đo trực tiếp từ DOM (#mod-container nằm trong
+// modCardManager nhưng cùng 1 trang nên đo được từ đây) + theo dõi
+// bằng ResizeObserver để đổi cỡ cửa sổ là số cột/% cập nhật theo.
+const gridContainerWidth = ref(0);
+let gridResizeObserver = null;
+function measureGridWidth() {
+    const el = document.querySelector('#mod-container');
+    if (el) gridContainerWidth.value = el.clientWidth;
+}
+const nominalCardWidth = computed(() => rangeCheckedWidth(cardWidth.value, cardLayout.value));
+const fillLayout = computed(() => computeFillLayout(gridContainerWidth.value, nominalCardWidth.value, cardLayout.value));
+const zoomPercent = computed(() => Math.round(fillLayout.value.width / LAYOUT_BASE[cardLayout.value] * 100));
+const zoomColumns = computed(() => fillLayout.value.columns);
+// Bấm + được khi bớt 1 cột mà thẻ vẫn trong khoảng cho phép (không
+// vượt rộng tối đa); bấm − được khi thêm 1 cột mà thẻ vẫn không nhỏ
+// hơn rộng tối thiểu. Chưa đo được khung thì cả 2 đều tắt.
+const canZoomIn = computed(() => {
+    const n = zoomColumns.value;
+    if (n <= 1) return false;
+    return fillWidthForColumns(gridContainerWidth.value, n - 1) <= ZOOM_RANGE[cardLayout.value][1];
+});
+const canZoomOut = computed(() => {
+    const n = zoomColumns.value;
+    return fillWidthForColumns(gridContainerWidth.value, n + 1) >= ZOOM_RANGE[cardLayout.value][0];
+});
 
 // Ghi config dồn: bấm +/− lia lịa thì chờ 300ms sau lần bấm cuối mới ghi
 // 1 lần (giống cách ghi preset dồn).
@@ -467,25 +496,23 @@ function setLayoutWidth(layout, width) {
 }
 
 function handleZoomOutClicked() {
-    // Mức gần nhất NHỎ HƠN chiều rộng hiện tại (chiều rộng lạ với kiểu
-    // thẻ hiện tại — vd đang ngang mà rộng 100/150 — vẫn phóng được,
-    // không kẹt nút). Phóng xong thì trí nhớ của kiểu đó đổi theo.
-    const lower = ZOOM_LEVELS.value.filter(l => l < cardWidth.value);
-    if (lower.length > 0) {
-        const w = lower[lower.length - 1];
-        iManager.config.cardWidth = w;
-        setLayoutWidth(cardLayout.value, w);
-        saveViewSettings();
-    }
+    // Thêm đúng 1 cột: rộng danh nghĩa mới là rộng lấp đầy số cột mới
+    // (lưới tự tính ra đúng số cột đó — xem computeFillLayout).
+    // Trí nhớ của kiểu đang dùng đổi theo.
+    if (!canZoomOut.value) return;
+    const w = fillWidthForColumns(gridContainerWidth.value, zoomColumns.value + 1);
+    iManager.config.cardWidth = w;
+    setLayoutWidth(cardLayout.value, w);
+    saveViewSettings();
 }
 
 function handleZoomInClicked() {
-    const higher = ZOOM_LEVELS.value.find(l => l > cardWidth.value);
-    if (higher !== undefined) {
-        iManager.config.cardWidth = higher;
-        setLayoutWidth(cardLayout.value, higher);
-        saveViewSettings();
-    }
+    // Bớt đúng 1 cột: rộng danh nghĩa mới là rộng lấp đầy số cột mới.
+    if (!canZoomIn.value) return;
+    const w = fillWidthForColumns(gridContainerWidth.value, zoomColumns.value - 1);
+    iManager.config.cardWidth = w;
+    setLayoutWidth(cardLayout.value, w);
+    saveViewSettings();
 }
 
 // Đổi kiểu thẻ (viên con nhộng đầu trái thanh dưới): lưu rộng kiểu cũ
@@ -520,6 +547,14 @@ onMounted(() => {
     refreshStats();
     EventSystem.on(EventType.modListChanged, refreshStats);
     EventSystem.on(EventType.modInfoChanged, refreshStats);
+    // Đo rộng khung lưới ngay + theo dõi khi đổi cỡ (để tính số cột,
+    // nhãn % thật và nút +/− theo cột).
+    measureGridWidth();
+    if (typeof ResizeObserver !== 'undefined') {
+        gridResizeObserver = new ResizeObserver(measureGridWidth);
+        const el = document.querySelector('#mod-container');
+        if (el) gridResizeObserver.observe(el);
+    }
 });
 
 //-============================= presets ==============================
@@ -599,6 +634,7 @@ function savePreset() {
 window.addEventListener('beforeunload', flushPresetSave);
 onUnmounted(() => {
     window.removeEventListener('beforeunload', flushPresetSave);
+    if (gridResizeObserver) gridResizeObserver.disconnect();
 });
 
 const presetSelectorRef = useTemplateRef('presetSelectorRef');

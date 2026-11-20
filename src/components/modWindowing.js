@@ -79,3 +79,60 @@ export function computeWindow({
     const paddingBottom = (totalRows - 1 - endRow) * rowPitch;
     return { startIndex, endIndex, paddingTop, paddingBottom, totalRows };
 }
+
+// Card geometry per layout, shared by the grid (modCardManager) and the
+// zoom controls (modCardSection) so both sides always agree on the same
+// numbers: base width = 100%, min/max valid width per layout.
+export const LAYOUT_BASE = { vertical: 250, horizontal: 350 };
+export const ZOOM_RANGE = { vertical: [100, 350], horizontal: [200, 450] };
+// How far a card may stretch/shrink from its chosen width to fill its row
+// (Đạt picked the fill approach 20/11; 10% left gaps at common screen
+// sizes 1280/1600/1920, 15% fills them — only a narrow 2-column window
+// still falls back to the chosen width, centered).
+export const FILL_WIDTH_LIMIT = 0.15;
+
+/**
+ * Nominal width, range-checked: a width outside the layout's range falls
+ * back to the layout base so the grid never breaks. In-between values
+ * (e.g. the 301px = 86% horizontal default) pass through unchanged.
+ */
+export function rangeCheckedWidth(width, layout) {
+    const [min, max] = ZOOM_RANGE[layout];
+    return width >= min && width <= max ? width : LAYOUT_BASE[layout];
+}
+
+/**
+ * Exact card width that fills `columns` columns in a container of the
+ * given width (columns + gaps exactly span the container, no side gaps).
+ */
+export function fillWidthForColumns(containerWidth, columns, gap = CARD_GAP) {
+    if (!Number.isFinite(containerWidth) || containerWidth <= 0 || columns < 1) return NaN;
+    return (containerWidth - (columns - 1) * gap) / columns;
+}
+
+/**
+ * Fill layout: the card width + column count that fills the row, given
+ * the container width and the chosen (nominal) width. Two fill
+ * candidates compete: stretch the current n columns, or shrink to fit
+ * n+1 columns; the one inside FILL_WIDTH_LIMIT and closest to the
+ * nominal width wins. Neither inside the limit -> keep the nominal
+ * width and its column count (the grid centers it, side gaps stay).
+ * Returns { width, columns, filled }. The column count is returned
+ * together with the width on purpose: recomputing it from the stretched
+ * width with computeColumns can be off by one through float rounding
+ * (e.g. 4.9999... flooring to 4).
+ */
+export function computeFillLayout(containerWidth, nominalWidth, layout, gap = CARD_GAP, limit = FILL_WIDTH_LIMIT) {
+    const [rangeMin, rangeMax] = ZOOM_RANGE[layout];
+    const lo = Math.max(nominalWidth * (1 - limit), rangeMin);
+    const hi = Math.min(nominalWidth * (1 + limit), rangeMax);
+    const n = computeColumns(containerWidth, nominalWidth, gap);
+    const stretch = fillWidthForColumns(containerWidth, n, gap);
+    const shrink = fillWidthForColumns(containerWidth, n + 1, gap);
+    const candidates = [];
+    if (stretch >= lo && stretch <= hi) candidates.push({ width: stretch, columns: n });
+    if (shrink >= lo && shrink <= hi) candidates.push({ width: shrink, columns: n + 1 });
+    if (candidates.length === 0) return { width: nominalWidth, columns: n, filled: false };
+    candidates.sort((a, b) => Math.abs(a.width - nominalWidth) - Math.abs(b.width - nominalWidth));
+    return { ...candidates[0], filled: true };
+}
