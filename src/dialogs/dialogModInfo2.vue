@@ -63,9 +63,16 @@
                    nhân vật đã có (đúng thứ tự chip trên thanh lọc), bấm
                    tên thì điền vào ô nhập. Dùng s-popup như nút xem phím
                    tắt ở hàng Hotkeys (bấm ra ngoài thì tự đóng). -->
-              <s-popup id="character-picker-popup" ref="characterPopupRef" style="position: absolute; right: 5px; top: 5px;">
+              <!-- --z-index: 10: wrapper popup mac dinh z-index 1, chip
+                   cung z-index 1, hang Tag dung sau trong DOM nen che
+                   mat bang chon (Dat thay 20/11). Nang len 10 thi bang
+                   chon noi len tren chip. -->
+              <s-popup id="character-picker-popup" ref="characterPopupRef" style="--z-index: 10;">
+                <!-- Nut tu can giua theo hang (absolute + top 50% +
+                     translateY(-50%)): khung s-popup cao hon nut 10px
+                     nen dat top cho khung lam nut lech xuong duoi. -->
                 <s-icon-button slot="trigger" class="OO-icon-button" id="character-picker-button"
-                  style="border: 5px solid var(--s-color-surface-container-high); transform: scale(1);">
+                  style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%) scale(1); margin: 0; border: 5px solid var(--s-color-surface-container-high);">
                   <s-icon type="chevron_down"></s-icon>
                 </s-icon-button>
                 <div class="OO-box OO-shade-box character-picker-list">
