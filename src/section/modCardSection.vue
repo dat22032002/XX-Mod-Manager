@@ -45,7 +45,7 @@
             </template>
         </leftMenu>
         <modCardManager id="mod-card-manager" :compactMode="compactMode" :cardWidth="cardWidth"
-            :cardLayout="cardLayout" ref="modCardManagerRef">
+            :cardLayout="cardLayout" :fullImage="cardFullImage" ref="modCardManagerRef">
         </modCardManager>
         <modInfo :mod="displayModRef"></modInfo>
     </div>
@@ -88,6 +88,19 @@
                     </s-icon>
                 </s-icon-button>
                 <p> {{ $t('buttons.zoomIn') }} </p>
+            </s-tooltip>
+            <!-- Nút chuyển đổi ảnh gốc / ảnh thu nhỏ (Đạt dặn 20/11): bên
+                 phải nút +, nút tròn như nút zoom; đang hiện ảnh gốc thì
+                 nền vàng như nút kiểu thẻ đang chọn. -->
+            <s-tooltip>
+                <button id="full-image-button" class="full-image-button" :class="{ active: cardFullImage }"
+                    @click="handleFullImageClicked" slot="trigger">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                    </svg>
+                </button>
+                <p> {{ $t('buttons.fullImage') }} </p>
             </s-tooltip>
         </div>
         <div class="bottom-center">
@@ -525,6 +538,15 @@ function handleLayoutClicked(layout) {
     iManager.config.cardWidth = getLayoutWidth(layout);
     saveViewSettings();
 }
+
+// Ảnh gốc / ảnh thu nhỏ trên thẻ (nút bên phải + — Đạt dặn 20/11):
+// bật thì thẻ hiện ảnh gốc đầy đủ như khung phải, tắt thì về ảnh thu
+// nhỏ 250px. Lưu vào config nên tắt app mở lại vẫn nhớ.
+const cardFullImage = g_config_vue.cardFullImage;
+function handleFullImageClicked() {
+    iManager.config.cardFullImage = !cardFullImage.value;
+    saveViewSettings();
+}
 //#endregion
 
 //-============================= thống kê kho mod ==============================
@@ -774,6 +796,33 @@ EventSystem.on('toggledMod', (mod) => {
 .layout-capsule button.active {
     background-color: var(--s-color-primary);
     color: var(--s-color-on-primary);
+}
+
+/* Nút chuyển đổi ảnh gốc / ảnh thu nhỏ: tròn 40px như nút zoom, đang
+   hiện ảnh gốc thì nền vàng như nút kiểu thẻ đang chọn. */
+.full-image-button {
+    width: 40px;
+    height: 40px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background-color: var(--s-color-surface-container-low);
+    border: 1px solid var(--s-color-outline-variant);
+    border-radius: 50%;
+    color: var(--s-color-on-surface);
+    cursor: pointer;
+}
+.full-image-button.active {
+    background-color: var(--s-color-primary);
+    color: var(--s-color-on-primary);
+}
+.full-image-button svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
 }
 
 .bottom {

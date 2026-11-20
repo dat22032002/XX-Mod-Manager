@@ -53,13 +53,23 @@ class ImageHelper {
     // The disk cache is pruned at most once per session.
     private static pruneDone = false;
 
+    // Thumbnail and full-size URLs are cached under SEPARATE keys for the
+    // same source path: the old single key let the detail panel's
+    // full-size URL overwrite a card's thumbnail entry (and vice versa),
+    // so a card could keep showing the full image after the user toggled
+    // back to thumbnails. The LRU cap still counts total entries.
+    private static cacheKey(imagePath: string, full: boolean): string {
+        return full ? imagePath + '\nfull' : imagePath + '\nthumb';
+    }
+
     public static async getImageUrlFromLocalPath(imagePath: string, ifCache: boolean = true) {
+        const key = this.cacheKey(imagePath, false);
         if (ifCache) {
-            const cached = this.imageCache.get(imagePath);
+            const cached = this.imageCache.get(key);
             if (cached) {
                 // Refresh recency.
-                this.imageCache.delete(imagePath);
-                this.imageCache.set(imagePath, cached);
+                this.imageCache.delete(key);
+                this.imageCache.set(key, cached);
                 return cached;
             }
         }
@@ -67,7 +77,7 @@ class ImageHelper {
         try {
             const thumbUrl = await this.getThumbnailUrl(imagePath);
             if (thumbUrl) {
-                this.storeInCache(imagePath, thumbUrl);
+                this.storeInCache(key, thumbUrl);
                 return thumbUrl;
             }
         } catch (e) {
@@ -83,14 +93,14 @@ class ImageHelper {
         const bufffer = fs.readFileSync(imagePath);
         const blob = new Blob([bufffer], {type: "image/png"});
         const tempUrl = URL.createObjectURL(blob);
-        this.storeInCache(imagePath, tempUrl);
+        this.storeInCache(this.cacheKey(imagePath, true), tempUrl);
         return tempUrl;
     }
 
-    private static storeInCache(imagePath: string, url: string) {
+    private static storeInCache(key: string, url: string) {
         // Refresh position if already present.
-        this.imageCache.delete(imagePath);
-        this.imageCache.set(imagePath, url);
+        this.imageCache.delete(key);
+        this.imageCache.set(key, url);
         // Evict least-recently-used URLs past the cap, freeing RAM.
         while (this.imageCache.size > MAX_RAM_IMAGES) {
             const oldest = this.imageCache.keys().next().value;
@@ -123,13 +133,18 @@ class ImageHelper {
     // thumb cache is keyed by path+mtime+size so it never goes stale.
     // Called when a mod's preview is replaced.
     public static evictImage(imagePath: string) {
-        const url = this.imageCache.get(imagePath);
-        if (url) {
-            this.imageCache.delete(imagePath);
-            try {
-                URL.revokeObjectURL(url);
-            } catch (e) {
-                // Already revoked or invalid: nothing to free.
+        // Drop BOTH variants (a replaced preview must not keep serving
+        // either the old thumbnail or the old full-size image).
+        for (const full of [false, true]) {
+            const key = this.cacheKey(imagePath, full);
+            const url = this.imageCache.get(key);
+            if (url) {
+                this.imageCache.delete(key);
+                try {
+                    URL.revokeObjectURL(url);
+                } catch (e) {
+                    // Already revoked or invalid: nothing to free.
+                }
             }
         }
         this.pendingThumbs.delete(imagePath);
