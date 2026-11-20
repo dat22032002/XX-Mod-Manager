@@ -60,19 +60,8 @@
                 <span>{{ selectedFilterLabel }}</span>
             </div>
         </div>
-        <!-- Nút ẩn/hiện số lượng mod trên chip (Đạt dặn 20/11): bấm thì
-             mỗi chip nhân vật hiện thêm số mod trong ngoặc, vd Ellen (24);
-             bấm lại thì ẩn. Nút vàng khi đang hiện số. Dấu # = "số lượng",
-             chú thích giải thích khi rê chuột. Nút cố định như Tất cả /
-             Đã chọn, không lăn theo thanh tag. -->
-        <s-tooltip>
-            <div id="chip-counts-toggle" class="filter-toggle" slot="trigger" :class="{ active: showChipCounts }" @click="toggleChipCounts">
-                <div class="filter-toggle-inner">
-                    <span class="chip-counts-hash">#</span>
-                </div>
-            </div>
-            <span>{{ $t('filter.showCounts') }}</span>
-        </s-tooltip>
+        <!-- (Nút ẩn/hiện số lượng mod từng ở đây, đã dời vào trong bảng
+             lọc bên dưới — Đạt muốn nó nằm ẩn trong bảng, 20/11.) -->
         <!-- Lớp bắt bấm trong suốt phủ cả màn hình khi bảng đang mở:
              bấm ra ngoài bảng thì đóng bảng. Nằm dưới nút và bảng
              (z-index) nên không chặn 2 cái đó. -->
@@ -91,6 +80,18 @@
             <div class="sort-wrap">
                 <chipRadioBar :items="sortItems" :translatedItems="translatedSorts"
                     @itemChange="handleSortChange" ref="sortBarRef" />
+            </div>
+            <!-- Công tắc ẩn/hiện số lượng mod trên chip (Đạt dặn 20/11):
+                 nằm ẩn trong bảng lọc thay vì nút # trên thanh lọc. Bật
+                 thì mỗi chip nhân vật hiện thêm số mod trong ngoặc,
+                 vd Ellen (24). :checked lấy trạng thái đã lưu từ config;
+                 @change tự lật config qua Proxy (công tắc Sober tự đổi
+                 trạng thái hiển thị khi bấm, giống công tắc gọn ở thanh
+                 dưới — không dùng v-model vào ref config vì v-model ghi
+                 thẳng vào ref, file config không đổi theo). -->
+            <div class="counts-wrap">
+                <span class="counts-label">{{ $t('filter.showCounts') }}</span>
+                <s-switch id="chip-counts-switch" :checked="showChipCounts" @change="toggleChipCounts"></s-switch>
             </div>
         </div>
         <horizontalScrollBar class="chip-radio-bar" id="character-filter-bar" style="height: fit-content;">
@@ -567,12 +568,22 @@ defineExpose({
     flex-shrink: 0;
 }
 
-/* Dấu # trên nút ẩn/hiện số lượng: đậm + to hơn chữ thường để nhìn
-   rõ đây là nút bấm, không phải chữ. */
-.chip-counts-hash {
-    font-weight: 700;
-    font-size: 1rem;
-    line-height: 1;
+/* Hàng công tắc ẩn/hiện số lượng trong bảng lọc: nhãn trái, công tắc
+   phải, cách hàng xếp phía trên 1 khoảng. */
+.counts-wrap {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 4px 2px;
+    box-sizing: border-box;
+}
+
+.counts-label {
+    font-size: 0.875rem;
+    color: var(--s-color-on-surface);
+    white-space: nowrap;
 }
 
 /* Mũi tên xoay ngược khi bảng lọc đang bung ra. */
