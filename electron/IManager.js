@@ -75,7 +75,8 @@ let g_config = {
         y: -1,
     },
     ifUseTraditionalApply: false,
-    cardWidth: 400,
+    cardWidth: 350,
+    cardLayout: 'horizontal',
     modTypeFilter: 'all',
     modSortBy: 'default',
 };
@@ -117,7 +118,8 @@ const g_config_vue = {
         y: -1,
     }),
     ifUseTraditionalApply: ref(false),
-    cardWidth: ref(400),
+    cardWidth: ref(350),
+    cardLayout: ref('horizontal'),
     modTypeFilter: ref('all'),
     modSortBy: ref('default'),
 };
@@ -214,7 +216,8 @@ class IManager {
             y: -1,
         },
         ifUseTraditionalApply: false, // 是否使用传统的应用方式
-        cardWidth: 400, // Chiều rộng thẻ ở dạng lưới (200/250/300/350/400/450)
+        cardWidth: 350, // Chiều rộng thẻ ở dạng lưới (dọc 100–350 / ngang 200–450)
+        cardLayout: 'horizontal', // Kiểu thẻ: 'vertical' (dọc 250×350) hay 'horizontal' (ngang 350×250)
         modTypeFilter: 'all', // Lọc theo loại mod: all/outfit/weapon/effect
         modSortBy: 'default', // Sắp xếp mod: default/name-asc/name-desc/time-desc/time-asc
     };
@@ -356,11 +359,18 @@ class IManager {
             }
         }
 
-        // Thẻ đổi cỡ mặc định 250 → 400 (Đạt dặn 20/11, thẻ 400×300):
-        // file cũ còn 250 (cỡ gốc cũ, người dùng chưa từng phóng to) thì
-        // lên 400 cho đúng cỡ mới; ai đã phóng tay thì giữ nguyên.
-        if (this._config.cardWidth === 250) {
-            this.config.cardWidth = 400;
+        // Kiểu thẻ mới (Đạt dặn 20/11): file cũ chưa có cardLayout thì
+        // đoán theo rộng thẻ ĐÃ LƯU trong file. 400 là cỡ ngang cũ (bản
+        // thử 1.5.19-test2) → ngang + về 350 (cỡ ngang mới); còn lại
+        // (250 cũ...) → dọc, giữ nguyên rộng. File mới toanh (không có
+        // cả 2 khóa) thì giữ mặc định ngang 350.
+        if (!('cardLayout' in currentConfig)) {
+            if (currentConfig.cardWidth === 400) {
+                this.config.cardLayout = 'horizontal';
+                this.config.cardWidth = 350;
+            } else if (typeof currentConfig.cardWidth === 'number') {
+                this.config.cardLayout = 'vertical';
+            }
         }
 
         //debug

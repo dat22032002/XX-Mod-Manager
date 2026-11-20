@@ -1,10 +1,10 @@
 <template>
     <s-card ref="modItemRef" class="mod-item" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id" inWindow="none"
-        :name="props.modRef.name" :character="props.modRef.character" @click="click" :compact="props.compactMode"
+        :name="props.modRef.name" :character="props.modRef.character" @click="click" :compact="props.compactMode" :data-layout="props.cardLayout"
         @mouseenter="onCardHoverStart" @mouseleave="onCardHoverEnd"
         @contextmenu.prevent.stop="openEditModDialog">
 
-        <div slot="image" style="height: calc(var(--card-width, 400px) * 0.5);" v-if="ifDisplayImage">
+        <div slot="image" v-if="ifDisplayImage">
             <img id="editDialog-mod-info-image"
                 style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;" alt="Mod Image"
                 :src="img || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D'" @load="enterWindow" />
@@ -51,7 +51,12 @@ const props = defineProps({
     compactMode: Boolean,
     cardWidth: {
         type: Number,
-        default: 400
+        default: 350
+    },
+    // Kiểu thẻ: 'vertical' (dọc 250×350 như cũ) hay 'horizontal' (ngang 350×250).
+    cardLayout: {
+        type: String,
+        default: 'horizontal'
     },
 })
 const enteredWindow = ref(false);
@@ -266,9 +271,15 @@ function playClickAnim(modItem, event = null, rect = null) {
 }
 
 //-==================== compact mode ====================-//
+// Tỉ lệ cao/rộng theo kiểu thẻ (dọc 1.4 / gọn 0.6 như cũ; ngang 250/350
+// / gọn 0.45) — hiệu ứng gọn/phồng dùng tỉ lệ này, phải khớp CSS.
+const layoutRatios = computed(() => props.cardLayout === 'vertical'
+    ? { normal: 1.4, compact: 0.6 }
+    : { normal: 250 / 350, compact: 0.45 });
+
 const enterCompactMode = (item) => {
-    const normalH = props.cardWidth * 0.75;
-    const compactH = props.cardWidth * 0.45;
+    const normalH = props.cardWidth * layoutRatios.value.normal;
+    const compactH = props.cardWidth * layoutRatios.value.compact;
     item.animate([
         { height: `${normalH}px` },
         { height: `${compactH}px` }
@@ -307,8 +318,8 @@ const enterCompactMode = (item) => {
     });
 };
 const exitCompactMod = (item) => {
-    const normalH = props.cardWidth * 0.75;
-    const compactH = props.cardWidth * 0.45;
+    const normalH = props.cardWidth * layoutRatios.value.normal;
+    const compactH = props.cardWidth * layoutRatios.value.compact;
     item.animate([
         { height: `${compactH}px` },
         { height: `${normalH}px` }
@@ -429,22 +440,33 @@ defineExpose({
 .mod-item {
     perspective: 500px;
     /* Kích thước theo mức phóng to: biến --card-width đặt trên
-       #mod-container (mặc định 400px); cao = rộng × 0.75, ảnh = rộng × 0.5
-       (thẻ 400×300 — Đạt dặn 20/11).
+       #mod-container (mặc định 350px); ngang: cao = rộng × 250/350,
+       ảnh = rộng × 0.5 (thẻ 350×250 — Đạt dặn 20/11); dọc thì xem
+       .mod-item[data-layout="vertical"] bên dưới (250×350 như cũ).
        Sober s-card mặc định max-width 280px — bỏ giới hạn đó thì thẻ mới
        phóng to được tới 450px. */
-    width: var(--card-width, 400px);
+    width: var(--card-width, 350px);
     max-width: none;
-    height: calc(var(--card-width, 400px) * 0.75);
+    height: calc(var(--card-width, 350px) * 250 / 350);
     margin-bottom: 0px;
     will-change: transform;
 
     transition: x, y 0.5s cubic-bezier(.36, -0.64, .34, 1.76);
 
     >div[slot="image"] {
-        width: var(--card-width, 400px);
-        height: calc(var(--card-width, 400px) * 0.5);
+        width: var(--card-width, 350px);
+        height: calc(var(--card-width, 350px) * 0.5);
     }
+}
+
+/* Kiểu dọc: y hệt thông số cũ (thẻ 250×350, ảnh × 0.8). */
+.mod-item[data-layout="vertical"] {
+    width: var(--card-width, 250px);
+    height: calc(var(--card-width, 250px) * 1.4);
+}
+.mod-item[data-layout="vertical"] > div[slot="image"] {
+    width: var(--card-width, 250px);
+    height: calc(var(--card-width, 250px) * 0.8);
 }
 
 .mod-item img {
@@ -473,7 +495,7 @@ defineExpose({
     /* Tiêu đề nhỏ theo thẻ khi thu nhỏ dưới 100% (24px ở 250px; 19.2px ở
     200px; 14.4px ở 150px; 9.6px ở 100px); thẻ to hơn 100% thì min() giữ
     nguyên 24px. line-height đi kèm để hàng tiêu đề co theo chữ. */
-    font-size: min(24px, calc(var(--card-width, 400px) * 0.096));
+    font-size: min(24px, calc(var(--card-width, 350px) * 0.096));
     line-height: 1.6;
 }
 
@@ -509,11 +531,17 @@ defineExpose({
 
 
 .mod-item #mod-item-text {
-    height: calc(var(--card-width, 400px) * 0.14);
+    /* Ngang: ~30px ở rộng 350 (250 − ảnh 175 − tên ~45); dọc 100px như
+       cũ (xem rule .mod-item[data-layout="vertical"] bên dưới). */
+    height: calc(var(--card-width, 350px) * 0.086);
     /* margin-top âm cũ (-10px) dùng để kéo sát vào dòng tên nhân vật
        phía trên; bỏ dòng đó rồi thì kéo âm làm mô tả chồng lên tên. */
     margin-top: 0;
     border: 0;
+}
+
+.mod-item[data-layout="vertical"] #mod-item-text {
+    height: 100px;
 }
 
 .mod-item s-scroll-view {
@@ -527,9 +555,14 @@ defineExpose({
 }
 
 .mod-item[compact="true"] {
-    width: var(--card-width, 400px);
-    height: calc(var(--card-width, 400px) * 0.45);
+    width: var(--card-width, 350px);
+    height: calc(var(--card-width, 350px) * 0.45);
     transition: all 0.4s;
+}
+
+.mod-item[compact="true"][data-layout="vertical"] {
+    width: var(--card-width, 250px);
+    height: calc(var(--card-width, 250px) * 0.6);
 }
 
 .mod-item[compact="true"] img {
