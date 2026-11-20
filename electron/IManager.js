@@ -75,8 +75,10 @@ let g_config = {
         y: -1,
     },
     ifUseTraditionalApply: false,
-    cardWidth: 350,
+    cardWidth: 301,
     cardLayout: 'horizontal',
+    cardWidthVertical: 250,
+    cardWidthHorizontal: 301,
     modTypeFilter: 'all',
     modSortBy: 'default',
 };
@@ -118,8 +120,10 @@ const g_config_vue = {
         y: -1,
     }),
     ifUseTraditionalApply: ref(false),
-    cardWidth: ref(350),
+    cardWidth: ref(301),
     cardLayout: ref('horizontal'),
+    cardWidthVertical: ref(250),
+    cardWidthHorizontal: ref(301),
     modTypeFilter: ref('all'),
     modSortBy: ref('default'),
 };
@@ -216,8 +220,10 @@ class IManager {
             y: -1,
         },
         ifUseTraditionalApply: false, // 是否使用传统的应用方式
-        cardWidth: 350, // Chiều rộng thẻ ở dạng lưới (dọc 100–350 / ngang 200–450)
+        cardWidth: 301, // Chiều rộng thẻ đang dùng (ngang mặc định 86% = 301px — Đạt dặn 20/11)
         cardLayout: 'horizontal', // Kiểu thẻ: 'vertical' (dọc 250×350) hay 'horizontal' (ngang 350×280)
+        cardWidthVertical: 250, // Rộng riêng kiểu dọc (đổi qua lại thì nhớ — Đạt dặn 20/11)
+        cardWidthHorizontal: 301, // Rộng riêng kiểu ngang (mặc định 86% = 301px)
         modTypeFilter: 'all', // Lọc theo loại mod: all/outfit/weapon/effect
         modSortBy: 'default', // Sắp xếp mod: default/name-asc/name-desc/time-desc/time-asc
     };
@@ -359,18 +365,28 @@ class IManager {
             }
         }
 
-        // Kiểu thẻ mới (Đạt dặn 20/11): file cũ chưa có cardLayout thì
-        // đoán theo rộng thẻ ĐÃ LƯU trong file. 400 là cỡ ngang cũ (bản
-        // thử 1.5.19-test2) → ngang + về 350 (cỡ ngang mới); còn lại
-        // (250 cũ...) → dọc, giữ nguyên rộng. File mới toanh (không có
-        // cả 2 khóa) thì giữ mặc định ngang 350.
+        // Kiểu thẻ + rộng riêng từng kiểu (Đạt dặn 20/11):
+        // - File mới toanh (không có khóa nào) → mặc định ngang 86% (301px).
+        // - File cũ chưa có cardLayout: đoán kiểu theo rộng đã lưu (400 là
+        //   cỡ ngang cũ test2 → ngang; còn lại → dọc, giữ nguyên rộng).
+        // - File chưa có rộng riêng từng kiểu: kiểu đang dùng lấy rộng đã
+        //   lưu (350 ngang là mặc định cũ → về 301 mặc định mới 86%),
+        //   kiểu còn lại lấy mặc định của nó (dọc 250 / ngang 301).
         if (!('cardLayout' in currentConfig)) {
             if (currentConfig.cardWidth === 400) {
                 this.config.cardLayout = 'horizontal';
-                this.config.cardWidth = 350;
+                this.config.cardWidth = 301;
             } else if (typeof currentConfig.cardWidth === 'number') {
                 this.config.cardLayout = 'vertical';
             }
+        }
+        if (!('cardWidthVertical' in currentConfig) || !('cardWidthHorizontal' in currentConfig)) {
+            const layout = this.config.cardLayout;
+            const w = this.config.cardWidth;
+            const mine = (layout === 'horizontal' && (w === 350 || w === 400)) ? 301 : w;
+            this.config.cardWidthVertical = layout === 'vertical' ? mine : 250;
+            this.config.cardWidthHorizontal = layout === 'horizontal' ? mine : 301;
+            this.config.cardWidth = mine;
         }
 
         //debug

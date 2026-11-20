@@ -41,7 +41,7 @@ const props = defineProps({
     // Chiều rộng thẻ ở dạng lưới (dọc 100–350 / ngang 200–450).
     cardWidth: {
         type: Number,
-        default: 350
+        default: 301
     },
     // Kiểu thẻ: 'vertical' (dọc) hay 'horizontal' (ngang).
     cardLayout: {
@@ -214,16 +214,17 @@ function scheduleWindowUpdate() {
     });
 }
 
-// Rộng thẻ hợp lệ theo kiểu thẻ — dọc: 100/150/200/250/300/350 (gốc 250);
-// ngang: 200/250/300/350/400/450 (gốc 350). Giá trị lạ thì về gốc của
-// kiểu đang dùng để lưới không vỡ.
+// Rộng thẻ hợp lệ theo kiểu thẻ — dọc: 100–350 (gốc 250); ngang:
+// 200–450 (gốc 350). Giá trị NGOÀI khoảng thì về gốc của kiểu đang
+// dùng để lưới không vỡ. Giá trị trong khoảng nhưng không đúng nấc
+// phóng to — vd mặc định ngang 301px = 86% (Đạt dặn 20/11) — vẫn
+// dùng được (trước đây chỉ chấp nhận đúng nấc nên 301 bị đẩy về 350).
 const LAYOUT_BASE = { vertical: 250, horizontal: 350 };
-const ZOOM_LEVELS = computed(() => props.cardLayout === 'vertical'
-    ? [100, 150, 200, 250, 300, 350]
-    : [200, 250, 300, 350, 400, 450]);
-const effectiveCardWidth = computed(() =>
-    ZOOM_LEVELS.value.includes(props.cardWidth) ? props.cardWidth : LAYOUT_BASE[props.cardLayout]
-);
+const ZOOM_RANGE = { vertical: [100, 350], horizontal: [200, 450] };
+const effectiveCardWidth = computed(() => {
+    const [min, max] = ZOOM_RANGE[props.cardLayout];
+    return props.cardWidth >= min && props.cardWidth <= max ? props.cardWidth : LAYOUT_BASE[props.cardLayout];
+});
 
 // Kiểu của khung lưới: khoảng đệm vẽ từng phần + biến rộng thẻ. Thẻ lưới
 // đọc --card-width để tự co giãn theo mức phóng to.

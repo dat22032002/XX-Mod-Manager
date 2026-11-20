@@ -431,7 +431,9 @@ function handleCompactButtonClicked() {
 //#region Zoom
 // Kiểu thẻ + mức phóng to (chiều rộng thẻ, px). Dọc: 100–350, 250 là cỡ
 // gốc = 100% (thẻ 250×350 như cũ). Ngang: 200–450, 350 là cỡ gốc = 100%
-// (thẻ 350×280 — Đạt dặn 20/11).
+// (thẻ 350×280), NHƯNG mặc định mở ở 86% = 301px (Đạt dặn 20/11).
+// Mỗi kiểu nhớ rộng riêng của nó (cardWidthVertical/cardWidthHorizontal):
+// đổi qua lại thì về đúng tỉ lệ đã lưu thay vì về 100%.
 // Đọc qua g_config_vue (ref phản ứng): lúc mở app, loadConfig ghi giá trị
 // đã lưu vào đây, khung lưới tự cập nhật theo. Ghi thì đi qua Proxy
 // iManager.config để _config + ref cùng đổi (ghi thẳng vào ref thì file
@@ -455,13 +457,24 @@ function saveViewSettings() {
     }, 300);
 }
 
+// Rộng đã lưu của 1 kiểu (đọc/ghi qua Proxy để _config + file cùng đổi).
+function getLayoutWidth(layout) {
+    return layout === 'vertical' ? iManager.config.cardWidthVertical : iManager.config.cardWidthHorizontal;
+}
+function setLayoutWidth(layout, width) {
+    if (layout === 'vertical') iManager.config.cardWidthVertical = width;
+    else iManager.config.cardWidthHorizontal = width;
+}
+
 function handleZoomOutClicked() {
     // Mức gần nhất NHỎ HƠN chiều rộng hiện tại (chiều rộng lạ với kiểu
     // thẻ hiện tại — vd đang ngang mà rộng 100/150 — vẫn phóng được,
-    // không kẹt nút).
+    // không kẹt nút). Phóng xong thì trí nhớ của kiểu đó đổi theo.
     const lower = ZOOM_LEVELS.value.filter(l => l < cardWidth.value);
     if (lower.length > 0) {
-        iManager.config.cardWidth = lower[lower.length - 1];
+        const w = lower[lower.length - 1];
+        iManager.config.cardWidth = w;
+        setLayoutWidth(cardLayout.value, w);
         saveViewSettings();
     }
 }
@@ -470,16 +483,19 @@ function handleZoomInClicked() {
     const higher = ZOOM_LEVELS.value.find(l => l > cardWidth.value);
     if (higher !== undefined) {
         iManager.config.cardWidth = higher;
+        setLayoutWidth(cardLayout.value, higher);
         saveViewSettings();
     }
 }
 
-// Đổi kiểu thẻ (viên con nhộng bên phải nút phóng to): rộng về cỡ gốc
-// của kiểu đó (dọc 250 / ngang 350), ghi config dồn như phóng to.
+// Đổi kiểu thẻ (viên con nhộng đầu trái thanh dưới): lưu rộng kiểu cũ
+// trước khi đổi, rồi lấy rộng đã lưu của kiểu mới — mỗi kiểu nhớ tỉ lệ
+// riêng (Đạt dặn 20/11), không về 100% như trước nữa.
 function handleLayoutClicked(layout) {
     if (layout === cardLayout.value) return;
+    setLayoutWidth(cardLayout.value, cardWidth.value);
     iManager.config.cardLayout = layout;
-    iManager.config.cardWidth = LAYOUT_BASE[layout];
+    iManager.config.cardWidth = getLayoutWidth(layout);
     saveViewSettings();
 }
 //#endregion

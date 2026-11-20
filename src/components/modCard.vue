@@ -51,9 +51,9 @@ const props = defineProps({
     compactMode: Boolean,
     cardWidth: {
         type: Number,
-        default: 350
+        default: 301
     },
-    // Kiểu thẻ: 'vertical' (dọc 250×350 như cũ) hay 'horizontal' (ngang 350×250).
+    // Kiểu thẻ: 'vertical' (dọc 250×350 như cũ) hay 'horizontal' (ngang 350×280).
     cardLayout: {
         type: String,
         default: 'horizontal'
