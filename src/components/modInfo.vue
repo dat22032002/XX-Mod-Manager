@@ -19,9 +19,10 @@
             </div>
         </div>
 
-        <!-- Khung dưới: chỉ có phím tắt (Đạt dặn 20/11 — bỏ phần mô tả
-             khỏi khung phải; mô tả vẫn sửa được trong hộp Sửa thông tin).
-             Tiêu đề cố định trên, danh sách lăn bên dưới. -->
+        <!-- Khung dưới: phím tắt + 2 nút Sửa/Mở Thư Mục ở đáy
+             (Đạt dặn 20/11 — bỏ phần mô tả khỏi khung phải; mô tả vẫn
+             sửa được trong hộp Sửa thông tin). Tiêu đề cố định trên,
+             danh sách lăn ở giữa, nút cố định dưới. -->
         <div class="mod-panel-bottom OO-box">
             <h4 v-if="props.mod && props.mod.hotkeys && props.mod.hotkeys.length > 0"> {{ $t('modInfo.hotkeys') }}</h4>
             <s-scroll-view class="mod-info-content">
@@ -33,33 +34,33 @@
                 </div>
                 <p v-if="props.mod && (!props.mod.hotkeys || props.mod.hotkeys.length === 0)" class="mod-no-hotkeys">{{ $t('modInfo.noHotkeys') }}</p>
             </s-scroll-view>
-        </div>
 
-        <div class="buttons">
-            <s-tooltip>
-                <s-button slot="trigger" @click="editMod" class="edit-button OO-button">
-                    <s-icon>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                            <path
-                                d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z">
-                            </path>
-                        </svg>
-                    </s-icon>
-                </s-button>
-                <p>{{ $t('modInfo.edit') }}</p>
-            </s-tooltip>
+            <div class="buttons">
+                <s-tooltip>
+                    <s-button slot="trigger" @click="editMod" class="edit-button OO-button">
+                        <s-icon>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                                <path
+                                    d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z">
+                                </path>
+                            </svg>
+                        </s-icon>
+                    </s-button>
+                    <p>{{ $t('modInfo.edit') }}</p>
+                </s-tooltip>
 
-            <s-tooltip>
-                <s-button slot="trigger" @click="openModFolder" class="open-dir-button OO-button font-hongmeng">
-                    <s-icon slot="start">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-  <path d="m256-240-56-56 384-384H240v-80h480v480h-80v-344L256-240Z"></path>
-</svg>
-                    </s-icon>
+                <s-tooltip>
+                    <s-button slot="trigger" @click="openModFolder" class="open-dir-button OO-button font-hongmeng">
+                        <s-icon slot="start">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+      <path d="m256-240-56-56 384-384H240v-80h480v480h-80v-344L256-240Z"></path>
+    </svg>
+                        </s-icon>
+                        <p>{{ $t('modInfo.openFolder') }}</p>
+                    </s-button>
                     <p>{{ $t('modInfo.openFolder') }}</p>
-                </s-button>
-                <p>{{ $t('modInfo.openFolder') }}</p>
-            </s-tooltip>
+                </s-tooltip>
+            </div>
         </div>
     </div>
     <!-- Xem anh goc: bam vao hinh trong khung phai thi anh hien to giua
@@ -180,8 +181,8 @@ s-scroll-view {
     margin-right: 10px;
     height: calc(100% - 20px);
     text-align: center;
-    /* Khung bọc trơn (không viền, không nền): 3 tầng xếp dọc — khung
-       trên (tên + ảnh + tag), khung dưới (phím tắt), hàng nút. */
+    /* Khung bọc trơn (không viền, không nền): 2 khung xếp dọc — khung
+       trên (tên + ảnh + tag), khung dưới (phím tắt + 2 nút ở đáy). */
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -303,14 +304,15 @@ s-scroll-view {
     color: var(--s-color-on-surface-variant);
 }
 
-/* Hàng nút dưới cùng (Sửa + Mở Thư Mục): hàng riêng ngoài 2 khung,
-   không còn đặt tuyệt đối đè lên khung — khung dưới chứa đúng phím
-   tắt, nút không che dòng phím tắt nào. Cao 50px = cao nút thật
-   (khung chứa cũ cao 30px mà nút cao 50px nên nút tràn ra ngoài). */
+/* 2 nút Sửa + Mở Thư Mục ở đáy khung dưới (Đạt dặn 20/11): cố định
+   dưới danh sách lăn, cách danh sách 10px. Không còn đặt tuyệt đối
+   đè lên khung — nút không che dòng phím tắt nào. Cao 50px = cao nút
+   thật (khung chứa cũ cao 30px mà nút cao 50px nên nút tràn ra ngoài). */
 .buttons {
     flex-shrink: 0;
     display: flex;
     justify-content: space-between;
+    margin-top: 10px;
     background-color: #00000000;
     border-radius: 20px;
     height: 50px;
