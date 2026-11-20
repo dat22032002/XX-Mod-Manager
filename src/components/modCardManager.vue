@@ -348,7 +348,11 @@ async function changeFilterToSearch(search){
 
 async function loadPreset(presetName) {
     const preset = await iManager.loadPreset(presetName);
-    const mods = preset?.getModIds() || [];
+    // Tên biến cũ là `mods` — che mất `mods` (danh sách mod, dòng 48)
+    // nên `mods.value` ở dưới thành undefined, luật 1 mod/1 tag không
+    // bao giờ chạy lúc nạp preset (nạp preset có 2 mod cùng nhân vật
+    // + cùng tag thì cả 2 cùng bật — lỗi từ bản 1.5.3, soát ra 20/11).
+    const modIds = preset?.getModIds() || [];
     // Record the preset's selection up front. Cards read this shared set
     // (modCard's `clicked` is a computed over it), so mounted cards update
     // on their own and cards that are not mounted yet still get the
@@ -356,7 +360,7 @@ async function loadPreset(presetName) {
     // Áp dụng luật 1 mod/1 loại mỗi nhân vật cho preset luôn (mod sau
     // cùng nhân vật + cùng loại sẽ thắng mod trước), không báo gì thêm để
     // khỏi làm phiền lúc mở app (preset mặc định tự tải lúc khởi động).
-    setSelectedModIdsExclusive(mods.value || [], mods);
+    setSelectedModIdsExclusive(mods.value || [], modIds);
 
     //debug
     console.log('loadPreset', presetName);
