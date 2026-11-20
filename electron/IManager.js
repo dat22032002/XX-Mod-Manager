@@ -229,7 +229,7 @@ class IManager {
         cardWidthVertical: 250, // Rộng riêng kiểu dọc (đổi qua lại thì nhớ — Đạt dặn 20/11)
         cardWidthHorizontal: 301, // Rộng riêng kiểu ngang (mặc định 86% = 301px)
         cardFullImage: false, // Thẻ hiện ảnh gốc thay vì ảnh thu nhỏ 250px (nút bên phải + — Đạt dặn 20/11)
-        showChipCounts: false, // Chip nhân vật hiện số lượng mod trong ngoặc, vd Ellen (24) (nút # ở thanh lọc — Đạt dặn 20/11)
+        showChipCounts: false, // Chip nhân vật hiện số lượng mod trong ngoặc, vd Ellen (24) (công tắc trong bảng lọc — Đạt dặn 20/11)
         modTypeFilter: 'all', // Lọc theo loại mod: all/outfit/weapon/effect
         modSortBy: 'default', // Sắp xếp mod: default/name-asc/name-desc/time-desc/time-asc
     };
