@@ -134,7 +134,8 @@
     "skin": "Skin",
     "weapon": "Weapon",
     "effect": "Effect",
-    "accessory": "Accessory"
+    "accessory": "Accessory",
+    "etc": "ETC"
   },
   "author": "author",
   "caimogu": "Caimogu",

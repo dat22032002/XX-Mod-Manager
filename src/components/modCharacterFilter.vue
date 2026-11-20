@@ -119,10 +119,11 @@ const hasActiveFilter = computed(() =>
     g_config_vue.modTypeFilter.value !== 'all' || g_config_vue.modSortBy.value !== 'default');
 
 //-==================== Lọc theo tag mod + sắp xếp ====================//
-// Tag mod (ModTag): Character, Skin, Weapon, Effect, Accessory — chuẩn
-// phân loại duy nhất từ 1.5.18, thay tiền tố tên thư mục. Thêm tag mới
-// thì thêm vào MOD_TAGS + 1 khóa locale modTag.*. Lựa chọn lưu trong
-// config (modCardManager đọc để lọc/xếp danh sách).
+// Tag mod (ModTag): Character, Skin, Weapon, Effect, Accessory, ETC —
+// chuẩn phân loại duy nhất từ 1.5.18, thay tiền tố tên thư mục. Thêm
+// tag mới thì thêm vào MOD_TAGS + 1 khóa locale modTag.* + 1 dòng vào
+// TYPE_LABEL_KEYS dưới đây. Lựa chọn lưu trong config (modCardManager
+// đọc để lọc/xếp danh sách).
 const TYPE_ITEMS = ['all', ...MOD_TAGS];
 const TYPE_LABEL_KEYS = {
     all: 'filter.allTypes',
@@ -131,6 +132,7 @@ const TYPE_LABEL_KEYS = {
     weapon: 'modTag.weapon',
     effect: 'modTag.effect',
     accessory: 'modTag.accessory',
+    etc: 'modTag.etc',
 };
 const SORT_OPTIONS = [
     { value: 'default', labelKey: 'filter.sortDefault' },
