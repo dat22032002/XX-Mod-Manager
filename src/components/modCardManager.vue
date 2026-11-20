@@ -369,14 +369,14 @@ async function loadPreset(presetName) {
 
 // Dồn các lần tải lại danh sách: đặt nhân vật hàng loạt / lúc mở app có nhiều
 // mod mới bắn N sự kiện liên tiếp — chờ 100ms sau sự kiện cuối rồi tải lại
-// 1 lần duy nhất, thay vì tải lại N lần. Nhân vật của sự kiện cuối được giữ
-// lại để chuyển bộ lọc về đúng nhân vật đó sau khi tải lại (như trước đây).
+// 1 lần duy nhất, thay vì tải lại N lần.
+// Tải lại KHÔNG đổi bộ lọc: trước đây nhân vật của sự kiện cuối được giữ
+// lại để chuyển bộ lọc về nhân vật đó sau khi tải lại — đổi tên 1 mod khi
+// đang ở Tất cả thì tự nhảy sang tag nhân vật của mod đó (Đạt báo 20/11).
+// Bộ lọc chỉ đổi khi người dùng tự đổi (bấm tag, tìm kiếm); luồng nhập mod
+// mới vẫn tự nhảy sang nhân vật của mod đó (IManager, chỗ nhập mod).
 let reloadDebounceTimer = null;
-let pendingCharacter = null;
-const scheduleReload = (character = null) => {
-    if (character) {
-        pendingCharacter = character;
-    }
+const scheduleReload = () => {
     if (reloadDebounceTimer) {
         clearTimeout(reloadDebounceTimer);
     }
@@ -384,18 +384,14 @@ const scheduleReload = (character = null) => {
         reloadDebounceTimer = null;
         mods.value = null;
         await loadMods();
-        if (pendingCharacter) {
-            iManager.setCurrentCharacter(pendingCharacter);
-            pendingCharacter = null;
-        }
         observeMods();
     }, 100);
 };
 
-EventSystem.on('modInfoChanged', (modInfo) => {
+EventSystem.on('modInfoChanged', () => {
     //debug
     console.log('get modInfoChanged, reload display mods');
-    scheduleReload(modInfo ? modInfo.character : null);
+    scheduleReload();
 });
 
 EventSystem.on(EventType.modListChanged, () => {
@@ -418,10 +414,6 @@ EventSystem.on(EventType.refreshModList, () => {
     }
     setTimeout(async () => {
         await loadMods();
-        if (pendingCharacter) {
-            iManager.setCurrentCharacter(pendingCharacter);
-            pendingCharacter = null;
-        }
         observeMods();
     }, 1);
 });
