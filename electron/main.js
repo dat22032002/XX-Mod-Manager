@@ -139,6 +139,12 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     ...baseWindowOptions(),
     show: false,
+    // Chiều rộng tối thiểu 1200 (Đạt quyết 20/11): thu hẹp hơn thì thanh
+    // tag nhân vật bị ép còn ~26px, không bấm được tag nào (ở 1024).
+    // Chỉ đặt cho cửa sổ chính — cửa sổ phụ 800x600 (open-new-window)
+    // không bị ép theo. Màn hình mặc định của app đã là 1280x800 nên
+    // 1200 không ảnh hưởng người dùng bình thường.
+    minWidth: 1200,
     width: initialBounds.width,
     height: initialBounds.height,
     x: initialBounds.x,
