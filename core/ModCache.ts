@@ -24,6 +24,7 @@
 import XXMMCore from './XXMMCore';
 import { EventSystem, EventType } from '../helper/EventSystem';
 import { writeFileAtomic } from '../helper/SafeWrite';
+import { isValidTag } from '../helper/ModTag';
 
 const fs = require('fs');
 const path = require('path');
@@ -224,6 +225,11 @@ class ModCache {
     // lấy từ lần đo đã làm ở đây — dùng để sắp xếp theo thời gian thêm
     // mod, không tốn thêm lần đọc đĩa nào. birthtimeMs = 0 khi không đo được.
     public static async validateEntry(entry: CachedModEntry): Promise<{ valid: boolean; birthtimeMs: number }> {
+        // Bản nhớ từ trước khi có tag (không có tag hợp lệ): coi như cũ,
+        // quét mới để đoán tag theo tiền tố rồi ghi vào mod.json.
+        if (!entry.meta || !isValidTag(entry.meta.tag)) {
+            return { valid: false, birthtimeMs: 0 };
+        }
         try {
             const folderStat = await fs.promises.stat(entry.location);
             const birthtimeMs = folderStat.birthtimeMs || 0;

@@ -1,5 +1,5 @@
 <template>
-    <s-chip clickable="true" :id="props.id">
+    <s-chip clickable="true" :id="props.id" :class="{ straight: props.straight }">
         <slot>
             <p>{{ props.text }}</p>
         </slot>
@@ -11,7 +11,10 @@ import {defineProps} from 'vue';
 
 const props = defineProps({
     text: String,
-    id: String
+    id: String,
+    // straight: chip chữ nhật thẳng, không nghiêng -20° như mặc định
+    // (dùng cho ô chọn tag — Đạt muốn chữ nhật thường, 20/11).
+    straight: Boolean
 });
 
 </script>
@@ -42,6 +45,17 @@ s-chip p {
     margin: 10px 0px;
     font-weight: bold;
     transition: all 0.3s ease-in-out 0s;
+}
+
+/* Chip thẳng: bỏ nghiêng ở cả khung lẫn chữ (chữ mặc định nghiêng
+   ngược lại để bù khung nghiêng), đệm ngang thu lại cho gọn. */
+s-chip.straight {
+    transform: none;
+    padding: 0px 10px;
+}
+
+s-chip.straight p {
+    transform: none;
 }
 
 s-chip[type=filled-tonal] {

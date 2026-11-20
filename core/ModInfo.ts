@@ -1,6 +1,7 @@
 import { SnackType, t_snack } from "../helper/SnackHelper";
 import { TranslatedText } from "../helper/Language";
 import { writeFileAtomicSync } from "../helper/SafeWrite";
+import { tagFromPrefix, isValidTag } from "../helper/ModTag";
 import type { CachedModEntry } from "./ModCache";
 const fs = require('fs');
 const path = require('path');
@@ -145,6 +146,11 @@ class ModInfo {
 
         // Deep-clone so live edits never mutate the cached copy in memory.
         const meta = JSON.parse(JSON.stringify(entry.meta || {}));
+        // Mod lưu nhớ từ bản chưa có tag: chưa có tag thì đoán theo tiền tố
+        // tên thư mục (lần quét mới sau đó sẽ ghi tag vào mod.json).
+        if (!isValidTag(meta['tag'])) {
+            meta['tag'] = tagFromPrefix(entry.modName);
+        }
         for (const item of ModInfo.modDataTemplate.items) {
             const value = meta[item.key];
             // null means the stored value had the wrong type; keep the
@@ -228,11 +234,23 @@ class ModInfo {
                         }
                     }
                     else {
-                        this.metaData.set(item.key, value, item.type);
+                        // Tag lạ (file sửa tay sai giá trị) thì đoán lại
+                        // theo tiền tố tên thư mục rồi lưu lại.
+                        if (item.key === 'tag' && !isValidTag(value)) {
+                            this.metaData.set(item.key, tagFromPrefix(this.modName), item.type);
+                            needSave = true;
+                        } else {
+                            this.metaData.set(item.key, value, item.type);
+                        }
                     }
                 }
                 else {
-                    // 如果没有这个字段，则需要保存
+                    // Nếu không có trường này thì lưu lại. Riêng tag của
+                    // mod cũ (chưa có trường tag): đoán theo tiền tố tên
+                    // thư mục thay vì lấy mặc định trong mẫu.
+                    if (item.key === 'tag') {
+                        this.metaData.set(item.key, tagFromPrefix(this.modName), item.type);
+                    }
                     needSave = true;
                 }
             }
@@ -440,6 +458,10 @@ modDataTemplate.add('description', 'no description', ModMetaDataType.String);
 modDataTemplate.add('hotkeys', [], ModMetaDataType.Array);
 modDataTemplate.add('preview', 'Unknown', ModMetaDataType.String);
 modDataTemplate.add('pinned', false, ModMetaDataType.Boolean);
+// Tag phân loại mod (character/skin/weapon/effect/accessory) — chuẩn duy
+// nhất từ 1.5.18, thay tiền tố tên thư mục. Mod cũ chưa có trường này
+// được đoán tag theo tiền tố lúc tải (xem init()).
+modDataTemplate.add('tag', 'character', ModMetaDataType.String);
 ModInfo.setModDataTemplate(modDataTemplate);
 
 // const modInfo = new ModInfo("E:\\1myProgramFile\\electron Files\\TestMod");

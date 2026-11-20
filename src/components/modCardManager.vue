@@ -29,7 +29,8 @@ import { g_config_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 import ModCharacterFilter from './modCharacterFilter.vue';
 import { computeColumns, computeWindow, CARD_GAP, OVERSCAN_ROWS } from './modWindowing.js';
-import { selectedModIdSet, setSelectedModIdsExclusive, getModSlot } from '../../helper/SelectedMods';
+import { selectedModIdSet, setSelectedModIdsExclusive, getModTag } from '../../helper/SelectedMods';
+import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
 
 const iManager = new IManager();
 
@@ -88,20 +89,19 @@ const translateCharacters = computed(() => {
     }
 });
 
-//-==================== Lọc theo loại mod + sắp xếp ====================//
+//-==================== Lọc theo tag mod + sắp xếp ====================//
 // Giao diện lọc/xếp (nút "Bộ lọc" + bảng overlay) nằm ở
 // modCharacterFilter; chỗ này chỉ đọc lựa chọn đã lưu trong config để
-// lọc/xếp danh sách. Loại mod theo getModSlot (SelectedMods): đồ mặc
-// định, (WP) = vũ khí, (EF) = hiệu ứng, (ACC) = phụ kiện. Thêm loại mới
-// thì thêm vào ModSlot + getModSlot, thêm 1 mục vào TYPE_ITEMS ở
-// modCharacterFilter + 1 khóa locale filter.*.
-const TYPE_ITEMS = ['all', 'outfit', 'weapon', 'effect', 'accessory'];
+// lọc/xếp danh sách. Tag mod theo getModTag (SelectedMods): Character,
+// Skin, Weapon, Effect, Accessory — chuẩn duy nhất từ 1.5.18, thay tiền
+// tố tên thư mục. Thêm tag mới thì thêm vào MOD_TAGS + 1 khóa locale
+// modTag.*.
 const SORT_VALUES = ['default', 'name-asc', 'name-desc', 'time-desc', 'time-asc'];
 
 // Đọc qua g_config_vue (lưu trong config.json nên mở app lại vẫn giữ);
-// giá trị lạ trong config cũ thì về mặc định.
-const typeFilter = computed(() =>
-    TYPE_ITEMS.includes(g_config_vue.modTypeFilter.value) ? g_config_vue.modTypeFilter.value : 'all');
+// giá trị lạ trong config cũ thì về mặc định ('outfit' cũ thành
+// 'character').
+const typeFilter = computed(() => normalizeTypeFilter(g_config_vue.modTypeFilter.value));
 const sortBy = computed(() =>
     SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default');
 
@@ -150,10 +150,10 @@ const filteredMods = computed(() => {
             result = list.filter(mod => mod.character === character);
         }
     }
-    // Lọc theo loại mod (kết hợp với lọc nhân vật/tìm kiếm ở trên).
+    // Lọc theo tag mod (kết hợp với lọc nhân vật/tìm kiếm ở trên).
     const type = typeFilter.value;
     if (type !== 'all') {
-        result = result.filter(mod => getModSlot(mod) === type);
+        result = result.filter(mod => getModTag(mod) === type);
     }
     // Sắp xếp: ghim luôn lên đầu, sau đó theo kiểu xếp đã chọn (mặc định
     // giữ thứ tự tải vào như trước; sort của JS là ổn định nên mod ngang
