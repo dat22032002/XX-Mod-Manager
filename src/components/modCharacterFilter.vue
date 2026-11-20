@@ -52,14 +52,27 @@
              được nút mà bấm. -->
         <div id="all-filter-chip" class="filter-toggle" :class="{ active: currentFilter === 'all' }" @click="selectFixedFilter('all')">
             <div class="filter-toggle-inner">
-                <span>{{ $t('buttons.all') }}</span>
+                <span>{{ allFilterLabel }}</span>
             </div>
         </div>
         <div id="selected-filter-chip" class="filter-toggle" :class="{ active: currentFilter === 'selected' }" @click="selectFixedFilter('selected')">
             <div class="filter-toggle-inner">
-                <span>{{ $t('buttons.selected') }}</span>
+                <span>{{ selectedFilterLabel }}</span>
             </div>
         </div>
+        <!-- Nút ẩn/hiện số lượng mod trên chip (Đạt dặn 20/11): bấm thì
+             mỗi chip nhân vật hiện thêm số mod trong ngoặc, vd Ellen (24);
+             bấm lại thì ẩn. Nút vàng khi đang hiện số. Dấu # = "số lượng",
+             chú thích giải thích khi rê chuột. Nút cố định như Tất cả /
+             Đã chọn, không lăn theo thanh tag. -->
+        <s-tooltip>
+            <div id="chip-counts-toggle" class="filter-toggle" slot="trigger" :class="{ active: showChipCounts }" @click="toggleChipCounts">
+                <div class="filter-toggle-inner">
+                    <span class="chip-counts-hash">#</span>
+                </div>
+            </div>
+            <span>{{ $t('filter.showCounts') }}</span>
+        </s-tooltip>
         <!-- Lớp bắt bấm trong suốt phủ cả màn hình khi bảng đang mở:
              bấm ra ngoài bảng thì đóng bảng. Nằm dưới nút và bảng
              (z-index) nên không chặn 2 cái đó. -->
@@ -83,7 +96,7 @@
         <horizontalScrollBar class="chip-radio-bar" id="character-filter-bar" style="height: fit-content;">
             <!-- Chỉ còn tag nhân vật — Tất cả / Đã chọn đã dời ra nút
                  cố định bên trái (xem trên). -->
-            <chipButton v-for="(item, index) in characterList" :key="index" :text="item" :filterCharacter="item"
+            <chipButton v-for="(item, index) in characterList" :key="index" :text="chipLabel(item)" :filterCharacter="item"
                 @click="updateSliderByEvent($event)"></chipButton>
             <div class="slider OO-color-gradient" :style="sliderStyle" v-show="currentFilter !== 'all' && currentFilter !== 'selected'"></div>
         </horizontalScrollBar>
@@ -97,6 +110,8 @@ import { useI18n } from 'vue-i18n';
 import chipButton from './chipButton.vue';
 import chipRadioBar from './chipRadioBar.vue';
 import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
+import { selectedModIdSet } from '../../helper/SelectedMods';
+import { EventType, EventSystem } from '../../helper/EventSystem';
 import IManager from '../../electron/IManager';
 const iManager = new IManager();
 
@@ -191,6 +206,51 @@ function handleSortChange(sort) {
 
 const language = g_config_vue.language;
 const characterList = g_data_vue.characterList as Ref<string[]>;
+
+//-=============== Hiện số lượng mod trên chip ===============//
+// Nút # ở thanh lọc (Đạt dặn 20/11): bật thì mỗi chip nhân vật hiện
+// thêm số mod của nhân vật đó trong ngoặc, vd Ellen (24); Tất cả hiện
+// tổng số mod, Đã chọn hiện số mod đang bật vàng. Tắt thì chip về tên
+// trần như cũ. Lựa chọn lưu trong config nên mở app lại vẫn nhớ.
+// Số đếm theo TOÀN BỘ kho mod (không theo lọc tag/tìm kiếm đang bật)
+// để con số ổn định, đúng nghĩa "nhân vật này có bao nhiêu mod".
+const showChipCounts = g_config_vue.showChipCounts;
+// g_data_vue.modList KHÔNG bao giờ được đồng bộ (IManager bỏ qua modList
+// khi ghi vào data để khỏi sao chép mảng mod lớn — xem set trap ở
+// IManager.js) nên đếm từ iManager.data.modList (mảng thật); mỗi lần
+// danh sách đổi, sự kiện modListChanged tăng modListVersion để các
+// computed dưới đây tính lại (giống cách modCardManager tải lại lưới).
+const modListVersion = ref(0);
+EventSystem.on(EventType.modListChanged, () => { modListVersion.value++; });
+const modCountsByCharacter = computed(() => {
+    void modListVersion.value;
+    const counts = {};
+    for (const mod of iManager.data.modList) {
+        const c = mod.character;
+        counts[c] = (counts[c] || 0) + 1;
+    }
+    return counts;
+});
+const totalModCount = computed(() => {
+    void modListVersion.value;
+    return iManager.data.modList.length;
+});
+const chipLabel = (name) => showChipCounts.value
+    ? `${name} (${modCountsByCharacter.value[name] || 0})`
+    : name;
+const allFilterLabel = computed(() => showChipCounts.value
+    ? `${t('buttons.all')} (${totalModCount.value})`
+    : t('buttons.all'));
+const selectedFilterLabel = computed(() => showChipCounts.value
+    ? `${t('buttons.selected')} (${selectedModIdSet.size})`
+    : t('buttons.selected'));
+function toggleChipCounts() {
+    iManager.config.showChipCounts = !g_config_vue.showChipCounts.value;
+    saveFilterSettings();
+}
+// Chip đổi rộng khi thêm/bớt số lượng → thanh vàng bám sai vị trí cũ,
+// đo lại sau khi Vue vẽ xong (giống lúc đổi ngôn ngữ).
+watch(showChipCounts, () => { nextTick(repositionSlider); });
 watch(language, (newValue) => {
     // 刷新一下滑块，因为不同语言的长度不一样
     const elment = lastClickedElement.value;
@@ -505,6 +565,14 @@ defineExpose({
 
 .filter-toggle-inner s-icon {
     flex-shrink: 0;
+}
+
+/* Dấu # trên nút ẩn/hiện số lượng: đậm + to hơn chữ thường để nhìn
+   rõ đây là nút bấm, không phải chữ. */
+.chip-counts-hash {
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1;
 }
 
 /* Mũi tên xoay ngược khi bảng lọc đang bung ra. */
