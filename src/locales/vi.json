@@ -79,7 +79,8 @@
     "batch-set-character": "Nhân vật",
     "saveFailed": "Lưu thông tin mod thất bại: {error}",
     "mod-info-tag": "Tag",
-    "batch-set-tag": "Tag"
+    "batch-set-tag": "Tag",
+    "batch-hint": "Giữ Ctrl rồi bấm thẻ để chọn mod làm hàng loạt (viền xanh biển)."
   },
   "buttons": {
     "addPreset": "Thêm preset",
