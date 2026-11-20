@@ -226,6 +226,7 @@
     "message": "Các mod này cùng thay 1 thứ của game. Áp dụng cả hai có thể làm 1 mod không còn tác dụng.",
     "itemTexture": "“{modA}” và “{modB}” cùng thay 1 hình (mã {hash})",
     "itemShader": "“{modA}” và “{modB}” cùng thay 1 bộ tô (mã {hash})",
+    "itemGroup": "“{modA}” và “{modB}” cùng thay {count} thứ của game",
     "applyAnyway": "Vẫn áp dụng"
   },
   "batchCharacter": {

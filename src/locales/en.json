@@ -226,6 +226,7 @@
     "message": "These mods change the same game asset. Applying both may make one of them stop working.",
     "itemTexture": "“{modA}” and “{modB}” both change the same texture (code {hash})",
     "itemShader": "“{modA}” and “{modB}” both change the same shader (code {hash})",
+    "itemGroup": "“{modA}” and “{modB}” both change {count} game assets",
     "applyAnyway": "Apply anyway"
   },
   "batchCharacter": {
