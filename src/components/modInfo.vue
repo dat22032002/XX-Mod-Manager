@@ -4,15 +4,17 @@
         <div class="mod-image" @click="openShowcase" style="cursor: pointer;">
             <img style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;"
                 :alt="t('mod-image')" :src="img" />
+            <!-- Viên con nhộng tag: tên nhân vật + loại mod, nền đen, căn
+                 giữa dưới hình (Đạt dặn 20/11) — nằm trong khu hình nên
+                 lăn chuột không làm mất. Bấm vào tag thì không mở ảnh. -->
+            <div v-if="props.mod" class="mod-tag-capsule" @click.stop>
+                <span>{{ props.mod.character }}</span>
+                <span class="mod-tag-divider"></span>
+                <span>{{ t(`modTag.${props.mod.tag || 'character'}`) }}</span>
+            </div>
         </div>
 
         <s-scroll-view class="mod-info-content">
-            <!-- Dong tag: ten nhan vat + loai mod (Dat dan 20/11) — thay
-                 cho o ten nhan vat de len hinh truoc day. -->
-            <div v-if="props.mod" class="mod-tag-row">
-                <span class="mod-tag mod-tag-character">{{ props.mod.character }}</span>
-                <span class="mod-tag mod-tag-type">{{ t(`modTag.${props.mod.tag || 'character'}`) }}</span>
-            </div>
             <h4 v-if="props.mod && props.mod.hotkeys && props.mod.hotkeys.length > 0"> {{ $t('modInfo.hotkeys') }}</h4>
             <div id="hotkey-container" class="OO-colunm-center">
                 <div v-for="hotkey in props.mod ? props.mod.hotkeys : []" class="hotkey OO-setting-bar OO-shade-box a-little-left" style="margin-bottom: 5px;">
@@ -161,8 +163,13 @@ h4 {
     color: var(--s-color-on-surface-variant);
 }
 
+/* Vùng lăn: cao = chiều cao khung trừ phần trên (tiêu đề ~50 + hình 200
+   + lề 10 = 260). Con số 240 cũ tính cho bố cục có ô tên nhân vật
+   (hình kết thúc ở 250); bỏ ô đó rồi mà giữ 240 thì vùng lăn dài thừa
+   10px ở đáy + margin-top -10px làm nội dung chui xuống dưới hình khi
+   lăn (Đạt báo 20/11). */
 s-scroll-view {
-    height: calc(100% - 240px);
+    height: calc(100% - 260px);
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -192,6 +199,7 @@ s-scroll-view {
 /* Hinh khung phai: truoc day margin-top -50px de chui xuong duoi o ten
    nhan vat; bo o do roi thi hinh ve cho binh thuong (Dat dan 20/11). */
 .mod-image {
+    position: relative;
     width: calc(100% + 20px);
     height: auto;
     border-radius: 8px;
@@ -202,28 +210,35 @@ s-scroll-view {
     margin-left: -10px;
 }
 
-/* Dong tag tren Hotkeys: o nhan vat vang + o loai vien. */
-.mod-tag-row {
+/* Viên con nhộng tag: 2 nhãn chung 1 nền đen, căn giữa dưới hình
+   (Đạt dặn 20/11 — không nền vàng). Viền mờ để vẫn thấy trên hình tối. */
+.mod-tag-capsule {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 12px 17px 0;
-}
-.mod-tag {
+    align-items: center;
+    gap: 10px;
+    background-color: #000000;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 20px;
+    padding: 4px 14px;
     font-size: 14px;
     font-weight: 600;
-    padding: 3px 12px;
-    border-radius: 30px;
-    width: fit-content;
+    color: #ffffff;
+    white-space: nowrap;
+    max-width: calc(100% - 20px);
 }
-.mod-tag-character {
-    background-color: var(--s-color-primary);
-    color: var(--s-color-on-primary);
+.mod-tag-capsule span {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.mod-tag-type {
-    background-color: transparent;
-    color: var(--s-color-on-surface);
-    border: 1px solid var(--s-color-outline-variant);
+.mod-tag-divider {
+    width: 1px;
+    height: 14px;
+    background-color: rgba(255, 255, 255, 0.35);
+    flex-shrink: 0;
 }
 
 /* Lop phu xem anh goc: giua man hinh, bam bat ky dau de dong. Anh giu
@@ -268,7 +283,10 @@ s-scroll-view {
 }
 
 .mod-info-content {
-    margin: -10px -10px 0px 0px;
+    /* margin-top -10px cũ kéo vùng lăn chui xuống dưới hình 10px nên nội
+       dung lăn lên bị hình che mất (Đạt báo 20/11) — về 0 cho vùng lăn
+       bắt đầu đúng ở mép dưới hình. */
+    margin: 0 -10px 0px 0px;
     padding-right: 5px;
 }
 
