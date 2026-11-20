@@ -63,10 +63,10 @@
                    nhân vật đã có (đúng thứ tự chip trên thanh lọc), bấm
                    tên thì điền vào ô nhập. Dùng s-popup như nút xem phím
                    tắt ở hàng Hotkeys (bấm ra ngoài thì tự đóng). -->
-              <!-- --z-index: 10: wrapper popup mac dinh z-index 1, chip
-                   cung z-index 1, hang Tag dung sau trong DOM nen che
-                   mat bang chon (Dat thay 20/11). Nang len 10 thi bang
-                   chon noi len tren chip. -->
+              <!-- --z-index: 10: wrapper popup mặc định z-index 1, chip
+                   cũng z-index 1, hàng Tag đứng sau trong DOM nên che
+                   mất bảng chọn (Đạt thấy 20/11). Nâng lên 10 thì bảng
+                   chọn nổi lên trên chip. -->
               <s-popup id="character-picker-popup" ref="characterPopupRef" style="--z-index: 10;">
                 <!-- Nut tu can giua theo hang (absolute + top 50% +
                      translateY(-50%)): khung s-popup cao hon nut 10px
@@ -84,7 +84,7 @@
               </s-popup>
             </div>
 
-            <!-- -tag mod: chọn trong 5 tag có sẵn, thay ô liên kết nguồn
+            <!-- -tag mod: chọn trong 6 tag có sẵn, thay ô liên kết nguồn
                  từ 1.5.18 (Đạt dặn 20/11). Liên kết nguồn cũ vẫn nằm
                  trong mod.json, chỉ không sửa ở hộp này nữa. -->
             <div class="OO-setting-bar" id="edit-mod-tag-row">

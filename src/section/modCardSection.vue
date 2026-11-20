@@ -52,8 +52,8 @@
 
     <div class="bottom">
         <div class="bottom-left">
-            <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, bên phải nút
-                 phóng to (Đạt dặn 20/11). -->
+            <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, ở đầu trái
+                 thanh dưới (chỗ nút Refresh cũ — Đạt dặn 20/11). -->
             <div class="layout-capsule" id="layout-capsule">
                 <button :class="{ active: cardLayout === 'vertical' }" data-layout="vertical"
                     @click="handleLayoutClicked('vertical')">{{ $t('buttons.layoutVertical') }}</button>
@@ -770,7 +770,7 @@ EventSystem.on('toggledMod', (mod) => {
     align-self: center;
 }
 
-/* Viên con nhộng chuyển kiểu thẻ (Dọc/Ngang), bên phải nút phóng to
+/* Viên con nhộng chuyển kiểu thẻ (Dọc/Ngang), ở đầu trái thanh dưới
    (Đạt dặn 20/11). Kiểu đang chọn nền vàng như nút MOD; kiểu còn lại
    nền trong suốt. Cao 40px bằng nút phóng to. */
 .layout-capsule {

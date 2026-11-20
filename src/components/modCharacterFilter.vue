@@ -209,7 +209,7 @@ const language = g_config_vue.language;
 const characterList = g_data_vue.characterList as Ref<string[]>;
 
 //-=============== Hiện số lượng mod trên chip ===============//
-// Nút # ở thanh lọc (Đạt dặn 20/11): bật thì mỗi chip nhân vật hiện
+// Công tắc trong bảng lọc (Đạt dặn 20/11): bật thì mỗi chip nhân vật hiện
 // thêm số mod của nhân vật đó trong ngoặc, vd Ellen (24); Tất cả hiện
 // tổng số mod, Đã chọn hiện số mod đang bật vàng. Tắt thì chip về tên
 // trần như cũ. Lựa chọn lưu trong config nên mở app lại vẫn nhớ.

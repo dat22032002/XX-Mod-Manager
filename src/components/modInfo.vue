@@ -198,8 +198,8 @@ s-scroll-view {
     flex-shrink: 0;
 }
 
-/* Khung dưới: chỉ phím tắt, căng phần còn lại. Nút nằm ở hàng riêng
-   dưới khung nên khung không cần chừa chỗ cho nút nữa. */
+/* Khung dưới: phím tắt + 2 nút Sửa/Mở Thư Mục ở đáy (nút là con trực
+   tiếp của khung, dưới danh sách lăn). Căng phần còn lại. */
 .mod-panel-bottom {
     flex: 1;
     min-height: 0;
