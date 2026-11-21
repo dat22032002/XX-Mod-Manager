@@ -54,11 +54,17 @@
         <div class="bottom-left">
             <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, ở đầu trái
                  thanh dưới (chỗ nút Refresh cũ — Đạt dặn 20/11). -->
+            <!-- Nút Dọc/Ngang cùng kiểu với nút Mod/Help/Setting
+                 (sectionSelector): viên vàng nghiêng -20° trượt qua lại
+                 dưới chữ nút đang chọn, khung viền 5px + bo 20px. -->
             <div class="layout-capsule" id="layout-capsule">
-                <button :class="{ active: cardLayout === 'vertical' }" data-layout="vertical"
-                    @click="handleLayoutClicked('vertical')">{{ $t('buttons.layoutVertical') }}</button>
-                <button :class="{ active: cardLayout === 'horizontal' }" data-layout="horizontal"
-                    @click="handleLayoutClicked('horizontal')">{{ $t('buttons.layoutHorizontal') }}</button>
+                <div class="layout-slider" :style="layoutSliderStyle"></div>
+                <div class="layout-selector">
+                    <button :class="{ active: cardLayout === 'vertical' }" data-layout="vertical"
+                        @click="handleLayoutClicked('vertical')">{{ $t('buttons.layoutVertical') }}</button>
+                    <button :class="{ active: cardLayout === 'horizontal' }" data-layout="horizontal"
+                        @click="handleLayoutClicked('horizontal')">{{ $t('buttons.layoutHorizontal') }}</button>
+                </div>
             </div>
             <s-tooltip>
                 <s-switch class="OO-color-gradient-word" v-model="compactMode" @change="handleCompactButtonClicked"
@@ -453,6 +459,15 @@ function handleCompactButtonClicked() {
 // iManager.config để _config + ref cùng đổi (ghi thẳng vào ref thì file
 // config không đổi theo).
 const cardLayout = g_config_vue.cardLayout;
+// Vị trí viên vàng trượt của nút Dọc/Ngang: viên rộng bằng 50% khung
+// ngoài, nút rộng bằng (khung ngoài - 30px) / 2 (trừ padding ngoài 20px
+// + viền khung trong 10px) nên viên rộng hơn nút 15px — căn giữa viên
+// lên nút đang chọn thì mép trái viên nằm ở 7.5px (nút trái) hoặc
+// 50% - 7.5px (nút phải). Viên KHÔNG có padding ngang như nút Mod (ở
+// đây khung hẹp, padding làm viên tràn sang che chữ nút bên cạnh).
+const layoutSliderStyle = computed(() => ({
+    left: cardLayout.value === 'vertical' ? '7.5px' : 'calc(50% - 7.5px)',
+}));
 const cardWidth = g_config_vue.cardWidth;
 
 // Phóng to theo CỘT (Đạt dặn 20/11): nấc rộng cũ (301 → 350 → 400...)
@@ -773,28 +788,60 @@ EventSystem.on('toggledMod', (mod) => {
 /* Viên con nhộng chuyển kiểu thẻ (Dọc/Ngang), ở đầu trái thanh dưới
    (Đạt dặn 20/11). Kiểu đang chọn nền vàng như nút MOD; kiểu còn lại
    nền trong suốt. Cao 40px bằng nút phóng to. */
+/* Nút Dọc/Ngang kiểu Mod/Help/Setting (sectionSelector): khung ngoài
+   chỉ làm nền cho viên vàng trượt (cao hơn khung trong 3px mỗi bên để
+   viên vàng "lồi" ra như nút Mod); viên vàng nghiêng -20°, trượt 0.3s. */
 .layout-capsule {
+    position: relative;
+    width: fit-content;
     display: flex;
-    align-items: stretch;
-    height: 40px;
+    align-items: center;
+    padding: 3px 10px;
     box-sizing: border-box;
-    background-color: var(--s-color-surface-container-low);
-    border: 1px solid var(--s-color-outline-variant);
-    border-radius: 20px;
     overflow: hidden;
     flex-shrink: 0;
 }
-.layout-capsule button {
+.layout-slider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    background-color: var(--s-color-primary);
+    transition: left 0.3s;
+    pointer-events: none;
+    border-radius: 12px;
+    transform: skew(-20deg);
+    z-index: 3;
+}
+.layout-selector {
+    display: flex;
+    align-items: center;
+    position: relative;
+    background-color: var(--s-color-on-primary);
+    border: 5px solid var(--s-color-outline-variant);
+    border-radius: 20px;
+    box-shadow: 0 0 0px 3px var(--s-color-surface-container-high), inset 1px 1px 1px rgba(255, 255, 255, 0.2);
+    box-sizing: border-box;
+    overflow: hidden;
+    height: 40px;
+}
+.layout-selector button {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     background: transparent;
     color: var(--s-color-on-surface);
     font-size: 14px;
-    font-weight: 600;
-    padding: 0 14px;
+    font-weight: 900;
+    padding: 0 20px;
     cursor: pointer;
+    position: relative;
+    z-index: 4;
 }
-.layout-capsule button.active {
-    background-color: var(--s-color-primary);
+.layout-selector button.active {
     color: var(--s-color-on-primary);
 }
 
