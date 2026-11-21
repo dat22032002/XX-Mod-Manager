@@ -2,8 +2,7 @@
     <div id="mod-card-manager" class="OO-box" ref="modCardManagerRef">
         <!-- <chipRadioBar class="characterFilter" :items="characters" @itemChange="handleFilterChange"
             :translatedItems="translateCharacters" ref="characterFilterRef" /> -->
-        <ModCharacterFilter class="characterFilter" @itemChange="handleFilterChange" ref="characterFilterRef" @filterChangeToAll="handleFilterChangeToAll"
-            @filterChangeToSelected="handleFilterChangeToSelected" />
+        <ModCharacterFilter class="characterFilter" @itemChange="handleFilterChange" />
         <!-- Giao diện lọc theo loại mod + sắp xếp (nút "Bộ lọc" + bảng
              overlay) nằm trong ModCharacterFilter; chỗ này chỉ đọc lựa
              chọn đã lưu trong config để lọc/xếp danh sách (xem
@@ -60,14 +59,12 @@ const props = defineProps({
 // 定义 mods 变量
 const mods = ref([]);
 
-const characterFilterRef = useTemplateRef('characterFilterRef');
 const currentCharacter = g_temp_vue.currentCharacter;
 
 watch(currentCharacter, (newVal) => {
     if (newVal) {
         //debug
         console.log('currentCharacter changed:', newVal);
-        characterFilterRef.value.selectItemByName(newVal);
         // Snapshot the selection when the 'selected' filter is applied, so
         // the list behaves as before: toggling a card while viewing
         // 'selected' does not make it vanish until the filter is re-applied.
@@ -77,14 +74,10 @@ watch(currentCharacter, (newVal) => {
     }
 });
 
-// 切换语言的时候，all 和 全部 的长度不一样，所以需要切换
-// (Thanh trượt hàng chip lọc/xếp đặt lại trong modCharacterFilter khi
-// đổi ngôn ngữ — thanh đó nằm ở bảng overlay bên đó.)
-watch(g_config_vue.language, (newVal) => {
-    setTimeout(() => {
-        characterFilterRef.value.selectItemByName(currentCharacter.value);
-    }, 0);
-});
+// (Đổi ngôn ngữ: thanh trượt hàng chip lọc/xếp tự đặt lại trong
+// modCharacterFilter — thanh đó nằm ở bảng overlay bên đó. Hàng vàng
+// Tất cả / Đã chọn / nhân vật tự theo currentCharacter nên không cần
+// đồng bộ gì thêm ở đây.)
 
 const characters = computed(() => {
     const characterList = g_data_vue.characterList;
@@ -340,18 +333,11 @@ const handleFilterChange = (character) => {
 
 // Danh sách nhân vật dọc (cột trái) gọi qua đây — giống hệt chọn nhân
 // vật cũ. modCardSection gọi qua ref (selectCharacter đã expose).
+// 'all' / 'selected' đi chung đường này (2 hàng cố định trên cùng
+// danh sách gọi selectCharacter('all' | 'selected')) nên không cần
+// handler riêng cho Tất cả / Đã chọn nữa.
 const selectCharacter = (character) => {
     handleFilterChange(character);
-};
-
-const handleFilterChangeToAll = () => {
-    iManager.setCurrentCharacter('all');
-    searchText.value = '';
-};
-
-const handleFilterChangeToSelected = () => {
-    iManager.setCurrentCharacter('selected');
-    searchText.value = '';
 };
 
 // Nhận chữ tìm kiếm từ ô tìm kiếm cạnh tiêu đề Characters

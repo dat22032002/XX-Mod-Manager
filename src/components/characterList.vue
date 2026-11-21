@@ -1,6 +1,8 @@
 <!-- Danh sách nhân vật dọc dưới khung preset (thay hàng chip ngang đã
      bỏ): bấm tên là lọc lưới mod theo nhân vật đó. Hàng đang chọn nền
-     vàng như nút Tất cả / Đã chọn. Số trong ngoặc là số mod của nhân
+     vàng. Tất cả / Đã chọn là 2 hàng CỐ ĐỊNH trên cùng (không lăn theo
+     danh sách) — dời từ hàng trên xuống đây vì chúng cùng họ với chọn
+     nhân vật ("cho xem mod nào"). Số trong ngoặc là số mod của nhân
      vật (theo công tắc "Hiện số lượng mod" trong bảng lọc). -->
 <template>
     <div class="character-list OO-box">
@@ -21,6 +23,23 @@
                 <input id="search-input" type="text" v-model="searchInput" @input="handleSearchInput" />
             </div>
         </div>
+        <!-- Tất cả / Đã chọn: 2 hàng cố định trên cùng, ngoài khung lăn
+             nên không trôi đi khi lăn danh sách. Giữ nguyên id để probe
+             cũ vẫn tìm được mà bấm. Số trong ngoặc: Tất cả = tổng số
+             mod, Đã chọn = số mod đang chọn (đọc thẳng từ tập chọn,
+             mới mỗi lần vẽ lại). Hàng Tất cả vàng cả khi chưa chọn gì
+             (currentCharacter = null lúc mới mở app — lưới lúc đó hiện
+             tất cả, giống luật filteredMods coi trống là 'all'). -->
+        <div class="character-list-fixed">
+            <div id="all-filter-chip" class="character-row" :class="{ active: currentCharacter === 'all' || !currentCharacter }" @click="selectCharacter('all')">
+                <span class="character-name">{{ $t('buttons.all') }}</span>
+                <span v-if="showChipCounts" class="character-count">({{ totalModCount }})</span>
+            </div>
+            <div id="selected-filter-chip" class="character-row" :class="{ active: currentCharacter === 'selected' }" @click="selectCharacter('selected')">
+                <span class="character-name">{{ $t('buttons.selected') }}</span>
+                <span v-if="showChipCounts" class="character-count">({{ selectedModIdSet.size }})</span>
+            </div>
+        </div>
         <div class="character-list-rows">
             <div v-for="name in characterList" :key="name" class="character-row"
                 :class="{ active: currentCharacter === name }" @click="selectCharacter(name)">
@@ -35,6 +54,7 @@
 import { ref, computed, watch } from 'vue';
 import IManager, { g_config_vue, g_data_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
+import { selectedModIdSet } from '../../helper/SelectedMods';
 
 const iManager = new IManager();
 const emit = defineEmits(['itemChange', 'search']);
@@ -61,6 +81,12 @@ const modCountsByCharacter = computed(() => {
     return counts;
 });
 
+// Tổng số mod (số trong ngoặc của hàng Tất cả).
+const totalModCount = computed(() => {
+    void modListVersion.value;
+    return iManager.data.modList.length;
+});
+
 // Ô tìm kiếm (dời từ hàng trên xuống đây): gõ thì phát chữ lên
 // modCardSection để lọc — khớp đầu tên nhân vật, đúng 1 nhân vật mới
 // lọc (luật ở filteredMods, không đổi). Xóa hết chữ thì phát '' để
@@ -72,9 +98,10 @@ const handleSearchInput = () => {
 
 // Chữ tìm kiếm cũ phải xóa khi lọc đổi sang chỗ khác, không thì ô vẫn
 // hiện chữ cũ trong khi lưới đang lọc theo cái khác: bấm hàng thì xóa
-// ở selectCharacter dưới; bấm Tất cả / Đã chọn (nút ở hàng trên) thì
-// currentCharacter đổi thành 'all'/'selected' — xóa ở đây. Đổi sang
-// tên nhân vật thì KHÔNG xóa (đó có thể là do đang gõ tìm).
+// ở selectCharacter dưới; lọc đổi sang Tất cả / Đã chọn từ bên ngoài
+// (vd xóa hết chữ tìm kiếm, đổi preset) thì currentCharacter đổi thành
+// 'all'/'selected' — xóa ở đây. Đổi sang tên nhân vật thì KHÔNG xóa
+// (đó có thể là do đang gõ tìm).
 watch(currentCharacter, (val) => {
     if (val === 'all' || val === 'selected') searchInput.value = '';
 });
@@ -154,6 +181,18 @@ const selectCharacter = (name) => {
     color: var(--s-color-on-surface);
     font-size: 0.9rem;
     padding: 0;
+}
+
+/* 2 hàng Tất cả / Đã chọn: cố định trên cùng, ngoài khung lăn. Vạch
+   ngăn dưới để mắt phân biệt "2 hàng đứng yên" với "danh sách lăn". */
+.character-list-fixed {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--s-color-outline-variant);
 }
 
 .character-list-rows {

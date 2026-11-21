@@ -1,10 +1,10 @@
-<!-- Hàng lọc giờ trống: cụm lọc (Bộ lọc + Tất cả + Đã chọn + bảng
-     lọc) Teleport lên hàng trên cùng của cửa sổ (ngang nút thoát app)
-     — component vẫn gắn ở lưới mod nên trạng thái + sự kiện không đổi.
-     Hàng chip nhân vật đã bỏ, thay bằng danh sách dọc ở cột trái
-     (characterList.vue); ô tìm kiếm cũng dời xuống cạnh tiêu đề
-     Characters trong danh sách đó (Đạt dặn 21/11) vì nó tìm theo tên
-     nhân vật, không tìm tên mod. -->
+<!-- Hàng lọc giờ trống: nút Bộ lọc + bảng lọc Teleport lên hàng trên
+     cùng của cửa sổ (ngang nút thoát app) — component vẫn gắn ở lưới
+     mod nên trạng thái + sự kiện không đổi. Hàng chip nhân vật đã bỏ,
+     thay bằng danh sách dọc ở cột trái (characterList.vue); ô tìm kiếm
+     đã dời xuống cạnh tiêu đề Characters trong danh sách đó, Tất cả /
+     Đã chọn dời xuống làm 2 hàng cố định trên cùng danh sách đó
+     (Đạt dặn 21/11) vì chúng cùng họ với chọn nhân vật. -->
 <template>
     <div class="filter-row">
         <!-- defer: khung đích nằm ở App.vue (component khác) — đợi cả cây
@@ -29,22 +29,8 @@
                 <span class="filter-toggle-chevron">▼</span>
             </div>
         </div>
-        <!-- Tất cả / Đã chọn: nút CỐ ĐỊNH cạnh ô tìm kiếm + nút Bộ lọc
-             (cùng kiểu khối nghiêng như nút Bộ lọc), không nằm trong
-             thanh tag lăn được nữa — Đạt muốn 2 nút này không trôi đi
-             khi kéo/lăn thanh tag (20/11). Vàng lên khi đang chọn.
-             Giữ nguyên id để selectItemByName + lúc mở app vẫn tìm
-             được nút mà bấm. -->
-        <div id="all-filter-chip" class="filter-toggle" :class="{ active: currentFilter === 'all' }" @click="selectFixedFilter('all')">
-            <div class="filter-toggle-inner">
-                <span>{{ allFilterLabel }}</span>
-            </div>
-        </div>
-        <div id="selected-filter-chip" class="filter-toggle" :class="{ active: currentFilter === 'selected' }" @click="selectFixedFilter('selected')">
-            <div class="filter-toggle-inner">
-                <span>{{ selectedFilterLabel }}</span>
-            </div>
-        </div>
+        <!-- (Tất cả / Đã chọn từng ở đây, đã dời xuống làm 2 hàng cố
+             định trên cùng danh sách nhân vật — Đạt dặn 21/11.) -->
         <!-- (Nút ẩn/hiện số lượng mod từng ở đây, đã dời vào trong bảng
              lọc bên dưới — Đạt muốn nó nằm ẩn trong bảng, 20/11.) -->
         <!-- Lớp bắt bấm trong suốt phủ cả màn hình khi bảng đang mở:
@@ -89,17 +75,10 @@ import { ref, watch, onMounted, nextTick, computed, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import chipRadioBar from './chipRadioBar.vue';
 import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
-import { selectedModIdSet } from '../../helper/SelectedMods';
-import { EventType, EventSystem } from '../../helper/EventSystem';
 import IManager from '../../electron/IManager';
 const iManager = new IManager();
 
 import { g_config_vue } from '../../electron/IManager';
-
-// Lọc nhân vật đang chọn: 'all' | 'selected' | tên nhân vật. Nút Tất
-// cả / Đã chọn vàng theo biến này; nhân vật cụ thể thì danh sách dọc
-// vàng hàng của nhân vật đó.
-const currentFilter = ref<string>('all');
 
 // Nút Bộ lọc: bảng overlay bung hay đóng — trạng thái chỉ trong phiên
 // làm việc (mở app lại thì bảng đóng, như mọi bảng thả xuống). Nút vàng
@@ -192,23 +171,6 @@ const language = g_config_vue.language;
 // Số đếm theo TOÀN BỘ kho mod (không theo lọc tag/tìm kiếm đang bật)
 // để con số ổn định, đúng nghĩa "nhân vật này có bao nhiêu mod".
 const showChipCounts = g_config_vue.showChipCounts;
-// g_data_vue.modList KHÔNG bao giờ được đồng bộ (IManager bỏ qua modList
-// khi ghi vào data để khỏi sao chép mảng mod lớn — xem set trap ở
-// IManager.js) nên đếm từ iManager.data.modList (mảng thật); mỗi lần
-// danh sách đổi, sự kiện modListChanged tăng modListVersion để các
-// computed dưới đây tính lại (giống cách modCardManager tải lại lưới).
-const modListVersion = ref(0);
-EventSystem.on(EventType.modListChanged, () => { modListVersion.value++; });
-const totalModCount = computed(() => {
-    void modListVersion.value;
-    return iManager.data.modList.length;
-});
-const allFilterLabel = computed(() => showChipCounts.value
-    ? `${t('buttons.all')} (${totalModCount.value})`
-    : t('buttons.all'));
-const selectedFilterLabel = computed(() => showChipCounts.value
-    ? `${t('buttons.selected')} (${selectedModIdSet.size})`
-    : t('buttons.selected'));
 function toggleChipCounts() {
     iManager.config.showChipCounts = !g_config_vue.showChipCounts.value;
     saveFilterSettings();
@@ -226,19 +188,6 @@ watch(language, () => {
     }
 });
 
-//-=============== 定义事件 ===============
-// 1. itemChange事件，发生在筛选项发生变化时
-// 2. filterChangeToAll事件，发生在筛选项为全部时
-// 3. filterChangeToSelected事件，发生在筛选项为已选时
-// (Tìm kiếm từng phát filterChangeToSearch từ đây — ô tìm kiếm đã dời
-// sang characterList.vue, sự kiện tìm kiếm giờ đi đường khác.)
-
-const emit = defineEmits([
-    'itemChange',
-    'filterChangeToAll',
-    'filterChangeToSelected'
-]);
-
 onMounted(() => {
     // Config cũ còn lưu loại 'outfit' (tên cũ trước khi có tag): đổi 1 lần
     // thành 'character' cho khớp tag mới.
@@ -246,50 +195,6 @@ onMounted(() => {
         iManager.config.modTypeFilter = 'character';
         saveFilterSettings();
     }
-    // Lúc mới mở app, đặt trạng thái chọn theo nhân vật đang chọn: Tất
-    // cả / Đã chọn thì vàng nút cố định; nhân vật cụ thể thì nút Tất cả /
-    // Đã chọn hết vàng (danh sách dọc tự vàng theo currentCharacter).
-    nextTick(() => {
-        const current = iManager.temp.currentCharacter || 'all';
-        if (current === 'all' || current === 'selected') {
-            currentFilter.value = current;
-        } else {
-            selectItemByName(current);
-        }
-    });
-});
-
-// Bấm nút cố định Tất cả / Đã chọn: đổi lọc, vàng nút đó (danh sách
-// dọc hết vàng hàng nào vì currentCharacter không còn là nhân vật).
-// Bấm lại nút đang chọn thì không làm gì.
-const selectFixedFilter = (kind) => {
-    if (currentFilter.value === kind) return;
-    currentFilter.value = kind;
-    if (kind === 'all') emit('filterChangeToAll');
-    else emit('filterChangeToSelected');
-};
-
-//-=============== 对外的接口 ===============
-// modCardManager gọi khi currentCharacter đổi từ bên ngoài (đổi preset,
-// đặt nhân vật hàng loạt, tìm kiếm khớp đúng 1 nhân vật): đồng bộ nút
-// Tất cả / Đã chọn theo lựa chọn mới.
-const selectItemByName = (name) => {
-    // Tất cả / Đã chọn: bấm nút cố định (đang Teleport ở hàng trên,
-    // vẫn tìm được bằng id) — nút tự phát sự kiện đổi lọc.
-    if (name === 'all' || name === 'selected') {
-        const chip = document.getElementById(name === 'all' ? 'all-filter-chip' : 'selected-filter-chip');
-        if (chip) chip.click();
-        return;
-    }
-    // Nhân vật: chỉ cập nhật currentFilter để nút Tất cả / Đã chọn hết
-    // vàng; danh sách dọc tự vàng theo currentCharacter nên không cần
-    // bấm gì thêm, và không phát itemChange (lọc đã đổi rồi).
-    currentFilter.value = name;
-};
-
-
-defineExpose({
-    selectItemByName
 });
 
 
