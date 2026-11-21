@@ -464,6 +464,17 @@ defineExpose({
     border-radius: 12px;
 }
 
+/* Xem trước lúc bôi đen: viền nét đứt ngoài thẻ (không đè lên viền
+   chọn 5px), vàng = sắp chọn Áp Dụng, xanh = sắp chọn hàng loạt. */
+.mod-item[marquee="apply"] {
+    outline: 3px dashed rgba(220, 254, 0, 0.9);
+    outline-offset: 2px;
+}
+.mod-item[marquee="batch"] {
+    outline: 3px dashed rgba(33, 150, 243, 0.95);
+    outline-offset: 2px;
+}
+
 /* Cả 2 loại chọn: 1 viền đỏ duy nhất (Đạt dặn 20/11) — thay cho kiểu
    cũ viền vàng + vòng xanh chồng nhau. background-image: none để tắt
    vệt vàng gradient của trạng thái chọn vàng (nền tối của thẻ vẫn giữ

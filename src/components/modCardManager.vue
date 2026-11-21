@@ -10,10 +10,15 @@
              filteredMods). -->
         <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
-            <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle">
+            <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle"
+                @mousedown="handleMarqueeMouseDown">
                 <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true
                     :compactMode="compactMode" :cardWidth="effectiveCardWidth" :cardLayout="cardLayout" :fullImage="fullImage"
                     :ref="setModCardRef(mod.id)" />
+                <!-- Khung bôi đen chọn mod (kéo như Windows): vàng = chọn
+                     Áp Dụng, giữ Ctrl thì xanh = chọn hàng loạt. -->
+                <div v-if="marquee.active" id="marquee-box" :class="marquee.batch ? 'batch' : 'apply'"
+                    :style="marqueeBoxStyle"></div>
             </div>
             <div class="placeholder"></div>
         </s-scroll-view>
@@ -30,7 +35,7 @@ import { g_config_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 import ModCharacterFilter from './modCharacterFilter.vue';
 import { computeWindow, CARD_GAP, OVERSCAN_ROWS, rangeCheckedWidth, computeFillLayout } from './modWindowing.js';
-import { selectedModIdSet, setSelectedModIdsExclusive, getModTag } from '../../helper/SelectedMods';
+import { selectedModIdSet, setSelectedModIdsExclusive, getModTag, selectModsInOrder, batchSelectMods } from '../../helper/SelectedMods';
 import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
 
 const iManager = new IManager();
@@ -601,6 +606,10 @@ onMounted(async () => {
         if (modContainerRef.value) windowResizeObserver.observe(modContainerRef.value);
         if (scrollView) windowResizeObserver.observe(scrollView);
     }
+    // Chặn cú bấm ngay sau 1 lần bôi đen (khung bôi chạy ở pha bắt).
+    if (modContainerRef.value) {
+        modContainerRef.value.addEventListener('click', handleMarqueeClickCapture, true);
+    }
     // Đặt chiều cao hàng theo mức phóng to/kiểu hiển thị đã lưu ngay từ đầu
     // (không thì lần đầu mở app vẫn dùng cỡ mặc định của CSS).
     syncRowHeight();
@@ -643,7 +652,142 @@ onUnmounted(() => {
         cancelAnimationFrame(windowRaf);
         windowRaf = 0;
     }
+    stopMarqueeListeners();
+    if (modContainerRef.value) {
+        modContainerRef.value.removeEventListener('click', handleMarqueeClickCapture, true);
+    }
 });
+
+//===================== bôi đen chọn mod (kéo khung như Windows) ===========
+// Nhấn giữ chuột trái trong lưới rồi kéo: khung chữ nhật hiện ra, mod nào
+// nằm trong khung thì được chọn khi thả chuột. Kéo thường = chọn vàng (Áp
+// Dụng, có luật 1 mod/1 loại); giữ Ctrl khi kéo = chọn xanh (hàng loạt),
+// khung bôi cũng đổi sang xanh. Bôi đen chỉ THÊM mod vào tập chọn, không
+// bỏ chọn mod đã có. Chỉ chọn được thẻ đang thấy trên màn hình (thẻ ngoài
+// khung nhìn chưa gắn vào trang nên không nằm trong vùng kéo được).
+const MARQUEE_START_PX = 5;
+const marquee = reactive({
+    active: false,          // đã kéo quá ngưỡng, khung đang hiện
+    batch: false,           // true = giữ Ctrl = chọn xanh
+    startX: 0, startY: 0,   // điểm nhấn chuột (tọa độ trong lưới)
+    x: 0, y: 0, w: 0, h: 0, // khung hiện tại (tọa độ trong lưới)
+});
+const marqueeBoxStyle = computed(() => ({
+    left: marquee.x + 'px',
+    top: marquee.y + 'px',
+    width: marquee.w + 'px',
+    height: marquee.h + 'px',
+}));
+let marqueePending = null; // { x, y } điểm nhấn chuột, chờ kéo quá ngưỡng
+let marqueeHighlighted = []; // thẻ đang tô viền xem trước
+let marqueeSuppressClick = false;
+
+function marqueeContainerPoint(event) {
+    const rect = modContainerRef.value.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
+
+function handleMarqueeMouseDown(event) {
+    // Chỉ chuột trái, không bắt đầu từ nút bấm (ghim...) hay ô nhập.
+    if (event.button !== 0) return;
+    if (event.target.closest('button, input, s-button, s-switch, s-icon-button, a')) return;
+    marqueePending = marqueeContainerPoint(event);
+    marquee.batch = !!(event.ctrlKey || event.metaKey);
+    window.addEventListener('mousemove', handleMarqueeMouseMove);
+    window.addEventListener('mouseup', handleMarqueeMouseUp, { once: true });
+}
+
+function marqueeRectInClient() {
+    const rect = modContainerRef.value.getBoundingClientRect();
+    return {
+        left: rect.left + marquee.x,
+        top: rect.top + marquee.y,
+        right: rect.left + marquee.x + marquee.w,
+        bottom: rect.top + marquee.y + marquee.h,
+    };
+}
+
+// Thẻ nào đang nằm trong khung (theo thứ tự hiển thị = thứ tự trong trang).
+function marqueeIntersectedCards() {
+    const box = marqueeRectInClient();
+    const hit = [];
+    for (const el of modContainerRef.value.querySelectorAll('.mod-item')) {
+        const r = el.getBoundingClientRect();
+        if (r.right > box.left && r.left < box.right && r.bottom > box.top && r.top < box.bottom) {
+            hit.push(el);
+        }
+    }
+    return hit;
+}
+
+function setMarqueeHighlight(cards) {
+    for (const el of marqueeHighlighted) el.removeAttribute('marquee');
+    marqueeHighlighted = cards;
+    for (const el of cards) el.setAttribute('marquee', marquee.batch ? 'batch' : 'apply');
+}
+
+function handleMarqueeMouseMove(event) {
+    if (!marqueePending) return;
+    // Giữ/thả Ctrl giữa chừng thì đổi màu khung + loại chọn ngay.
+    marquee.batch = !!(event.ctrlKey || event.metaKey);
+    const p = marqueeContainerPoint(event);
+    const dx = p.x - marqueePending.x;
+    const dy = p.y - marqueePending.y;
+    if (!marquee.active) {
+        if (Math.abs(dx) < MARQUEE_START_PX && Math.abs(dy) < MARQUEE_START_PX) return;
+        marquee.active = true;
+        marquee.startX = marqueePending.x;
+        marquee.startY = marqueePending.y;
+        document.body.style.userSelect = 'none';
+    }
+    marquee.x = Math.min(marquee.startX, p.x);
+    marquee.y = Math.min(marquee.startY, p.y);
+    marquee.w = Math.abs(dx);
+    marquee.h = Math.abs(dy);
+    setMarqueeHighlight(marqueeIntersectedCards());
+}
+
+function handleMarqueeMouseUp() {
+    stopMarqueeListeners();
+    marqueePending = null;
+    document.body.style.userSelect = '';
+    if (!marquee.active) return;
+    const cards = marqueeIntersectedCards();
+    const batch = marquee.batch;
+    marquee.active = false;
+    setMarqueeHighlight([]);
+    if (cards.length === 0) return;
+    // Thẻ vừa bấm vào cũng nhận sự kiện click khi thả chuột — chặn cú
+    // bấm đó để bôi đen không làm đổi chọn của thẻ dưới chuột.
+    marqueeSuppressClick = true;
+    const byId = new Map((mods.value || []).map(m => [m.id, m]));
+    const hitMods = [];
+    for (const el of cards) {
+        const mod = byId.get(el.id);
+        if (mod) hitMods.push(mod);
+    }
+    if (batch) {
+        batchSelectMods(hitMods);
+    } else {
+        selectModsInOrder(iManager.data.modList || [], hitMods);
+    }
+    iManager.setCurrentMod(hitMods[hitMods.length - 1]);
+}
+
+function stopMarqueeListeners() {
+    window.removeEventListener('mousemove', handleMarqueeMouseMove);
+    window.removeEventListener('mouseup', handleMarqueeMouseUp);
+}
+
+// Chặn cú bấm (click) ngay sau 1 lần bôi đen — chạy ở pha bắt (capture)
+// nên chặn trước khi thẻ kịp xử lý click.
+function handleMarqueeClickCapture(event) {
+    if (marqueeSuppressClick) {
+        marqueeSuppressClick = false;
+        event.stopPropagation();
+        event.preventDefault();
+    }
+}
 
 
 defineExpose({
@@ -655,7 +799,8 @@ defineExpose({
 #mod-container {
     width: 100%;
     height: fit-content;
-
+    position: relative;
+    /* Khung bôi đen là con tuyệt đối của lưới (không chiếm ô lưới). */
     display: grid;
     /* grid-column: span 4;
     grid-column-start: span 4; */
@@ -682,6 +827,24 @@ defineExpose({
 #mod-container[data-layout="vertical"] {
     grid-template-columns: repeat(auto-fill, var(--card-width, 250px));
     grid-auto-rows: calc(var(--card-width, 250px) * 1.4);
+}
+
+/* Khung bôi đen chọn mod: viền + nền mờ, vàng = chọn Áp Dụng, xanh =
+   chọn hàng loạt (giữ Ctrl). Không nhận chuột để lần kéo sau vẫn bắt
+   đầu được từ chính chỗ khung đang phủ. */
+#marquee-box {
+    position: absolute;
+    z-index: 50;
+    pointer-events: none;
+    border-radius: 4px;
+}
+#marquee-box.apply {
+    border: 1px solid rgba(220, 254, 0, 0.95);
+    background-color: rgba(220, 254, 0, 0.15);
+}
+#marquee-box.batch {
+    border: 1px solid rgba(33, 150, 243, 0.95);
+    background-color: rgba(33, 150, 243, 0.18);
 }
 
 #mod-card-manager {
