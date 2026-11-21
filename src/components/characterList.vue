@@ -491,7 +491,11 @@ defineExpose({ clearSearchInput });
     gap: 2px;
     padding: 8px 10px;
     box-sizing: border-box;
-    background-color: var(--s-color-surface-container-low);
+    /* Bậc 4 của thang xám (#3d3d3d, Đạt dặn 21/11): bảng lọc là bảng
+       bật lên nên sáng hơn nền thẻ (#222222) để tách khỏi lưới phía
+       sau. Giá trị trực tiếp ở đây, không dùng biến chung để khỏi kéo
+       theo chỗ khác. */
+    background-color: #3d3d3d;
     border: 1px solid var(--s-color-outline-variant);
     border-radius: 12px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
