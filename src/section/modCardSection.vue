@@ -5,7 +5,10 @@
         <leftMenu :tabs="presets" :translatedTabs="translatedPresets" @tabChange="handlePresetChange"
             ref="presetSelectorRef" fit-content>
             <template #up-button>
-                <s-icon type="arrow_drop_up"></s-icon>
+                <!-- Nhãn khung preset (Đạt dặn 21/11: để chữ Preset
+                     thay mũi tên lên — mũi tên vốn chỉ trang trí,
+                     không bấm được). -->
+                <span class="preset-title">{{ $t('filter.preset') }}</span>
             </template>
             <template #down-button>
                 <!-- Lề phải chừa 80px cho 2 nút bên phải (xóa + thêm),
@@ -782,13 +785,25 @@ EventSystem.on('toggledMod', (mod) => {
 /* Cột trái: 226px = đúng tổng rộng khung preset (rộng 200 + đệm
    10px mỗi bên + viền 3px mỗi bên của OO-box). Để 200px thì khung
    preset lòi ra 26px sang phải, đụng vào khung lưới mod (Đạt báo
-   21/11 trên bản test6). */
+   21/11 trên bản test6). Cao calc(100% + 6px) để đáy khung danh sách
+   thẳng đáy khung lưới: khung lưới (manager) cao hơn khung chứa 6px
+   vì viền 3px×2 của nó lòi ra ngoài (height:100% content-box của app
+   gốc) — để 100% thì đáy danh sách vẫn cao hơn đáy lưới 6px.
+   Để calc(100% - 20px) như khung preset gốc thì đáy danh sách cao
+   hơn đáy lưới tới 26px, trông lệch khung (Đạt báo 21/11). */
+/* Nhãn "Preset" trên đầu khung preset (thay mũi tên trang trí):
+   chữ đậm, cỡ như tiêu đề "Characters" của danh sách nhân vật. */
+.preset-title {
+    font-weight: bolder;
+    font-size: 0.95rem;
+}
+
 .left-column {
     display: flex;
     flex-direction: column;
     width: 226px;
     flex-shrink: 0;
-    height: calc(100% - 20px);
+    height: calc(100% + 6px);
 }
 
 .zoom-label {

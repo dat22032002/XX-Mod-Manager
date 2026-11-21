@@ -62,7 +62,7 @@ const props = defineProps({
         default: () => []
     },
     // fitContent: menu ngắn lại vừa đủ số tab (không căng hết chiều cao),
-    // danh sách tab lăn khi quá 240px. Tab Mod dùng để chừa chỗ cho danh
+    // danh sách tab lăn khi quá 3 hàng. Tab Mod dùng để chừa chỗ cho danh
     // sách nhân vật dọc ở dưới; Help/Setting giữ nguyên căng hết.
     fitContent: {
         type: Boolean,
@@ -71,9 +71,11 @@ const props = defineProps({
 });
 
 // Kiểu khung danh sách tab: mặc định căng hết chiều cao menu (trừ 2 nút
-// trên/dưới 32px); fitContent thì cao theo nội dung, tối đa 240px.
+// trên/dưới 32px); fitContent thì cao theo nội dung, tối đa 3 hàng
+// (3 × 42px = 126px) — thêm preset nữa thì lăn chuột trong khung, khung
+// preset không cao thêm (Đạt dặn 21/11: giữ nguyên cỡ 3 preset).
 const tabsContainerStyle = computed(() => props.fitContent
-    ? { position: 'relative', overflowY: 'auto', overflowX: 'hidden', height: 'auto', maxHeight: '240px' }
+    ? { position: 'relative', overflowY: 'auto', overflowX: 'hidden', height: 'auto', maxHeight: '126px' }
     : { position: 'relative', overflowY: 'auto', overflowX: 'hidden', height: 'calc(100% - 64px)' });
 
 const emit = defineEmits(['tabChange']);

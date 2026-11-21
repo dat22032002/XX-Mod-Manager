@@ -126,6 +126,7 @@
   "filter": {
     "button": "Filter",
     "characters": "Characters",
+    "preset": "Preset",
     "showCounts": "Show mod counts",
     "allTypes": "All types",
     "sortDefault": "Default",

@@ -126,6 +126,7 @@
   "filter": {
     "button": "Bộ lọc",
     "characters": "Nhân vật",
+    "preset": "Preset",
     "showCounts": "Hiện số lượng mod",
     "allTypes": "Mọi loại",
     "sortDefault": "Mặc định",
