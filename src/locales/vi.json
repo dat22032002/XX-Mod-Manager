@@ -138,7 +138,9 @@
     "sortTimeDesc": "Mới nhất",
     "sortTimeAsc": "Cũ nhất",
     "sortSizeDesc": "Lớn trước",
-    "sortSizeAsc": "Nhỏ trước"
+    "sortSizeAsc": "Nhỏ trước",
+    "empty": "Không tìm thấy mod nào",
+    "clearFilters": "Xóa bộ lọc"
   },
   "modTag": {
     "character": "Nhân vật",
