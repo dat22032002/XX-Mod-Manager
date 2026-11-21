@@ -7,6 +7,7 @@
                 :key="index" 
                 class="section-item" 
                 :class="{ active: sec === currentSection }" 
+                :data-section="sec"
                 @click="selectSection(sec)"
             >
                 <p> {{ $t('element.section.' + sec) }} </p>
@@ -24,17 +25,27 @@ const props = defineProps({
     sections: {
         type: Array,
         required: true
+    },
+    // Khi cha truyền modelValue thì mục đang chọn đi theo cha (dùng cho
+    // nút Dọc/Ngang: kiểu thẻ nằm ở config, cha mới là chỗ giữ trạng
+    // thái). Không truyền thì component tự giữ trạng thái như cũ (nút
+    // Mod/Help/Setting ở App.vue).
+    modelValue: {
+        type: String,
+        default: undefined
     }
 });
 
-const emit = defineEmits(['update:currentSection']);
-const currentSection = ref(props.sections[0]);
+const emit = defineEmits(['update:currentSection', 'update:modelValue']);
+const internalSection = ref(props.sections[0]);
+const currentSection = computed(() => props.modelValue ?? internalSection.value);
 
 const selectSection = (sec) => {
     //debug
     console.log('selectSection', sec);
-    currentSection.value = sec;
+    internalSection.value = sec;
     emit('update:currentSection', sec);
+    emit('update:modelValue', sec);
 };
 
 const sliderStyle = computed(() => {
@@ -48,22 +59,20 @@ const sliderStyle = computed(() => {
 const nextSection = () => {
     const index = props.sections.indexOf(currentSection.value);
     if (index < props.sections.length - 1) {
-        currentSection.value = props.sections[index + 1];
-        emit('update:currentSection', currentSection.value);
+        selectSection(props.sections[index + 1]);
     }
 };
 
 const prevSection = () => {
     const index = props.sections.indexOf(currentSection.value);
     if (index > 0) {
-        currentSection.value = props.sections[index - 1];
-        emit('update:currentSection', currentSection.value);
+        selectSection(props.sections[index - 1]);
     }
 };
 
 watch(() => props.sections, (newSection) => {
     if (!newSection.includes(currentSection.value)) {
-        currentSection.value = newSection[0];
+        internalSection.value = newSection[0];
     }
 });
 

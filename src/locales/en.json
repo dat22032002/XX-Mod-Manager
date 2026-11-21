@@ -14,6 +14,8 @@
       "intro": "Intro",
       "basic": "Basics",
       "advanced": "Advanced",
+      "vertical": "Vertical",
+      "horizontal": "Horizontal",
       "auto": "Auto",
       "more": "More"
     },

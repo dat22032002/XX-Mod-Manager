@@ -54,18 +54,11 @@
         <div class="bottom-left">
             <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, ở đầu trái
                  thanh dưới (chỗ nút Refresh cũ — Đạt dặn 20/11). -->
-            <!-- Nút Dọc/Ngang cùng kiểu với nút Mod/Help/Setting
-                 (sectionSelector): viên vàng nghiêng -20° trượt qua lại
-                 dưới chữ nút đang chọn, khung viền 5px + bo 20px. -->
-            <div class="layout-capsule" id="layout-capsule">
-                <div class="layout-slider" :style="layoutSliderStyle"></div>
-                <div class="layout-selector">
-                    <button :class="{ active: cardLayout === 'vertical' }" data-layout="vertical"
-                        @click="handleLayoutClicked('vertical')">{{ $t('buttons.layoutVertical') }}</button>
-                    <button :class="{ active: cardLayout === 'horizontal' }" data-layout="horizontal"
-                        @click="handleLayoutClicked('horizontal')">{{ $t('buttons.layoutHorizontal') }}</button>
-                </div>
-            </div>
+            <!-- Nút Dọc/Ngang dùng thẳng component nút Mod/Help/Setting
+                 (sectionSelector), chỉ có 2 mục thay vì 3 (Đạt dặn 21/11):
+                 viên vàng + kiểu trượt y hệt nút Mod. -->
+            <sectionSelector id="layout-capsule" :sections="layoutSections" :modelValue="cardLayout"
+                @update:modelValue="handleLayoutClicked" />
             <s-tooltip>
                 <s-switch class="OO-color-gradient-word" v-model="compactMode" @change="handleCompactButtonClicked"
                     slot="trigger" />
@@ -248,6 +241,7 @@ import modCardManager from '../components/modCardManager.vue';
 import leftMenu from '../components/leftMenu.vue';
 import modInfo from '../components/modInfo.vue';
 import chipRadioBar from '../components/chipRadioBar.vue';
+import sectionSelector from '../components/sectionSelector.vue';
 import { ref, onMounted, onUnmounted, useTemplateRef, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dialogTemplate from '../dialogs/dialogTemplate.vue';
@@ -459,15 +453,10 @@ function handleCompactButtonClicked() {
 // iManager.config để _config + ref cùng đổi (ghi thẳng vào ref thì file
 // config không đổi theo).
 const cardLayout = g_config_vue.cardLayout;
-// Vị trí viên vàng trượt của nút Dọc/Ngang: viên rộng bằng 50% khung
-// ngoài, nút rộng bằng (khung ngoài - 30px) / 2 (trừ padding ngoài 20px
-// + viền khung trong 10px) nên viên rộng hơn nút 15px — căn giữa viên
-// lên nút đang chọn thì mép trái viên nằm ở 7.5px (nút trái) hoặc
-// 50% - 7.5px (nút phải). Viên KHÔNG có padding ngang như nút Mod (ở
-// đây khung hẹp, padding làm viên tràn sang che chữ nút bên cạnh).
-const layoutSliderStyle = computed(() => ({
-    left: cardLayout.value === 'vertical' ? '7.5px' : 'calc(50% - 7.5px)',
-}));
+// 2 mục của nút Dọc/Ngang (component sectionSelector dùng chung với nút
+// Mod/Help/Setting; khai 1 lần để watcher của component không chạy lại
+// mỗi lần vẽ).
+const layoutSections = ['vertical', 'horizontal'];
 const cardWidth = g_config_vue.cardWidth;
 
 // Phóng to theo CỘT (Đạt dặn 20/11): nấc rộng cũ (301 → 350 → 400...)
@@ -788,61 +777,10 @@ EventSystem.on('toggledMod', (mod) => {
 /* Viên con nhộng chuyển kiểu thẻ (Dọc/Ngang), ở đầu trái thanh dưới
    (Đạt dặn 20/11). Kiểu đang chọn nền vàng như nút MOD; kiểu còn lại
    nền trong suốt. Cao 40px bằng nút phóng to. */
-/* Nút Dọc/Ngang kiểu Mod/Help/Setting (sectionSelector): khung ngoài
-   chỉ làm nền cho viên vàng trượt (cao hơn khung trong 3px mỗi bên để
-   viên vàng "lồi" ra như nút Mod); viên vàng nghiêng -20°, trượt 0.3s. */
-.layout-capsule {
-    position: relative;
-    width: fit-content;
-    display: flex;
-    align-items: center;
-    padding: 3px 10px;
-    box-sizing: border-box;
-    overflow: hidden;
+/* Nút Dọc/Ngang dùng component sectionSelector (kiểu dáng nằm trong
+   component đó); chỉ giữ cho nút không bị thanh dưới co lại. */
+#layout-capsule {
     flex-shrink: 0;
-}
-.layout-slider {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 50%;
-    background-color: var(--s-color-primary);
-    transition: left 0.3s;
-    pointer-events: none;
-    border-radius: 12px;
-    transform: skew(-20deg);
-    z-index: 3;
-}
-.layout-selector {
-    display: flex;
-    align-items: center;
-    position: relative;
-    background-color: var(--s-color-on-primary);
-    border: 5px solid var(--s-color-outline-variant);
-    border-radius: 20px;
-    box-shadow: 0 0 0px 3px var(--s-color-surface-container-high), inset 1px 1px 1px rgba(255, 255, 255, 0.2);
-    box-sizing: border-box;
-    overflow: hidden;
-    height: 40px;
-}
-.layout-selector button {
-    flex: 1;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    color: var(--s-color-on-surface);
-    font-size: 14px;
-    font-weight: 900;
-    padding: 0 20px;
-    cursor: pointer;
-    position: relative;
-    z-index: 4;
-}
-.layout-selector button.active {
-    color: var(--s-color-on-primary);
 }
 
 /* Nút chuyển đổi ảnh gốc / ảnh thu nhỏ: tròn 40px như nút zoom, đang
