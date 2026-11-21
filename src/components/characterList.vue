@@ -80,13 +80,6 @@
                  1 hàng như cũ). Bấm chip thì bảng ở lại mở để chọn tiếp
                  nhóm còn lại; bấm nút hoặc bấm ra ngoài thì đóng. Dùng
                  v-show để chip không bị gắn lại khi đóng bảng. -->
-            <!-- Hiệu ứng mở/đóng bảng (Đạt duyệt 21/11): mờ dần + trượt
-                 xuống ~150ms. Bảng dùng v-show (bật/tắt display) nên
-                 transition CSS thuần không chạy được — phải bọc bằng Vue
-                 <Transition> (Vue tự giữ bảng trong DOM tới khi chạy xong
-                 hiệu ứng đóng rồi mới ẩn). Bấm chip giữa lúc bảng đang mở
-                 vẫn ăn vì bảng đã ở vị trí cuối từ đầu, chỉ độ mờ chạy. -->
-            <Transition name="filter-panel">
             <div class="filter-panel" v-show="panelOpen">
                 <div class="filter-grid">
                     <div class="filter-group">
@@ -133,7 +126,6 @@
                     <s-switch id="chip-counts-switch" :checked="showChipCounts" @change="toggleChipCounts"></s-switch>
                 </div>
             </div>
-            </Transition>
         </div>
         <div class="character-list-rows">
             <div v-for="name in characterList" :key="name" class="character-row"
@@ -492,20 +484,6 @@ onMounted(() => {
     border: 1px solid var(--s-color-outline-variant);
     border-radius: 12px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-}
-
-/* Hiệu ứng mở/đóng bảng lọc (Đạt duyệt 21/11): mờ dần + trượt xuống
-   6px trong 150ms (lớp .filter-panel-enter/leave do <Transition> gắn
-   vào bảng khi panelOpen đổi). */
-.filter-panel-enter-active,
-.filter-panel-leave-active {
-    transition: opacity 150ms ease, transform 150ms ease;
-}
-
-.filter-panel-enter-from,
-.filter-panel-leave-to {
-    opacity: 0;
-    transform: translateY(-6px);
 }
 
 /* 2 nhóm xếp dọc: loại mod trên, sắp xếp dưới. Mỗi nhóm rộng hết bảng
