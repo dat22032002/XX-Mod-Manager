@@ -91,15 +91,20 @@ export function toggleModSelection(allMods: ModData[], mod: ModData): boolean {
 }
 
 //===================== bôi đen chọn nhiều mod (kéo khung) =====================
-// Bôi đen CHỈ THÊM mod vào tập chọn, không bỏ chọn mod đã có (kể cả mod
-// nằm ngoài khung vẫn giữ nguyên). Vàng: duyệt theo thứ tự hiển thị, mod
-// sau cùng nhân vật + cùng tag độc quyền thắng mod trước (luật 1 mod/1
-// tag, giống lúc tải preset) — gom tất cả mod bị tắt vào 1 thông báo duy
-// nhất thay vì báo từng mod. Xanh: thêm thẳng, không có luật độc quyền.
-export function selectModsInOrder(allMods: ModData[], mods: ModData[]): ModData[] {
+// Bôi đen BẬT/TẮT từng mod trong khung (Đạt dặn 21/11): mod chưa chọn
+// thì chọn, mod đã chọn thì hủy chọn — bôi lại lần nữa là tắt hết. Mod
+// nằm ngoài khung không đụng tới. Vàng: duyệt theo thứ tự hiển thị, mod
+// được BẬT sau cùng nhân vật + cùng tag độc quyền thắng mod trước (luật
+// 1 mod/1 tag, giống lúc tải preset) — gom tất cả mod bị tắt vào 1
+// thông báo duy nhất thay vì báo từng mod. Xanh: bật/tắt thẳng, không
+// có luật độc quyền.
+export function toggleModsInOrder(allMods: ModData[], mods: ModData[]): ModData[] {
     const evictedAll: ModData[] = [];
     for (const mod of mods) {
-        if (selectedModIdSet.has(mod.id)) continue;
+        if (selectedModIdSet.has(mod.id)) {
+            selectedModIdSet.delete(mod.id);
+            continue;
+        }
         evictedAll.push(...evictSameTagMods(allMods, mod));
         selectedModIdSet.add(mod.id);
     }
@@ -113,9 +118,13 @@ export function selectModsInOrder(allMods: ModData[], mods: ModData[]): ModData[
     return evictedAll;
 }
 
-export function batchSelectMods(mods: ModData[]): void {
+export function toggleBatchMods(mods: ModData[]): void {
     for (const mod of mods) {
-        batchSelectedModIdSet.add(mod.id);
+        if (batchSelectedModIdSet.has(mod.id)) {
+            batchSelectedModIdSet.delete(mod.id);
+        } else {
+            batchSelectedModIdSet.add(mod.id);
+        }
     }
 }
 

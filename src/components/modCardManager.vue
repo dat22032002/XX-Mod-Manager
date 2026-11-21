@@ -35,7 +35,7 @@ import { g_config_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 import ModCharacterFilter from './modCharacterFilter.vue';
 import { computeWindow, CARD_GAP, OVERSCAN_ROWS, rangeCheckedWidth, computeFillLayout } from './modWindowing.js';
-import { selectedModIdSet, setSelectedModIdsExclusive, getModTag, selectModsInOrder, batchSelectMods } from '../../helper/SelectedMods';
+import { selectedModIdSet, setSelectedModIdsExclusive, getModTag, toggleModsInOrder, toggleBatchMods } from '../../helper/SelectedMods';
 import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
 
 const iManager = new IManager();
@@ -662,9 +662,10 @@ onUnmounted(() => {
 // Nhấn giữ chuột trái trong lưới rồi kéo: khung chữ nhật hiện ra, mod nào
 // nằm trong khung thì được chọn khi thả chuột. Kéo thường = chọn vàng (Áp
 // Dụng, có luật 1 mod/1 loại); giữ Ctrl khi kéo = chọn xanh (hàng loạt),
-// khung bôi cũng đổi sang xanh. Bôi đen chỉ THÊM mod vào tập chọn, không
-// bỏ chọn mod đã có. Chỉ chọn được thẻ đang thấy trên màn hình (thẻ ngoài
-// khung nhìn chưa gắn vào trang nên không nằm trong vùng kéo được).
+// khung bôi cũng đổi sang xanh. Bôi đen BẬT/TẮT từng mod trong khung: mod
+// chưa chọn thì chọn, mod đã chọn thì hủy chọn (bôi lại lần nữa là tắt).
+// Chỉ chọn được thẻ đang thấy trên màn hình (thẻ ngoài khung nhìn chưa
+// gắn vào trang nên không nằm trong vùng kéo được).
 const MARQUEE_START_PX = 5;
 const marquee = reactive({
     active: false,          // đã kéo quá ngưỡng, khung đang hiện
@@ -767,9 +768,9 @@ function handleMarqueeMouseUp() {
         if (mod) hitMods.push(mod);
     }
     if (batch) {
-        batchSelectMods(hitMods);
+        toggleBatchMods(hitMods);
     } else {
-        selectModsInOrder(iManager.data.modList || [], hitMods);
+        toggleModsInOrder(iManager.data.modList || [], hitMods);
     }
     iManager.setCurrentMod(hitMods[hitMods.length - 1]);
 }

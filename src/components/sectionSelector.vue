@@ -1,5 +1,5 @@
 <template>
-    <div class="slider-container ">
+    <div class="slider-container" :class="{ compact: props.compact }">
         <div class="slider OO-color-gradient" :style="sliderStyle"></div>
         <div class="section-selector">
             <div 
@@ -33,6 +33,14 @@ const props = defineProps({
     modelValue: {
         type: String,
         default: undefined
+    },
+    // Thu hẹp khoảng đệm 2 bên chữ để nút ngắn lại (dùng cho nút
+    // Dọc/Ngang ở thanh dưới — chữ Vertical/Horizontal dài nên nút mặc
+    // định chiếm quá nhiều chỗ). Nút Mod/Help/Setting không truyền thì
+    // giữ nguyên như cũ.
+    compact: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -50,9 +58,16 @@ const selectSection = (sec) => {
 
 const sliderStyle = computed(() => {
     const index = props.sections.indexOf(currentSection.value);
+    // Công thức gốc của tác giả (translateX theo % của chính viên trượt,
+    // viên rộng 100/N%): 3 mục thì viên đi đúng từng mục; 2 mục thì viên
+    // đứng lệch ~15% chiều rộng viên sang trái ở mục đầu và lệch phải ở
+    // mục cuối — chấp nhận được khi nút rộng (đệm 40px) nhưng lộ rõ khi
+    // nút thu gọn. Bản thu gọn (compact) dùng translateX theo đúng chỉ số
+    // mục: viên rộng 100/N% nên đi đúng 1 mục = 100% chiều rộng viên.
+    const shift = props.compact ? index * 100 : index * 85 - 15;
     return {
         width: `${100 / props.sections.length}%`,
-        transform: `translateX(calc(${index * 85 - 15}%)) skew(-20deg)`
+        transform: `translateX(${shift}%) skew(-20deg)`
     };
 });
 
@@ -104,6 +119,11 @@ defineExpose({
     transition: background-color 0.3s;
     pointer-events: auto;
     z-index: 4;
+}
+
+/* Bản thu gọn: đệm 2 bên chữ 40px -> 16px, nút ngắn đi ~48px mỗi mục. */
+.slider-container.compact .section-item {
+    padding: 10px 16px;
 }
 
 

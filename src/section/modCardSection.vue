@@ -57,7 +57,7 @@
             <!-- Nút Dọc/Ngang dùng thẳng component nút Mod/Help/Setting
                  (sectionSelector), chỉ có 2 mục thay vì 3 (Đạt dặn 21/11):
                  viên vàng + kiểu trượt y hệt nút Mod. -->
-            <sectionSelector id="layout-capsule" :sections="layoutSections" :modelValue="cardLayout"
+            <sectionSelector id="layout-capsule" :sections="layoutSections" :modelValue="cardLayout" :compact="true"
                 @update:modelValue="handleLayoutClicked" />
             <s-tooltip>
                 <s-switch class="OO-color-gradient-word" v-model="compactMode" @change="handleCompactButtonClicked"
