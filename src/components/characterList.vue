@@ -348,7 +348,7 @@ defineExpose({ clearSearchInput });
     font-weight: bolder;
     color: var(--s-color-on-surface-variant);
     padding: 0 2px;
-    font-size: 0.9rem;
+    font-size: 16px;
 }
 
 /* Hàng tìm kiếm + Bộ lọc: ô tìm kiếm chiếm phần còn lại, nút Bộ lọc
@@ -396,7 +396,7 @@ defineExpose({ clearSearchInput });
     border: none;
     outline: none;
     color: var(--s-color-on-surface);
-    font-size: 0.9rem;
+    font-size: 14px;
     padding: 0;
 }
 
@@ -514,7 +514,7 @@ defineExpose({ clearSearchInput });
 }
 
 .filter-group-label {
-    font-size: 0.8rem;
+    font-size: 13px;
     font-weight: bolder;
     color: var(--s-color-on-surface-variant);
     padding: 2px 2px 6px;
@@ -649,5 +649,6 @@ defineExpose({ clearSearchInput });
 .character-count {
     flex-shrink: 0;
     opacity: 0.75;
+    font-size: 14px;
 }
 </style>
