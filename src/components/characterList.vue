@@ -8,8 +8,9 @@
 <template>
     <div class="character-list OO-box">
         <!-- Khối đầu cố định (không lăn): tiêu đề + hàng tìm kiếm/Bộ lọc
-             + hàng Tất cả/Đã chọn + bảng lọc thả xuống. position relative
-             để bảng lọc (absolute) neo theo đây, bung ra ngay dưới khối. -->
+             + hàng Tất cả/Đã chọn. Bảng lọc neo theo hàng tìm kiếm
+             (position relative ở .character-list-searchrow), bung ra
+             ngay dưới nút Bộ lọc, phủ lên hàng Tất cả/Đã chọn. -->
         <div class="character-list-top">
             <div class="character-list-header">
                 <div class="character-list-title">{{ $t('filter.characters') }}</div>
@@ -46,6 +47,53 @@
                         <span class="filter-toggle-chevron">▼</span>
                     </div>
                 </div>
+            <!-- Bảng lọc xếp dọc, hẹp (Đạt dặn 21/11): neo ngay dưới
+                 hàng tìm kiếm/Bộ lọc (cách đáy nút Bộ lọc ~14px thay vì
+                 ~48px như trước — trước đây neo dưới cả khối đầu nên
+                 cách nút 1 hàng Tất cả/Đã chọn; giờ bảng mở ra phủ lên
+                 hàng Tất cả/Đã chọn). Rộng 226px = đúng rộng cột danh
+                 sách, mép trái/phải thẳng khung cột. Hàng đầu mỗi nhóm
+                 1 chip full hàng (All types / Default — dài nhất), 3
+                 hàng dưới 2 chip 1 hàng (2 nút dưới cùng ETC /
+                 Smallest first dài như mấy nút kia). Bấm chip thì bảng
+                 ở lại mở để chọn tiếp nhóm còn lại; bấm nút, bấm ra
+                 ngoài, hoặc rê chuột ra khỏi bảng thì đóng (Đạt dặn
+                 21/11: tự đóng khi rê chuột ra khỏi bảng). Dùng v-show
+                 để chip không bị gắn lại khi đóng bảng. -->
+            <div class="filter-panel" v-show="panelOpen" @mouseleave="panelOpen = false">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <div class="filter-group-label">{{ $t('filter.typeGroup') }}</div>
+                        <div class="filter-chips">
+                            <div v-for="row in CHIP_ROWS" :key="'t' + row[0]" class="filter-chip-row">
+                                <div v-for="i in row" :key="typeItems[i]" class="filter-chip"
+                                    :class="{ active: currentType === typeItems[i] }" @click="handleTypeChange(typeItems[i])">{{ translatedTypes[i] }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <div class="filter-group-label">{{ $t('filter.sortGroup') }}</div>
+                        <div class="filter-chips">
+                            <div v-for="row in CHIP_ROWS" :key="'s' + row[0]" class="filter-chip-row">
+                                <div v-for="i in row" :key="sortItems[i]" class="filter-chip"
+                                    :class="{ active: currentSort === sortItems[i] }" @click="handleSortChange(sortItems[i])">{{ translatedSorts[i] }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Công tắc ẩn/hiện số lượng mod trên chip (Đạt dặn 20/11):
+                     nằm ẩn trong bảng lọc thay vì nút # trên thanh lọc. Bật
+                     thì mỗi chip nhân vật hiện thêm số mod trong ngoặc,
+                     vd Ellen (24). :checked lấy trạng thái đã lưu từ config;
+                     @change tự lật config qua Proxy (công tắc Sober tự đổi
+                     trạng thái hiển thị khi bấm, giống công tắc gọn ở thanh
+                     dưới — không dùng v-model vào ref config vì v-model ghi
+                     thẳng vào ref, file config không đổi theo). -->
+                <div class="counts-wrap">
+                    <span class="counts-label">{{ $t('filter.showCounts') }}</span>
+                    <s-switch id="chip-counts-switch" :checked="showChipCounts" @change="toggleChipCounts"></s-switch>
+                </div>
+            </div>
             </div>
             <!-- Tất cả / Đã chọn: chung 1 hàng, mỗi bên một nửa, cố định
                  trên cùng ngoài khung lăn nên không trôi đi khi lăn danh
@@ -69,63 +117,6 @@
                  bấm ra ngoài bảng thì đóng bảng. Nằm dưới nút và bảng
                  (z-index) nên không chặn 2 cái đó. -->
             <div class="filter-backdrop" v-show="panelOpen" @click="panelOpen = false"></div>
-            <!-- Bảng lọc xếp dọc (Đạt dặn 21/11 — bản 2 cột vẫn chưa gọn:
-                 cột loại ngắn hơn cột xếp nên thừa khoảng trống dưới cột
-                 loại, nhìn lệch): loại mod ở trên, sắp xếp ở dưới, chip
-                 xếp lưới 2 hàng mỗi nhóm, chip đang chọn nền vàng (giống
-                 hàng nhân vật) thay cho thanh trượt — thanh trượt chỉ
-                 chạy được trên 1 hàng ngang nên bảng hẹp không dùng được
-                 nó. Bảng rộng cố định 460px để chip tự xuống hàng (bảng
-                 ôm vừa nội dung mà không khóa rộng thì chip lại trải
-                 1 hàng như cũ). Bấm chip thì bảng ở lại mở để chọn tiếp
-                 nhóm còn lại; bấm nút hoặc bấm ra ngoài thì đóng. Dùng
-                 v-show để chip không bị gắn lại khi đóng bảng. -->
-            <div class="filter-panel" v-show="panelOpen">
-                <div class="filter-grid">
-                    <div class="filter-group">
-                        <div class="filter-group-label">{{ $t('filter.typeGroup') }}</div>
-                        <!-- Chip chia 2 hàng cố định (4+3), chip trong mỗi
-                             hàng rộng bằng nhau (flex: 1 1 0) — Đạt dặn
-                             21/11: không cái quá dài, cái quá ngắn. Hàng 1
-                             4 chip ~95px, hàng 2 3 chip ~129px. -->
-                        <div class="filter-chips">
-                            <div class="filter-chip-row">
-                                <div v-for="(item, i) in typeItems.slice(0, 4)" :key="item" class="filter-chip"
-                                    :class="{ active: currentType === item }" @click="handleTypeChange(item)">{{ translatedTypes[i] }}</div>
-                            </div>
-                            <div class="filter-chip-row">
-                                <div v-for="(item, i) in typeItems.slice(4)" :key="item" class="filter-chip"
-                                    :class="{ active: currentType === item }" @click="handleTypeChange(item)">{{ translatedTypes[i + 4] }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <div class="filter-group-label">{{ $t('filter.sortGroup') }}</div>
-                        <div class="filter-chips">
-                            <div class="filter-chip-row">
-                                <div v-for="(item, i) in sortItems.slice(0, 4)" :key="item" class="filter-chip"
-                                    :class="{ active: currentSort === item }" @click="handleSortChange(item)">{{ translatedSorts[i] }}</div>
-                            </div>
-                            <div class="filter-chip-row">
-                                <div v-for="(item, i) in sortItems.slice(4)" :key="item" class="filter-chip"
-                                    :class="{ active: currentSort === item }" @click="handleSortChange(item)">{{ translatedSorts[i + 4] }}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Công tắc ẩn/hiện số lượng mod trên chip (Đạt dặn 20/11):
-                     nằm ẩn trong bảng lọc thay vì nút # trên thanh lọc. Bật
-                     thì mỗi chip nhân vật hiện thêm số mod trong ngoặc,
-                     vd Ellen (24). :checked lấy trạng thái đã lưu từ config;
-                     @change tự lật config qua Proxy (công tắc Sober tự đổi
-                     trạng thái hiển thị khi bấm, giống công tắc gọn ở thanh
-                     dưới — không dùng v-model vào ref config vì v-model ghi
-                     thẳng vào ref, file config không đổi theo). -->
-                <div class="counts-wrap">
-                    <span class="counts-label">{{ $t('filter.showCounts') }}</span>
-                    <s-switch id="chip-counts-switch" :checked="showChipCounts" @change="toggleChipCounts"></s-switch>
-                </div>
-            </div>
         </div>
         <div class="character-list-rows">
             <div v-for="name in characterList" :key="name" class="character-row"
@@ -248,6 +239,12 @@ const SORT_OPTIONS = [
 ];
 const SORT_VALUES = SORT_OPTIONS.map(o => o.value);
 
+// Hàng chip trong bảng lọc dọc: hàng đầu mỗi nhóm 1 chip full hàng
+// (All types / Default — lựa chọn mặc định, dài nhất), 3 hàng dưới
+// 2 chip 1 hàng (Đạt dặn 21/11: 2 nút dưới cùng ETC / Smallest first
+// để dài như mấy nút kia, không giãn full hàng).
+const CHIP_ROWS = [[0], [1, 2], [3, 4], [5, 6]];
+
 const { t } = useI18n();
 const typeItems = TYPE_ITEMS;
 const sortItems = SORT_VALUES;
@@ -351,6 +348,9 @@ onMounted(() => {
     align-items: center;
     gap: 6px;
     padding-bottom: 6px;
+    /* position: relative: neo cho bảng lọc (absolute) thả ngay dưới
+       hàng này, sát nút Bộ lọc (Đạt dặn 21/11). */
+    position: relative;
 }
 
 /* Ô tìm kiếm: thẳng (không nghiêng như ô cũ ở hàng trên), cùng kiểu
@@ -458,22 +458,23 @@ onMounted(() => {
     background: transparent;
 }
 
-/* Bảng lọc overlay: thả xuống từ khối đầu danh sách, phủ lên danh sách
-   + lưới mod chứ không đẩy nội dung. Mép trái thẳng với mép trái khối
-   đầu (tức mép trong khung danh sách). Rộng 420px (nội dung 400px) —
-   đo thật trên app: hàng chip dài nhất là loại hàng 1 (386,9px) và xếp
-   hàng 1 (378,8px), nên 400px vừa đủ cho cả 2 hàng đầy với lề 13–21px;
-   hẹp hơn nữa thì hàng 1 vỡ sang 3 hàng, rộng hơn thì bên phải dư
-   khoảng trống (Đạt chỉ ra 21/11). Giới hạn để không tràn mép phải cửa
-   sổ (mép trái bảng cách mép trái cửa sổ ~13px: cột trái bắt đầu ~10px
-   + viền 3px của khung; chừa 10px mép phải); cửa sổ hẹp quá thì bảng
-   co theo giới hạn, chip tự xuống thêm hàng. */
+/* Bảng lọc overlay: thả xuống từ hàng tìm kiếm/Bộ lọc, phủ lên hàng
+   Tất cả/Đã chọn + danh sách chứ không đẩy nội dung. Rộng 226px =
+   đúng rộng cột danh sách; left: -13px để mép trái/phải thẳng khung
+   cột (khung lùi vào 13px do viền 3px + đệm 10px). Chip 2 cái 1 hàng
+   (nội dung 206px, chip ~100px — nhãn dài nhất "Newest first" ~73px
+   vẫn vừa). Cao ~378px (2 preset: đáy ~746; 3 preset: đáy ~788, vừa
+   màn hình 800). max-height + lăn dọc chỉ là lưới an toàn cho cửa sổ
+   thấp hơn 800 (mặc định app đã là 800, không có min-height): cửa sổ
+   800 thì max-height 380px không siết bảng 378px. */
 .filter-panel {
     position: absolute;
     top: calc(100% + 8px);
-    left: 0;
-    width: 420px;
+    left: -13px;
+    width: 226px;
     max-width: calc(100vw - 23px);
+    max-height: calc(100vh - 420px);
+    overflow-y: auto;
     z-index: 50;
     display: flex;
     flex-direction: column;
@@ -491,7 +492,7 @@ onMounted(() => {
 .filter-grid {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .filter-group {
@@ -505,10 +506,9 @@ onMounted(() => {
     padding: 2px 2px 6px;
 }
 
-/* Nhóm chip trong bảng: 2 hàng cố định (4+3), xếp dọc, cách nhau 6px.
-   Chip trong mỗi hàng rộng bằng nhau — hàng 4 chip ~95px, hàng 3 chip
-   ~129px (Đạt dặn 21/11: không cái quá dài, cái quá ngắn). Mỗi hàng
-   lấp đầy bề rộng bảng nên không còn khúc trống bên phải. */
+/* Nhóm chip trong bảng dọc: hàng đầu 1 chip full hàng (All types /
+   Default — dài nhất), 3 hàng dưới 2 chip 1 hàng, cách nhau 6px.
+   Chip trong mỗi hàng 2 cái rộng bằng nhau. */
 .filter-chips {
     display: flex;
     flex-direction: column;
@@ -526,15 +526,17 @@ onMounted(() => {
    với Material — "lowest" mới là màu sáng nhất, "highest" (#191919) còn
    tối hơn nền bảng (#222222).
    Chip chia đều hàng (flex: 1 1 0, min-width: 0): nhãn dài nhất
-   "Newest first" chỉ vừa ô 95px khi cỡ chữ 0.8125rem + đệm ngang 6px
-   (đo thật: 0.875rem thì chữ chạm đúng mép ô, máy Đạt vẽ chữ rộng hơn
-   chút là tràn) — KHÔNG tăng đệm hay cỡ chữ nếu chưa đo lại, và KHÔNG
-   thêm font-weight cho chip đang chọn (chữ đậm rộng hơn sẽ tràn ô;
-   nền vàng đã đủ báo đang chọn). */
+   "Newest first" (~73px) vừa ô ~100px khi cỡ chữ 0.8125rem + đệm
+   ngang 6px (đo thật: 0.875rem thì chữ chạm đúng mép ô, máy Đạt vẽ
+   chữ rộng hơn chút là tràn) — KHÔNG tăng đệm hay cỡ chữ nếu chưa đo
+   lại, và KHÔNG thêm font-weight cho chip đang chọn (chữ đậm rộng hơn
+   sẽ tràn ô; nền vàng đã đủ báo đang chọn). Đệm dọc 5px (chip cao
+   28px thay vì 30px) để bảng dọc 14 hàng chip vừa màn hình 800 kể cả
+   khi có 3 preset. */
 .filter-chip {
     flex: 1 1 0;
     min-width: 0;
-    padding: 6px;
+    padding: 5px 6px;
     border-radius: 8px;
     background-color: var(--s-color-surface-container-lowest);
     color: var(--s-color-on-surface);
