@@ -1,12 +1,12 @@
 <template>
   <DialogTemplate id="edit-mod-dialog" ref="edit-mod-dialog" maxWidth="1000px">
     <template v-slot:content>
-      <h3 style="height: fit-content;margin: -5px 30px 5px 30px;font-size: 26px;z-index:1" class="font-hongmeng">
+      <h3 style="height: fit-content;margin: -5px 30px 5px 30px;font-size: 24px;z-index:1" class="font-hongmeng">
         {{ $t('editDialog.edit-mod-info') }}
       </h3>
 
       <div id="edit-mod-info-dialog-container"
-        style="display: flex;flex-direction: column;align-items: center;width: 100%;  font-size: 15px;z-index:1">
+        style="display: flex;flex-direction: column;align-items: center;width: 100%;  font-size: 16px;z-index:1">
         <div id="edit-mod-info-dialog-top" style="display: flex;width: 100%;">
           <!-- 展示mod当前名称、图片 -->
           <div class="OO-box"
@@ -538,6 +538,13 @@ onMounted(() => {
   background-color: var(--s-color-primary);
   color: var(--s-color-on-primary);
   font-weight: 700;
+}
+
+/* Nhãn hàng trong hộp (MOD Name, MOD Cover...) đặt thẳng 16px (bậc M):
+   rule chung .OO-setting-bar h3 là 1.2em (~19.2px) + max-width 50%,
+   cột trái hộp chỉ rộng 280px nên "MOD Cover" bị cắt thành "MOD Co…". */
+#edit-mod-dialog .OO-setting-bar h3 {
+  font-size: 16px;
 }
 
 </style>
