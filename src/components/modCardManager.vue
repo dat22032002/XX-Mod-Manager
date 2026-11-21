@@ -1,5 +1,14 @@
 <template>
-    <div id="mod-card-manager" class="OO-box" ref="modCardManagerRef">
+    <!-- @mousedown bôi đen gắn ở KHUNG NGOÀI (#mod-card-manager) chứ
+         không gắn ở #mod-container: container chỉ cao bằng nội dung
+         (height: fit-content) nên nhấn chuột ở khoảng trống dưới hàng
+         cuối không bao giờ tới được handler nếu gắn ở container (Đạt
+         thấy 21/11: ít mod thì bôi đen không bắt đầu được). Gắn ở khung
+         ngoài thì toàn bộ khung lưới — kể cả khoảng trống — đều bắt
+         đầu được bôi đen. Tọa độ vẫn tính theo container (xem
+         marqueeContainerPoint), y vượt quá chiều cao container vẫn
+         đúng vì giao nhau tính theo tọa độ màn hình. -->
+    <div id="mod-card-manager" class="OO-box" ref="modCardManagerRef" @mousedown="handleMarqueeMouseDown">
         <!-- <chipRadioBar class="characterFilter" :items="characters" @itemChange="handleFilterChange"
             :translatedItems="translateCharacters" ref="characterFilterRef" /> -->
         <!-- Giao diện lọc (tìm kiếm + nút "Bộ lọc" + bảng overlay + Tất
@@ -8,8 +17,7 @@
              (xem filteredMods). -->
         <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
-            <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle"
-                @mousedown="handleMarqueeMouseDown">
+            <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle">
                 <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true
                     :compactMode="compactMode" :cardWidth="effectiveCardWidth" :cardLayout="cardLayout" :fullImage="fullImage"
                     :ref="setModCardRef(mod.id)" />
