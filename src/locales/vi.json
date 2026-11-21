@@ -127,6 +127,8 @@
     "button": "Bộ lọc",
     "characters": "Nhân vật",
     "preset": "Preset",
+    "typeGroup": "Loại",
+    "sortGroup": "Xếp",
     "showCounts": "Hiện số lượng mod",
     "allTypes": "Mọi loại",
     "sortDefault": "Mặc định",

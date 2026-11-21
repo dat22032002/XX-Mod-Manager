@@ -69,19 +69,33 @@
                  bấm ra ngoài bảng thì đóng bảng. Nằm dưới nút và bảng
                  (z-index) nên không chặn 2 cái đó. -->
             <div class="filter-backdrop" v-show="panelOpen" @click="panelOpen = false"></div>
-            <!-- Bảng lọc overlay: mỗi nhóm 1 hàng riêng để đủ chỗ hiện hết
-                 chip mà không phải lăn ngang. Bấm chip thì bảng ở lại mở
-                 để chọn tiếp nhóm còn lại; bấm nút hoặc bấm ra ngoài thì
-                 đóng. Dùng v-show để chipRadioBar không bị gắn lại (thanh
-                 vàng giữ nguyên vị trí đã đo) khi đóng bảng. -->
+            <!-- Bảng lọc 2 cột (Đạt chọn cách B 21/11 — bảng 1 hàng chip
+                 trượt cũ rộng ~850px, che gần hết lưới): cột trái loại
+                 mod, cột phải sắp xếp, chip xếp lưới 2–3 hàng, chip đang
+                 chọn nền vàng (giống hàng nhân vật) thay cho thanh trượt
+                 — thanh trượt chỉ chạy được trên 1 hàng ngang nên bảng
+                 hẹp không dùng được nó. Mỗi cột rộng cố định 230px để
+                 chip tự xuống hàng (bảng ôm vừa nội dung mà không khóa
+                 rộng thì chip lại trải 1 hàng như cũ). Bấm chip thì bảng
+                 ở lại mở để chọn tiếp nhóm còn lại; bấm nút hoặc bấm ra
+                 ngoài thì đóng. Dùng v-show để chip không bị gắn lại khi
+                 đóng bảng. -->
             <div class="filter-panel" v-show="panelOpen">
-                <div class="type-filter-wrap">
-                    <chipRadioBar :items="typeItems" :translatedItems="translatedTypes"
-                        @itemChange="handleTypeChange" ref="typeFilterRef" />
-                </div>
-                <div class="sort-wrap">
-                    <chipRadioBar :items="sortItems" :translatedItems="translatedSorts"
-                        @itemChange="handleSortChange" ref="sortBarRef" />
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <div class="filter-group-label">{{ $t('filter.typeGroup') }}</div>
+                        <div class="filter-chips">
+                            <div v-for="(item, i) in typeItems" :key="item" class="filter-chip"
+                                :class="{ active: currentType === item }" @click="handleTypeChange(item)">{{ translatedTypes[i] }}</div>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <div class="filter-group-label">{{ $t('filter.sortGroup') }}</div>
+                        <div class="filter-chips">
+                            <div v-for="(item, i) in sortItems" :key="item" class="filter-chip"
+                                :class="{ active: currentSort === item }" @click="handleSortChange(item)">{{ translatedSorts[i] }}</div>
+                        </div>
+                    </div>
                 </div>
                 <!-- Công tắc ẩn/hiện số lượng mod trên chip (Đạt dặn 20/11):
                      nằm ẩn trong bảng lọc thay vì nút # trên thanh lọc. Bật
@@ -108,9 +122,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick, useTemplateRef } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import chipRadioBar from './chipRadioBar.vue';
 import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
 import IManager, { g_config_vue, g_data_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
@@ -219,22 +232,12 @@ const sortItems = SORT_VALUES;
 const translatedTypes = computed(() => TYPE_ITEMS.map(item => t(TYPE_LABEL_KEYS[item])));
 const translatedSorts = computed(() => SORT_OPTIONS.map(o => t(o.labelKey)));
 
-const typeFilterRef = useTemplateRef('typeFilterRef');
-const sortBarRef = useTemplateRef('sortBarRef');
-
-// Bung bảng lọc ra thì đo lại thanh vàng 2 hàng: lúc bảng đóng (display:
-// none) chip có kích thước 0 nên thanh trượt đo lúc gắn/mở app bị lệch;
-// đo lại sau 2 khung hình cho bố cục ổn định (giống thanh tag nhân vật).
-// selectItemByName với mục đang chọn chỉ đo lại, không phát sự kiện đổi.
-watch(panelOpen, (open) => {
-    if (!open) return;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-        const type = normalizeTypeFilter(g_config_vue.modTypeFilter.value);
-        const sort = SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default';
-        if (typeFilterRef.value) typeFilterRef.value.selectItemByName(type);
-        if (sortBarRef.value) sortBarRef.value.selectItemByName(sort);
-    }));
-});
+// Lựa chọn đang bật (để vàng chip tương ứng trong bảng): loại chuẩn hóa
+// qua normalizeTypeFilter (config cũ còn 'outfit'), xếp lạ thì về
+// 'default'. Nhãn chip dịch lại tự động khi đổi ngôn ngữ (computed theo
+// t) nên không cần đo lại gì như thanh trượt cũ.
+const currentType = computed(() => normalizeTypeFilter(g_config_vue.modTypeFilter.value));
+const currentSort = computed(() => SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default');
 
 // Ghi config dồn: bấm lia lịa thì chờ 300ms sau lần bấm cuối mới ghi
 // 1 lần (giống cách ghi mức phóng to ở modCardSection).
@@ -259,8 +262,6 @@ function handleSortChange(sort) {
     saveFilterSettings();
 }
 
-const language = g_config_vue.language;
-
 //-=============== Hiện số lượng mod ===============//
 // Công tắc trong bảng lọc (Đạt dặn 20/11): bật thì mỗi nhân vật trong
 // danh sách dọc hiện thêm số mod trong ngoặc, vd Ellen (24); Tất cả hiện
@@ -272,18 +273,6 @@ function toggleChipCounts() {
     iManager.config.showChipCounts = !g_config_vue.showChipCounts.value;
     saveFilterSettings();
 }
-watch(language, () => {
-    // Chữ trên chip lọc/xếp đổi độ dài theo ngôn ngữ nên đặt lại thanh
-    // trượt 2 hàng đó nếu bảng đang mở (bảng đóng thì lần bung sau đo lại).
-    if (panelOpen.value) {
-        nextTick(() => {
-            const type = normalizeTypeFilter(g_config_vue.modTypeFilter.value);
-            const sort = SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default';
-            if (typeFilterRef.value) typeFilterRef.value.selectItemByName(type);
-            if (sortBarRef.value) sortBarRef.value.selectItemByName(sort);
-        });
-    }
-});
 
 onMounted(() => {
     // Config cũ còn lưu loại 'outfit' (tên cũ trước khi có tag): đổi 1 lần
@@ -449,11 +438,10 @@ onMounted(() => {
 
 /* Bảng lọc overlay: thả xuống từ khối đầu danh sách, phủ lên danh sách
    + lưới mod chứ không đẩy nội dung. Mép trái thẳng với mép trái khối
-   đầu (tức mép trong khung danh sách). Bảng ôm vừa nội dung (chỉ rộng
-   bằng hàng chip dài nhất cộng đệm). Giới hạn để không tràn mép phải
+   đầu (tức mép trong khung danh sách). Bảng ôm vừa nội dung — 2 cột
+   230px + khe 16px + đệm 20px ≈ 496px. Giới hạn để không tràn mép phải
    cửa sổ (mép trái bảng cách mép trái cửa sổ ~13px: cột trái bắt đầu
-   ~10px + viền 3px của khung; chừa 10px mép phải); cửa sổ hẹp quá thì
-   hàng chip tự lăn ngang như cũ. */
+   ~10px + viền 3px của khung; chừa 10px mép phải). */
 .filter-panel {
     position: absolute;
     top: calc(100% + 8px);
@@ -472,19 +460,52 @@ onMounted(() => {
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
-/* Trong bảng overlay, thanh chip chiếm hết chiều rộng bảng (bỏ khe
-   20px mặc định của chipRadioBar) để hàng chip dài nhất không bị cắt
-   mất 20px cuối khi bảng ôm vừa nội dung. */
-.filter-panel .chip-radio-bar {
-    width: 100%;
+/* 2 cột chip: loại mod trái, sắp xếp phải. Mỗi cột rộng cố định 230px
+   để chip tự xuống hàng (không khóa rộng thì chip lại trải 1 hàng, bảng
+   phình lại ~850px như cũ). */
+.filter-grid {
+    display: flex;
+    gap: 16px;
 }
 
-.type-filter-wrap {
-    width: 100%;
+.filter-group {
+    width: 230px;
+    flex-shrink: 0;
 }
 
-.sort-wrap {
-    width: 100%;
+.filter-group-label {
+    font-size: 0.8rem;
+    font-weight: bolder;
+    color: var(--s-color-on-surface-variant);
+    padding: 2px 2px 6px;
+}
+
+.filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Chip trong bảng: thẳng (không nghiêng như chip trượt cũ), cùng kiểu
+   với hàng nhân vật — chip đang chọn nền vàng, chữ đậm. Nền chip dùng
+   surface-container-lowest (#323232): theme tối của app đặt tên ngược
+   với Material — "lowest" mới là màu sáng nhất, "highest" (#191919) còn
+   tối hơn nền bảng (#222222). */
+.filter-chip {
+    padding: 6px 12px;
+    border-radius: 8px;
+    background-color: var(--s-color-surface-container-lowest);
+    color: var(--s-color-on-surface);
+    font-size: 0.875rem;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.filter-chip.active {
+    background-color: var(--s-color-primary);
+    color: var(--s-color-on-primary);
+    font-weight: bolder;
 }
 
 /* Hàng công tắc ẩn/hiện số lượng trong bảng lọc: nhãn trái, công tắc

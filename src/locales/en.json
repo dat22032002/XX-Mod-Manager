@@ -127,6 +127,8 @@
     "button": "Filter",
     "characters": "Characters",
     "preset": "Preset",
+    "typeGroup": "Type",
+    "sortGroup": "Sort",
     "showCounts": "Show mod counts",
     "allTypes": "All types",
     "sortDefault": "Default",
