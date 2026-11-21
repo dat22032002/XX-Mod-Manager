@@ -13,7 +13,7 @@
 //     that are not mounted yet still get the preset's selection when they
 //     mount.
 //   - modCardSection reads the set for savePreset / Apply / batch-set.
-import { reactive } from 'vue';
+import { reactive, computed } from 'vue';
 import type { ModData } from '../core/ModHelper';
 import { TranslatedText } from './Language';
 import { SnackType, t_snack } from './SnackHelper';
@@ -23,6 +23,11 @@ import type { ModTag } from './ModTag';
 // Reactive so any computed that reads it stays up to date.
 export const selectedModIdSet = reactive(new Set<string>());
 
+// Ghi đè tập chọn vàng từ danh sách id. KHÔNG ghi lịch sử hoàn tác —
+// hàm này chỉ dùng nội bộ (tải preset ghi lịch sử ở
+// setSelectedModIdsExclusive); chỗ nào khác muốn đổi lựa chọn mà hoàn
+// tác được thì gọi các hàm toggle/set...Exclusive bên dưới, đừng gọi
+// thẳng hàm này.
 export function setSelectedModIds(ids: Iterable<string>): void {
     selectedModIdSet.clear();
     for (const id of ids) {
@@ -72,6 +77,7 @@ export function evictSameTagMods(allMods: ModData[], mod: ModData): ModData[] {
 // chỉ xóa khỏi tập chọn. Trả về trạng thái mới (true = đang bật). Thẻ
 // lưới và hàng danh sách dùng chung hàm này để hành vi giống hệt nhau.
 export function toggleModSelection(allMods: ModData[], mod: ModData): boolean {
+    pushSelectionHistory();
     if (selectedModIdSet.has(mod.id)) {
         selectedModIdSet.delete(mod.id);
         return false;
@@ -99,6 +105,7 @@ export function toggleModSelection(allMods: ModData[], mod: ModData): boolean {
 // thông báo duy nhất thay vì báo từng mod. Xanh: bật/tắt thẳng, không
 // có luật độc quyền.
 export function toggleModsInOrder(allMods: ModData[], mods: ModData[]): ModData[] {
+    pushSelectionHistory();
     const evictedAll: ModData[] = [];
     for (const mod of mods) {
         if (selectedModIdSet.has(mod.id)) {
@@ -119,6 +126,7 @@ export function toggleModsInOrder(allMods: ModData[], mods: ModData[]): ModData[
 }
 
 export function toggleBatchMods(mods: ModData[]): void {
+    pushSelectionHistory();
     for (const mod of mods) {
         if (batchSelectedModIdSet.has(mod.id)) {
             batchSelectedModIdSet.delete(mod.id);
@@ -138,11 +146,61 @@ export const batchSelectedModIdSet = reactive(new Set<string>());
 // Thêm/bớt 1 mod khỏi tập chọn hàng loạt. Không có luật độc quyền —
 // chọn bao nhiêu mod cùng nhân vật + cùng tag cũng được.
 export function toggleBatchSelection(mod: ModData): boolean {
+    pushSelectionHistory();
     if (batchSelectedModIdSet.has(mod.id)) {
         batchSelectedModIdSet.delete(mod.id);
         return false;
     }
     batchSelectedModIdSet.add(mod.id);
+    return true;
+}
+
+//===================== hoàn tác lựa chọn kiểu Ctrl+Z =====================
+// Nút hoàn tác bên trái nút Apply (Đạt dặn 21/11): chỉ hoàn tác
+// CHỌN/BỎ CHỌN (vàng + xanh), không hoàn tác Apply. Mỗi lần lựa chọn
+// đổi (bấm thẻ, Ctrl+bấm, bôi đen, tải preset), trạng thái TRƯỚC lúc
+// đổi được chụp lại và đẩy vào ngăn xếp. Bấm hoàn tác thì lấy trạng
+// thái mới nhất ra đặt lại cả 2 tập. Không có làm lại (redo): hoàn tác
+// không tự đẩy trạng thái hiện tại vào ngăn xếp, bấm hoàn tác tiếp thì
+// lùi thêm 1 bước nữa. Giữ tối đa 50 bước, cũ nhất rớt ra trước.
+type SelectionSnapshot = { yellow: string[]; blue: string[] };
+const MAX_SELECTION_HISTORY = 50;
+const selectionHistory: SelectionSnapshot[] = reactive([]);
+export const canUndoSelection = computed(() => selectionHistory.length > 0);
+
+function snapshotSelection(): SelectionSnapshot {
+    return { yellow: [...selectedModIdSet], blue: [...batchSelectedModIdSet] };
+}
+
+function sameSnapshot(a: SelectionSnapshot, b: SelectionSnapshot): boolean {
+    if (a.yellow.length !== b.yellow.length || a.blue.length !== b.blue.length) return false;
+    const yellow = new Set(a.yellow);
+    const blue = new Set(a.blue);
+    return b.yellow.every(id => yellow.has(id)) && b.blue.every(id => blue.has(id));
+}
+
+function pushSelectionHistory(): void {
+    const snap = snapshotSelection();
+    const last = selectionHistory[selectionHistory.length - 1];
+    // Đổi mà trạng thái không khác gì lần chụp trước (vd bôi khung trống)
+    // thì không ghi — khỏi tốn 1 lần bấm hoàn tác vô ích.
+    if (last && sameSnapshot(last, snap)) return;
+    selectionHistory.push(snap);
+    if (selectionHistory.length > MAX_SELECTION_HISTORY) selectionHistory.shift();
+}
+
+// Hoàn tác lần đổi lựa chọn gần nhất. Lọc bỏ id không còn trong danh
+// sách mod hiện tại (mod đã xóa từ lúc chụp thì không khôi phục).
+// Trả về false khi hết lịch sử.
+export function undoSelection(allMods?: ModData[]): boolean {
+    const prev = selectionHistory.pop();
+    if (!prev) return false;
+    const known = allMods ? new Set(allMods.map(m => m.id)) : null;
+    const keep = (ids: string[]) => known ? ids.filter(id => known.has(id)) : ids;
+    selectedModIdSet.clear();
+    for (const id of keep(prev.yellow)) selectedModIdSet.add(id);
+    batchSelectedModIdSet.clear();
+    for (const id of keep(prev.blue)) batchSelectedModIdSet.add(id);
     return true;
 }
 
@@ -161,7 +219,11 @@ export async function toggleModPin(mod: ModData): Promise<void> {
 // Đặt lại tập chọn từ danh sách id (lúc tải preset), áp dụng cùng luật:
 // duyệt theo thứ tự, mod sau cùng nhân vật + cùng tag độc quyền sẽ thắng
 // mod trước; tag không độc quyền (Skin, Accessory) giữ lại tất cả.
-export function setSelectedModIdsExclusive(allMods: ModData[], ids: Iterable<string>): void {
+// Tải preset mà lựa chọn không đổi gì (vd mở app tải lại đúng bộ đang
+// chọn, hay tải 2 lần cùng 1 preset) thì thôi — khỏi ghi 1 bước hoàn
+// tác vô ích và khỏi vẽ lại thẻ. recordHistory=false cho lần khôi phục
+// lúc mở app (không phải thao tác của người dùng, không ghi lịch sử).
+export function setSelectedModIdsExclusive(allMods: ModData[], ids: Iterable<string>, recordHistory = true): void {
     const byId = new Map<string, ModData>();
     for (const m of allMods) byId.set(m.id, m);
     const finalIds: string[] = [];
@@ -184,5 +246,10 @@ export function setSelectedModIdsExclusive(allMods: ModData[], ids: Iterable<str
         finalIds.push(id);
         finalSet.add(id);
     }
-    setSelectedModIds(finalIds);
+    if (finalSet.size === selectedModIdSet.size && finalIds.every(id => selectedModIdSet.has(id))) return;
+    if (recordHistory) pushSelectionHistory();
+    // Ghi thẳng, không gọi setSelectedModIds — đã ghi lịch sử ở trên rồi,
+    // gọi nữa thì 1 lần tải preset thành 2 bước hoàn tác.
+    selectedModIdSet.clear();
+    for (const id of finalIds) selectedModIdSet.add(id);
 }

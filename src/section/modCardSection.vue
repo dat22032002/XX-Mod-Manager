@@ -187,6 +187,20 @@
                     <div class="apply-progress-fill" :style="{ width: applyPercent + '%' }"></div>
                 </div>
             </div>
+            <!-- Nút hoàn tác lựa chọn kiểu Ctrl+Z (Đạt dặn 21/11), đặt
+                 ngay bên trái nút Apply, cùng kiểu nút dài có chữ như
+                 nút Refresh. Mờ đi khi hết lịch sử hoặc đang áp dụng. -->
+            <s-button @click="handleUndoButtonClicked" id="undo-button" :disabled="!canUndoSelection || applying"
+                class="OO-button font-hongmeng">
+                <s-icon slot="start">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path
+                            d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z">
+                        </path>
+                    </svg>
+                </s-icon>
+                <p>{{ $t('buttons.undo') }}</p>
+            </s-button>
             <s-button @click="handleApplyButtonClicked" id="apply-button" :disabled="applying"
                 class="OO-color-gradient font-hongmeng OO-button" style="color: var(--s-color-surface);">
                 {{ $t('buttons.apply') }}
@@ -258,7 +272,7 @@ import fsProxy from '../../electron/fsProxy';
 const iManager = new IManager();
 import { EventSystem, EventType } from '../../helper/EventSystem';
 import { SnackType, t_snack, snack } from '../../helper/SnackHelper';
-import { selectedModIdSet, batchSelectedModIdSet } from '../../helper/SelectedMods';
+import { selectedModIdSet, batchSelectedModIdSet, undoSelection, canUndoSelection } from '../../helper/SelectedMods';
 import { MOD_TAGS, isValidTag } from '../../helper/ModTag';
 import { computeFillLayout, fillWidthForColumns, rangeCheckedWidth, LAYOUT_BASE, ZOOM_RANGE } from '../components/modWindowing.js';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
@@ -707,6 +721,14 @@ async function runApply() {
     } finally {
         applying.value = false;
     }
+}
+
+// Nút hoàn tác lựa chọn kiểu Ctrl+Z (Đạt dặn 21/11): chỉ hoàn tác
+// CHỌN/BỎ CHỌN (vàng + xanh), không hoàn tác Apply. Bấm khi hết lịch
+// sử thì không làm gì (nút đã mờ đi, phòng khi bấm lọt).
+function handleUndoButtonClicked() {
+    if (!canUndoSelection.value) return;
+    undoSelection(iManager.data.modList || []);
 }
 
 async function handleApplyButtonClicked() {
