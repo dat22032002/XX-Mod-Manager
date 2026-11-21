@@ -56,10 +56,11 @@
                  1 chip full hàng (All types / Default — dài nhất), 3
                  hàng dưới 2 chip 1 hàng (2 nút dưới cùng ETC /
                  Smallest first dài như mấy nút kia). Bấm chip thì bảng
-                 ở lại mở để chọn tiếp nhóm còn lại; bấm nút hoặc bấm
-                 ra ngoài thì đóng. Dùng v-show để chip không bị gắn
-                 lại khi đóng bảng. -->
-            <div class="filter-panel" v-show="panelOpen">
+                 ở lại mở để chọn tiếp nhóm còn lại; bấm nút, bấm ra
+                 ngoài, hoặc rê chuột ra khỏi bảng thì đóng (Đạt dặn
+                 21/11: tự đóng khi rê chuột ra khỏi bảng). Dùng v-show
+                 để chip không bị gắn lại khi đóng bảng. -->
+            <div class="filter-panel" v-show="panelOpen" @mouseleave="panelOpen = false">
                 <div class="filter-grid">
                     <div class="filter-group">
                         <div class="filter-group-label">{{ $t('filter.typeGroup') }}</div>
