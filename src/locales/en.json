@@ -129,7 +129,9 @@
     "sortNameAsc": "Name A–Z",
     "sortNameDesc": "Name Z–A",
     "sortTimeDesc": "Newest first",
-    "sortTimeAsc": "Oldest first"
+    "sortTimeAsc": "Oldest first",
+    "sortSizeDesc": "Largest first",
+    "sortSizeAsc": "Smallest first"
   },
   "modTag": {
     "character": "Character",

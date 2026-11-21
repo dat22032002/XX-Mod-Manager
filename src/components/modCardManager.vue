@@ -104,7 +104,7 @@ const translateCharacters = computed(() => {
 // Skin, Weapon, Effect, Accessory — chuẩn duy nhất từ 1.5.18, thay tiền
 // tố tên thư mục. Thêm tag mới thì thêm vào MOD_TAGS + 1 khóa locale
 // modTag.*.
-const SORT_VALUES = ['default', 'name-asc', 'name-desc', 'time-desc', 'time-asc'];
+const SORT_VALUES = ['default', 'name-asc', 'name-desc', 'time-desc', 'time-asc', 'size-desc', 'size-asc'];
 
 // Đọc qua g_config_vue (lưu trong config.json nên mở app lại vẫn giữ);
 // giá trị lạ trong config cũ thì về mặc định ('outfit' cũ thành
@@ -112,6 +112,13 @@ const SORT_VALUES = ['default', 'name-asc', 'name-desc', 'time-desc', 'time-asc'
 const typeFilter = computed(() => normalizeTypeFilter(g_config_vue.modTypeFilter.value));
 const sortBy = computed(() =>
     SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default');
+
+// Đếm lần dung lượng về (xem listener modSizeReady ở dưới): filteredMods
+// đọc nó để xếp lại khi đang xếp theo dung lượng. Khai báo ở đây vì
+// watch(filteredMods) đánh giá ngay trong setup — để ở cuối file thì
+// đọc trúng vùng chết (TDZ) làm cả lưới không gắn được.
+const sizeVersion = ref(0);
+let sizeBumpTimer = null;
 
 //-==================== 只渲染视口附近的卡片（虚拟列表） ====================//
 // The grid used to mount every mod card at once; with hundreds of mods that
@@ -130,6 +137,8 @@ const searchText = ref('');
 const selectedSnapshot = ref(null);
 
 const filteredMods = computed(() => {
+    // Đọc để xếp lại khi có dung lượng mới về (xem sizeVersion ở trên).
+    void sizeVersion.value;
     const list = mods.value || [];
     let result;
     // Search: same rule as changeFilterToSearch (character-prefix spec) —
@@ -167,6 +176,16 @@ const filteredMods = computed(() => {
     // giữ thứ tự tải vào như trước; sort của JS là ổn định nên mod ngang
     // nhau không bị xáo trộn). slice() để không sửa mảng gốc.
     const sort = sortBy.value;
+    // So sánh dung lượng: mod chưa quét xong (-1) luôn xếp cuối ở cả
+    // 2 chiều (không thì chiều nhỏ-trước sẽ đẩy mod chưa biết lên đầu).
+    const compareSize = (a, b, desc) => {
+        const sa = (typeof a.sizeBytes === 'number' && a.sizeBytes >= 0) ? a.sizeBytes : -1;
+        const sb = (typeof b.sizeBytes === 'number' && b.sizeBytes >= 0) ? b.sizeBytes : -1;
+        if (sa === -1 && sb === -1) return 0;
+        if (sa === -1) return 1;
+        if (sb === -1) return -1;
+        return desc ? sb - sa : sa - sb;
+    };
     return result.slice().sort((a, b) => {
         const pinDiff = Number(!!b.pinned) - Number(!!a.pinned);
         if (pinDiff !== 0) return pinDiff;
@@ -175,6 +194,8 @@ const filteredMods = computed(() => {
             case 'name-desc': return (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base' });
             case 'time-desc': return (b.addedMs || 0) - (a.addedMs || 0);
             case 'time-asc': return (a.addedMs || 0) - (b.addedMs || 0);
+            case 'size-desc': return compareSize(a, b, true);
+            case 'size-asc': return compareSize(a, b, false);
             default: return 0;
         }
     });
@@ -438,6 +459,18 @@ EventSystem.on(EventType.addMod, (mod) => {
     //debug
     console.log('get addMod, reload display mods', mods.value);
     scheduleReload();
+});
+
+// Dung lượng về dần khi quét nền chạy: mỗi lần có size mới thì xếp
+// lại danh sách (chỉ khi đang xếp theo dung lượng). Dồn 200ms để đợt
+// quét đầu (hàng trăm mod về liên tiếp) không xếp lại từng cái.
+EventSystem.on(EventType.modSizeReady, () => {
+    if (sortBy.value !== 'size-desc' && sortBy.value !== 'size-asc') return;
+    if (sizeBumpTimer) return;
+    sizeBumpTimer = setTimeout(() => {
+        sizeBumpTimer = null;
+        sizeVersion.value++;
+    }, 200);
 });
 
 EventSystem.on('currentPresetChanged', (preset) => {

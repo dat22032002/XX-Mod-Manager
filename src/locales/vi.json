@@ -129,7 +129,9 @@
     "sortNameAsc": "Tên A–Z",
     "sortNameDesc": "Tên Z–A",
     "sortTimeDesc": "Mới nhất",
-    "sortTimeAsc": "Cũ nhất"
+    "sortTimeAsc": "Cũ nhất",
+    "sortSizeDesc": "Lớn trước",
+    "sortSizeAsc": "Nhỏ trước"
   },
   "modTag": {
     "character": "Nhân vật",

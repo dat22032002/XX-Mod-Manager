@@ -156,6 +156,8 @@ const SORT_OPTIONS = [
     { value: 'name-desc', labelKey: 'filter.sortNameDesc' },
     { value: 'time-desc', labelKey: 'filter.sortTimeDesc' },
     { value: 'time-asc', labelKey: 'filter.sortTimeAsc' },
+    { value: 'size-desc', labelKey: 'filter.sortSizeDesc' },
+    { value: 'size-asc', labelKey: 'filter.sortSizeAsc' },
 ];
 const SORT_VALUES = SORT_OPTIONS.map(o => o.value);
 
