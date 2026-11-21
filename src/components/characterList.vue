@@ -52,12 +52,13 @@
                  ~48px như trước — trước đây neo dưới cả khối đầu nên
                  cách nút 1 hàng Tất cả/Đã chọn; giờ bảng mở ra phủ lên
                  hàng Tất cả/Đã chọn). Rộng 226px = đúng rộng cột danh
-                 sách, mép trái/phải thẳng khung cột. Chip 2 cái 1 hàng
-                 (2+2+2+1 mỗi nhóm): hàng cuối mỗi nhóm chỉ 1 chip nên
-                 nó giãn full hàng (flex: 1) — không còn khúc trống bên
-                 phải. Bấm chip thì bảng ở lại mở để chọn tiếp nhóm còn
-                 lại; bấm nút hoặc bấm ra ngoài thì đóng. Dùng v-show
-                 để chip không bị gắn lại khi đóng bảng. -->
+                 sách, mép trái/phải thẳng khung cột. Hàng đầu mỗi nhóm
+                 1 chip full hàng (All types / Default — dài nhất), 3
+                 hàng dưới 2 chip 1 hàng (2 nút dưới cùng ETC /
+                 Smallest first dài như mấy nút kia). Bấm chip thì bảng
+                 ở lại mở để chọn tiếp nhóm còn lại; bấm nút hoặc bấm
+                 ra ngoài thì đóng. Dùng v-show để chip không bị gắn
+                 lại khi đóng bảng. -->
             <div class="filter-panel" v-show="panelOpen">
                 <div class="filter-grid">
                     <div class="filter-group">
@@ -237,10 +238,11 @@ const SORT_OPTIONS = [
 ];
 const SORT_VALUES = SORT_OPTIONS.map(o => o.value);
 
-// Hàng chip trong bảng lọc dọc: 2 chip 1 hàng (2+2+2+1 mỗi nhóm —
-// mỗi nhóm 7 chip nên hàng cuối chỉ 1 chip, nó giãn full hàng nhờ
-// flex: 1). Đạt dặn 21/11: bảng dọc, hẹp.
-const CHIP_ROWS = [[0, 1], [2, 3], [4, 5], [6]];
+// Hàng chip trong bảng lọc dọc: hàng đầu mỗi nhóm 1 chip full hàng
+// (All types / Default — lựa chọn mặc định, dài nhất), 3 hàng dưới
+// 2 chip 1 hàng (Đạt dặn 21/11: 2 nút dưới cùng ETC / Smallest first
+// để dài như mấy nút kia, không giãn full hàng).
+const CHIP_ROWS = [[0], [1, 2], [3, 4], [5, 6]];
 
 const { t } = useI18n();
 const typeItems = TYPE_ITEMS;
@@ -503,10 +505,9 @@ onMounted(() => {
     padding: 2px 2px 6px;
 }
 
-/* Nhóm chip trong bảng dọc: 4 hàng cố định (2+2+2+1), xếp dọc, cách
-   nhau 6px. Chip trong mỗi hàng rộng bằng nhau; hàng cuối mỗi nhóm
-   chỉ 1 chip nên nó giãn full hàng (flex: 1) — không còn khúc trống
-   bên phải. */
+/* Nhóm chip trong bảng dọc: hàng đầu 1 chip full hàng (All types /
+   Default — dài nhất), 3 hàng dưới 2 chip 1 hàng, cách nhau 6px.
+   Chip trong mỗi hàng 2 cái rộng bằng nhau. */
 .filter-chips {
     display: flex;
     flex-direction: column;
