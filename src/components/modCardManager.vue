@@ -290,7 +290,7 @@ function updateWindow() {
 }
 
 // 定义 loadMods 方法
-const loadMods = async () => {
+const loadMods = async (recordPresetHistory = true) => {
     mods.value = iManager.data.modList
 
     // 检查是否选择了预设，如果选择了预设，则加载预设
@@ -298,7 +298,7 @@ const loadMods = async () => {
     // không bỏ qua như trước nữa — nếu không lựa chọn ở Mặc định sẽ mất
     // mỗi lần mở app / chuyển preset / làm mới.
     if (iManager.temp.currentPreset) {
-        await loadPreset(iManager.temp.currentPreset);
+        await loadPreset(iManager.temp.currentPreset, recordPresetHistory);
     }
 
     // The 'selected' filter is a snapshot taken when the filter is applied;
@@ -384,7 +384,7 @@ async function changeFilterToSearch(search){
 
 
 
-async function loadPreset(presetName) {
+async function loadPreset(presetName, recordHistory = true) {
     const preset = await iManager.loadPreset(presetName);
     // Tên biến cũ là `mods` — che mất `mods` (danh sách mod, dòng 48)
     // nên `mods.value` ở dưới thành undefined, luật 1 mod/1 tag không
@@ -398,7 +398,7 @@ async function loadPreset(presetName) {
     // Áp dụng luật 1 mod/1 loại mỗi nhân vật cho preset luôn (mod sau
     // cùng nhân vật + cùng loại sẽ thắng mod trước), không báo gì thêm để
     // khỏi làm phiền lúc mở app (preset mặc định tự tải lúc khởi động).
-    setSelectedModIdsExclusive(mods.value || [], modIds);
+    setSelectedModIdsExclusive(mods.value || [], modIds, recordHistory);
 
     //debug
     console.log('loadPreset', presetName);
@@ -587,7 +587,9 @@ const modCardManagerRef = useTemplateRef('modCardManagerRef');
 // 在组件挂载时调用 observeMods 方法
 onMounted(async () => {
     await iManager.waitInit();
-    await loadMods();
+    // Khôi phục lựa chọn lúc mở app: không phải thao tác của người dùng
+    // nên không ghi lịch sử hoàn tác — mới mở app nút Undo phải mờ đi.
+    await loadMods(false);
     observeMods();
     refreshPlaceholderRef.value.style.height = '0px';
 
@@ -757,6 +759,12 @@ function handleMarqueeMouseUp() {
     // Thẻ vừa bấm vào cũng nhận sự kiện click khi thả chuột — chặn cú
     // bấm đó để bôi đen không làm đổi chọn của thẻ dưới chuột.
     marqueeSuppressClick = true;
+    // Cờ chỉ chặn cú click NGAY SAU lần thả chuột này (nó chạy cùng lượt
+    // với mouseup, nếu có). Hết lượt thì gỡ — trước đây cờ dính lại vì
+    // kéo qua thẻ khác thì không có cú click nào để gỡ nó, nên cú bấm thẻ
+    // TIẾP THEO của người dùng bị nuốt mất (bắt được lúc kiểm tra nút
+    // hoàn tác 21/11: bôi đen xong bấm thẻ Grace không ăn).
+    setTimeout(() => { marqueeSuppressClick = false; }, 0);
     const byId = new Map((mods.value || []).map(m => [m.id, m]));
     const hitMods = [];
     for (const el of cards) {
