@@ -48,11 +48,10 @@
                 </s-tooltip>
             </template>
         </leftMenu>
-        <characterList ref="characterListRef" @itemChange="handleCharacterListChange" @search="handleCharacterSearch" />
+        <characterList @itemChange="handleCharacterListChange" @search="handleCharacterSearch" />
         </div>
         <modCardManager id="mod-card-manager" :compactMode="compactMode" :cardWidth="cardWidth"
-            :cardLayout="cardLayout" :fullImage="cardFullImage" ref="modCardManagerRef"
-            @filtersCleared="handleFiltersCleared">
+            :cardLayout="cardLayout" :fullImage="cardFullImage" ref="modCardManagerRef">
         </modCardManager>
         <modInfo :mod="displayModRef"></modInfo>
     </div>
@@ -136,8 +135,8 @@
                      (#222222 — trùng màu hàng + nút bấm, cả bảng thành
                      một khối xám phẳng, không phân biệt được). Hàng và
                      nút giữ màu gốc #222222 nên nổi rõ trên nền đen. -->
-                <div style="width: fit-content;height: max-content;background-color: #000000;border: 2px solid var(--s-color-outline-variant);border-radius: 12px;padding: 10px 6px;box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);box-sizing: border-box;">
-                    <p style="margin: 0 20px 2px;font-size: 13px;color: var(--s-color-outline);">{{ $t('editDialog.batch-hint') }}</p>
+                <div style="width: fit-content;height: max-content;background-color: #000000;border: 2px solid var(--s-color-outline-variant);border-radius: 16px;padding: 10px 6px;box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);box-sizing: border-box;">
+                    <p style="margin: 0 20px 2px;font-size: 0.8rem;color: var(--s-color-outline);">{{ $t('editDialog.batch-hint') }}</p>
                     <div class="OO-setting-bar">
                     <h3>{{ $t('editDialog.batch-set-character') }}</h3>
                     <div style="display: flex;align-items: center;gap: 8px;">
@@ -188,20 +187,6 @@
                     <div class="apply-progress-fill" :style="{ width: applyPercent + '%' }"></div>
                 </div>
             </div>
-            <!-- Nút hoàn tác lựa chọn kiểu Ctrl+Z (Đạt dặn 21/11), đặt
-                 ngay bên trái nút Apply, cùng kiểu nút dài có chữ như
-                 nút Refresh. Mờ đi khi hết lịch sử hoặc đang áp dụng. -->
-            <s-button @click="handleUndoButtonClicked" id="undo-button" :disabled="!canUndoSelection || applying"
-                class="OO-button font-hongmeng">
-                <s-icon slot="start">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                        <path
-                            d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z">
-                        </path>
-                    </svg>
-                </s-icon>
-                <p>{{ $t('buttons.undo') }}</p>
-            </s-button>
             <s-button @click="handleApplyButtonClicked" id="apply-button" :disabled="applying"
                 class="OO-color-gradient font-hongmeng OO-button" style="color: var(--s-color-surface);">
                 {{ $t('buttons.apply') }}
@@ -273,7 +258,7 @@ import fsProxy from '../../electron/fsProxy';
 const iManager = new IManager();
 import { EventSystem, EventType } from '../../helper/EventSystem';
 import { SnackType, t_snack, snack } from '../../helper/SnackHelper';
-import { selectedModIdSet, batchSelectedModIdSet, undoSelection, canUndoSelection } from '../../helper/SelectedMods';
+import { selectedModIdSet, batchSelectedModIdSet } from '../../helper/SelectedMods';
 import { MOD_TAGS, isValidTag } from '../../helper/ModTag';
 import { computeFillLayout, fillWidthForColumns, rangeCheckedWidth, LAYOUT_BASE, ZOOM_RANGE } from '../components/modWindowing.js';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
@@ -687,7 +672,6 @@ onUnmounted(() => {
 
 const presetSelectorRef = useTemplateRef('presetSelectorRef');
 const modCardManagerRef = useTemplateRef('modCardManagerRef');
-const characterListRef = useTemplateRef('characterListRef');
 
 // Bấm tên nhân vật trong danh sách dọc: lọc lưới mod theo nhân vật đó
 // (giống hệt bấm chip nhân vật cũ).
@@ -699,15 +683,6 @@ const handleCharacterListChange = (character) => {
 // (khớp đầu tên, đúng 1 nhân vật mới lọc — luật ở filteredMods).
 const handleCharacterSearch = (text) => {
     modCardManagerRef.value?.applySearch(text);
-};
-
-// Nút "Xóa bộ lọc" trên màn hình trống (modCardManager phát
-// 'filtersCleared'): ô tìm kiếm trong characterList cũng phải xóa chữ
-// — watcher currentCharacter ở đó chỉ chạy khi nhân vật ĐỔI, mà lúc gõ
-// tìm không ra mod nào nhân vật vẫn đang là Tất cả nên không đổi, ô
-// tìm sẽ giữ chữ cũ trong khi lưới đã về đủ mod.
-const handleFiltersCleared = () => {
-    characterListRef.value?.clearSearchInput();
 };
 
 //#endregion
@@ -732,14 +707,6 @@ async function runApply() {
     } finally {
         applying.value = false;
     }
-}
-
-// Nút hoàn tác lựa chọn kiểu Ctrl+Z (Đạt dặn 21/11): chỉ hoàn tác
-// CHỌN/BỎ CHỌN (vàng + xanh), không hoàn tác Apply. Bấm khi hết lịch
-// sử thì không làm gì (nút đã mờ đi, phòng khi bấm lọt).
-function handleUndoButtonClicked() {
-    if (!canUndoSelection.value) return;
-    undoSelection(iManager.data.modList || []);
 }
 
 async function handleApplyButtonClicked() {
@@ -834,7 +801,7 @@ EventSystem.on('toggledMod', (mod) => {
    chữ đậm, cỡ như tiêu đề "Characters" của danh sách nhân vật. */
 .preset-title {
     font-weight: bolder;
-    font-size: 16px;
+    font-size: 0.95rem;
 }
 
 .left-column {
@@ -849,16 +816,8 @@ EventSystem.on('toggledMod', (mod) => {
     min-width: 44px;
     text-align: center;
     color: var(--s-color-on-surface-variant);
-    font-size: 14px;
+    font-size: 0.85em;
     align-self: center;
-}
-
-/* Chữ nút Refresh/Undo về bậc S (14px): chữ trong nút đang là 16px
-   của Sober × 0.93em của .font-hongmeng = 14.88px. Nút Undo chưa có
-   trong nhánh này (PR #92) nhưng ghi sẵn selector để gộp vào là đúng
-   thang luôn. */
-#refresh-button p, #undo-button p {
-    font-size: 14px;
 }
 
 /* Viên con nhộng chuyển kiểu thẻ (Dọc/Ngang), ở đầu trái thanh dưới
