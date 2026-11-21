@@ -65,6 +65,17 @@
                     <span v-if="showChipCounts" class="character-count">({{ selectedModIdSet.size }})</span>
                 </div>
             </div>
+            <!-- Chip lọc đang bật: hiện ngay dưới hàng Tất cả/Đã chọn,
+                 chỉ khi có lọc đang bật (Đạt dặn 21/11). Bấm × thì bỏ
+                 riêng lọc đó, không cần mở bảng lọc. Không làm chip cho
+                 chữ tìm kiếm (đã thấy trong ô tìm) hay kiểu xếp (không
+                 phải lọc). -->
+            <div v-if="activeFilterChips.length > 0" id="active-filter-chips" class="active-filter-chips">
+                <div v-for="chip in activeFilterChips" :key="chip.key" class="active-filter-chip" :data-filter="chip.key">
+                    <span class="active-filter-chip-label">{{ chip.label }}</span>
+                    <span class="active-filter-chip-x" @click="chip.clear">×</span>
+                </div>
+            </div>
             <!-- Lớp bắt bấm trong suốt phủ cả màn hình khi bảng đang mở:
                  bấm ra ngoài bảng thì đóng bảng. Nằm dưới nút và bảng
                  (z-index) nên không chặn 2 cái đó. -->
@@ -291,6 +302,22 @@ function handleSortChange(sort) {
     iManager.config.modSortBy = sort;
     saveFilterSettings();
 }
+
+// Chip lọc đang bật dưới hàng Tất cả/Đã chọn: nhân vật (khi đang lọc
+// theo 1 nhân vật cụ thể — không tính Tất cả hay Đã chọn, 2 cái đó đã
+// vàng sẵn ở hàng trên) + loại mod (khi khác All types).
+const activeFilterChips = computed(() => {
+    const chips = [];
+    const character = currentCharacter.value;
+    if (character && character !== 'all' && character !== 'selected') {
+        chips.push({ key: 'character', label: character, clear: () => selectCharacter('all') });
+    }
+    const type = currentType.value;
+    if (type !== 'all') {
+        chips.push({ key: 'type', label: t(TYPE_LABEL_KEYS[type]), clear: () => handleTypeChange('all') });
+    }
+    return chips;
+});
 
 //-=============== Hiện số lượng mod ===============//
 // Công tắc trong bảng lọc (Đạt dặn 20/11): bật thì mỗi nhân vật trong
@@ -597,6 +624,47 @@ defineExpose({ clearSearchInput });
     flex: 1;
     min-width: 0;
     padding: 6px 8px;
+}
+
+/* Hàng chip lọc đang bật (dưới hàng Tất cả/Đã chọn): chỉ hiện khi có
+   lọc đang bật. Chip viên thuốc, nền surface-container-lowest như chip
+   trong bảng lọc; dấu × bấm được để bỏ riêng lọc đó. */
+.active-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+}
+
+.active-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background-color: var(--s-color-surface-container-lowest);
+    color: var(--s-color-on-surface);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.active-filter-chip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
+
+.active-filter-chip-x {
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    opacity: 0.7;
+}
+
+.active-filter-chip-x:hover {
+    opacity: 1;
 }
 
 .character-list-rows {
