@@ -18,7 +18,6 @@
                 <div v-if="marquee.active" id="marquee-box" :class="marquee.batch ? 'batch' : 'apply'"
                     :style="marqueeBoxStyle"></div>
             </div>
-            <div class="placeholder"></div>
         </s-scroll-view>
     </div>
 </template>
@@ -865,12 +864,10 @@ defineExpose({
     flex-wrap: nowrap;
 }
 
-
-
-.placeholder {
-    height: 300px;
-    width: 100%;
-}
+/* (Đã bỏ khối .placeholder 300px dưới lưới — khối trống này làm cuối
+   lưới thừa 300px khoảng đen khi lăn xuống dưới cùng, và làm cả danh
+   sách ngắn (không đủ mod để lăn) vẫn lăn được (Đạt thấy 21/11). Bỏ
+   thì lăn tới cuối chạm đúng thẻ mod cuối, ít mod thì khỏi lăn.) */
 
 
 .refresh-placeholder {
