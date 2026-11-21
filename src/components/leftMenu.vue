@@ -198,7 +198,7 @@ defineExpose({
     width: calc(100%);
     height: 40px;
     background-color: var(--s-color-primary);
-    border-radius: 10px;
+    border-radius: 12px;
     transition: height 0.3s ease-in-out, top 0.3s;
 
     will-change: height, top, width;
@@ -206,14 +206,14 @@ defineExpose({
 
 s-ripple {
     /* --ripple-color: var(--s-color-primary); */
-    border-radius: 10px;
+    border-radius: 12px;
 }
 
 .OO-button-box {
     position: relative;
     height: 32px;
     margin: 0;
-    border-radius: 16px;
+    border-radius: 12px;
     width: calc(100% - 26px);
     display: flex;
     align-items: center;
