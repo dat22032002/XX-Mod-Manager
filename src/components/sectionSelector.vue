@@ -10,7 +10,11 @@
                 :data-section="sec"
                 @click="selectSection(sec)"
             >
-                <p> {{ $t('element.section.' + sec) }} </p>
+                <p v-if="!displayLabels"> {{ $t('element.section.' + sec) }} </p>
+                <template v-else>
+                    <p class="section-label-name">{{ displayLabels[index].name }}</p>
+                    <span v-if="displayLabels[index].count" class="section-label-count">{{ displayLabels[index].count }}</span>
+                </template>
             </div>
     
         </div>
@@ -41,12 +45,33 @@ const props = defineProps({
     compact: {
         type: Boolean,
         default: false
+    },
+    // Nhãn tự cho (dùng cho nút trượt Tất cả/Đã chọn: nhãn gồm tên +
+    // số đếm, không nằm trong locale element.section). Mỗi mục là chuỗi
+    // ("All (12)") hoặc { name, count } (tên + số đếm tách riêng để tên
+    // cắt … khi dài mà số đếm vẫn hiện đủ — cha tự lo CSS cho 2 phần
+    // này). Không truyền thì nhãn lấy từ locale như cũ (nút Mod/Help/
+    // Setting, Dọc/Ngang).
+    labels: {
+        type: Array,
+        default: undefined
     }
 });
 
 const emit = defineEmits(['update:currentSection', 'update:modelValue']);
 const internalSection = ref(props.sections[0]);
 const currentSection = computed(() => props.modelValue ?? internalSection.value);
+
+// Chuẩn hóa nhãn tự cho về { name, count } để template vẽ 1 kiểu
+// (chuỗi thì count rỗng). Map theo sections để dài luôn khớp số mục.
+const displayLabels = computed(() => {
+    if (!props.labels) return null;
+    return props.sections.map((sec, i) => {
+        const l = props.labels[i];
+        if (l === undefined) return { name: '', count: '' };
+        return typeof l === 'string' ? { name: l, count: '' } : l;
+    });
+});
 
 const selectSection = (sec) => {
     //debug
@@ -77,12 +102,20 @@ const sliderStyle = computed(() => {
     const transform = props.compact
         ? `translateX(${shift}%)`
         : `translateX(${shift}%) skew(-20deg)`;
-    return {
+    const style = {
         width: props.compact
             ? `calc(${100 / props.sections.length}% - 10px)`
             : `${100 / props.sections.length}%`,
         transform
     };
+    // Mốc không khớp mục nào (vd nút Tất cả/Đã chọn khi đang chọn 1 nhân
+    // vật cụ thể — modelValue là tên nhân vật, không nằm trong sections):
+    // ẨN viên (opacity 0) thay vì đậu ở 1 mục — đậu sai chỗ sẽ gây hiểu
+    // nhầm là đang lọc theo đó. Viên vẫn trượt (transform) nên khi mốc
+    // quay lại 1 mục thì viên trượt vào từ mép trái như thường. Nút
+    // Mod/Dọc-Ngang luôn khớp 1 mục nên không bị ảnh hưởng.
+    if (index < 0) style.opacity = 0;
+    return style;
 });
 
 const nextSection = () => {
