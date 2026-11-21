@@ -302,12 +302,12 @@ s-scroll-view {
 /* Đường kẻ phân cách giữa các hàng phím tắt (Đạt dặn 21/11 — hàng
    không còn nền riêng sau thang xám nên tên/phím khó ghép cặp):
    phần tử kẻ RIÊNG 1px #303030 (màu viền mỏng của app), thẳng ngang,
-   rộng 2/3 hàng và căn giữa, không bo góc. Bản trước dùng
-   border-bottom trên hàng nên kẻ bo cong theo bo 28px của hàng. */
+   rộng FULL hàng, không bo góc (Đạt đổi 20:37, bỏ bản 2/3 căn giữa).
+   Bản đầu dùng border-bottom trên hàng nên kẻ bo cong theo bo 28px
+   của hàng. */
 .hotkey-divider {
     height: 1px;
-    width: 66.67%;
-    margin: 0 auto;
+    width: 100%;
     background-color: #303030;
     border-radius: 0;
     flex: none;
