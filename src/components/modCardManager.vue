@@ -6,7 +6,7 @@
              cả / Đã chọn) nằm trong characterList.vue ở cột trái; chỗ này
              chỉ đọc lựa chọn đã lưu trong config để lọc/xếp danh sách
              (xem filteredMods). -->
-        <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
+        <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 12px 12px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
             <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle"
                 @mousedown="handleMarqueeMouseDown">
@@ -892,7 +892,7 @@ defineExpose({
     position: absolute;
     z-index: 50;
     pointer-events: none;
-    border-radius: 4px;
+    border-radius: 8px;
 }
 #marquee-box.apply {
     border: 1px solid rgba(220, 254, 0, 0.95);

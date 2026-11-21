@@ -13,7 +13,7 @@
             style="width: 280px;min-width: 0;display:flex;flex-direction: column;align-items: center;flex-wrap: nowrap;justify-content: flex-start;"
             id="edit-mod-info-left">
             <div class="OO-box OO-shade-box"
-              style="width: calc(100% - 40px);padding: 10px 20px;margin:0;border-radius: 15px;">
+              style="width: calc(100% - 40px);padding: 10px 20px;margin:0;border-radius: 12px;">
               <h3 id="editDialog-mod-info-name" style="white-space:normal;word-break:keep-all;height: fit-content;">
                 {{ tempModInfo ? tempModInfo.name : "no name" }}</h3>
             </div>

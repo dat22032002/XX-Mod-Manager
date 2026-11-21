@@ -324,7 +324,7 @@ s-scroll-view {
 }
 
 .edit-button {
-    border-radius: 25px;
+    border-radius: 20px;
     padding: 0;
     height: 50px;
     width: 50px;
@@ -336,7 +336,7 @@ s-scroll-view {
 
 .open-dir-button {
     height: 50px;
-    border-radius: 24px;
+    border-radius: 20px;
     padding: 10px 20px;
 }
 
