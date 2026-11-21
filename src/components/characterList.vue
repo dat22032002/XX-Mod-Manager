@@ -69,17 +69,17 @@
                  bấm ra ngoài bảng thì đóng bảng. Nằm dưới nút và bảng
                  (z-index) nên không chặn 2 cái đó. -->
             <div class="filter-backdrop" v-show="panelOpen" @click="panelOpen = false"></div>
-            <!-- Bảng lọc 2 cột (Đạt chọn cách B 21/11 — bảng 1 hàng chip
-                 trượt cũ rộng ~850px, che gần hết lưới): cột trái loại
-                 mod, cột phải sắp xếp, chip xếp lưới 2–3 hàng, chip đang
-                 chọn nền vàng (giống hàng nhân vật) thay cho thanh trượt
-                 — thanh trượt chỉ chạy được trên 1 hàng ngang nên bảng
-                 hẹp không dùng được nó. Mỗi cột rộng cố định 230px để
-                 chip tự xuống hàng (bảng ôm vừa nội dung mà không khóa
-                 rộng thì chip lại trải 1 hàng như cũ). Bấm chip thì bảng
-                 ở lại mở để chọn tiếp nhóm còn lại; bấm nút hoặc bấm ra
-                 ngoài thì đóng. Dùng v-show để chip không bị gắn lại khi
-                 đóng bảng. -->
+            <!-- Bảng lọc xếp dọc (Đạt dặn 21/11 — bản 2 cột vẫn chưa gọn:
+                 cột loại ngắn hơn cột xếp nên thừa khoảng trống dưới cột
+                 loại, nhìn lệch): loại mod ở trên, sắp xếp ở dưới, chip
+                 xếp lưới 2 hàng mỗi nhóm, chip đang chọn nền vàng (giống
+                 hàng nhân vật) thay cho thanh trượt — thanh trượt chỉ
+                 chạy được trên 1 hàng ngang nên bảng hẹp không dùng được
+                 nó. Bảng rộng cố định 460px để chip tự xuống hàng (bảng
+                 ôm vừa nội dung mà không khóa rộng thì chip lại trải
+                 1 hàng như cũ). Bấm chip thì bảng ở lại mở để chọn tiếp
+                 nhóm còn lại; bấm nút hoặc bấm ra ngoài thì đóng. Dùng
+                 v-show để chip không bị gắn lại khi đóng bảng. -->
             <div class="filter-panel" v-show="panelOpen">
                 <div class="filter-grid">
                     <div class="filter-group">
@@ -438,15 +438,18 @@ onMounted(() => {
 
 /* Bảng lọc overlay: thả xuống từ khối đầu danh sách, phủ lên danh sách
    + lưới mod chứ không đẩy nội dung. Mép trái thẳng với mép trái khối
-   đầu (tức mép trong khung danh sách). Bảng ôm vừa nội dung — 2 cột
-   230px + khe 16px + đệm 20px ≈ 496px. Giới hạn để không tràn mép phải
-   cửa sổ (mép trái bảng cách mép trái cửa sổ ~13px: cột trái bắt đầu
-   ~10px + viền 3px của khung; chừa 10px mép phải). */
+   đầu (tức mép trong khung danh sách). Rộng cố định 460px — đủ cho mỗi
+   nhóm chip xếp 2 hàng cân (loại 5+2, xếp 4+3, cả tiếng Việt), hẹp hơn
+   thì chip dồn 3 hàng, rộng hơn thì hàng đầu ôm gần hết, hàng sau trơ
+   1 chip. Giới hạn để không tràn mép phải cửa sổ (mép trái bảng cách
+   mép trái cửa sổ ~13px: cột trái bắt đầu ~10px + viền 3px của khung;
+   chừa 10px mép phải); cửa sổ hẹp quá thì bảng co theo giới hạn, chip
+   tự xuống thêm hàng. */
 .filter-panel {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
-    width: fit-content;
+    width: 460px;
     max-width: calc(100vw - 23px);
     z-index: 50;
     display: flex;
@@ -460,17 +463,16 @@ onMounted(() => {
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
-/* 2 cột chip: loại mod trái, sắp xếp phải. Mỗi cột rộng cố định 230px
-   để chip tự xuống hàng (không khóa rộng thì chip lại trải 1 hàng, bảng
-   phình lại ~850px như cũ). */
+/* 2 nhóm xếp dọc: loại mod trên, sắp xếp dưới. Mỗi nhóm rộng hết bảng
+   để chip xếp 2 hàng cân nhau. */
 .filter-grid {
     display: flex;
-    gap: 16px;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .filter-group {
-    width: 230px;
-    flex-shrink: 0;
+    width: 100%;
 }
 
 .filter-group-label {
