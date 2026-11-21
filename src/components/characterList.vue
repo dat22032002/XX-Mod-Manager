@@ -496,8 +496,14 @@ onMounted(() => {
    với hàng nhân vật — chip đang chọn nền vàng, chữ đậm. Nền chip dùng
    surface-container-lowest (#323232): theme tối của app đặt tên ngược
    với Material — "lowest" mới là màu sáng nhất, "highest" (#191919) còn
-   tối hơn nền bảng (#222222). */
+   tối hơn nền bảng (#222222).
+   Chip giãn đầy hàng (flex: 1 0 auto): mỗi hàng chip kéo dài ra tới
+   mép phải bảng, không còn khúc trống bên phải (Đạt chỉ ra 21/11 —
+   hàng 2 chỉ có 2 chip thì bên phải thừa cả khúc). flex-shrink: 0 để
+   chip không bị bóp nhỏ làm vỡ cách xếp 5+2 / 4+3; chữ căn giữa trong
+   chip cho chip giãn ra vẫn cân. */
 .filter-chip {
+    flex: 1 0 auto;
     padding: 6px 12px;
     border-radius: 8px;
     background-color: var(--s-color-surface-container-lowest);
@@ -506,6 +512,7 @@ onMounted(() => {
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
+    text-align: center;
 }
 
 .filter-chip.active {
