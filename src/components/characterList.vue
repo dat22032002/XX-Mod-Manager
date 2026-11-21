@@ -483,14 +483,12 @@ onMounted(() => {
     padding: 2px 2px 6px;
 }
 
-/* Chip xếp lưới, căn giữa từng hàng: hàng ngắn (vd hàng 2 của nhóm
-   loại chỉ có 2 chip) thì khoảng trống chia đều 2 bên thay vì dồn hết
-   sang phải thành 1 khúc dư (Đạt chỉ ra 21/11). Hàng đầy thì căn giữa
-   không khác gì căn trái vì chip đã gần hết chiều rộng. */
+/* Chip xếp lưới, căn lề trái (Đạt dặn 21/11 — bản căn giữa nhìn lạ).
+   Hàng ngắn (vd hàng 2 của nhóm loại chỉ có 2 chip) sẽ thừa bên phải,
+   nhưng bảng đã thu hẹp còn 420px nên khúc thừa nhỏ hơn trước nhiều. */
 .filter-chips {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
     gap: 6px;
 }
 
