@@ -136,7 +136,7 @@
                      một khối xám phẳng, không phân biệt được). Hàng và
                      nút giữ màu gốc #222222 nên nổi rõ trên nền đen. -->
                 <div style="width: fit-content;height: max-content;background-color: #000000;border: 2px solid var(--s-color-outline-variant);border-radius: 16px;padding: 10px 6px;box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);box-sizing: border-box;">
-                    <p style="margin: 0 20px 2px;font-size: 0.8rem;color: var(--s-color-outline);">{{ $t('editDialog.batch-hint') }}</p>
+                    <p style="margin: 0 20px 2px;font-size: 13px;color: var(--s-color-outline);">{{ $t('editDialog.batch-hint') }}</p>
                     <div class="OO-setting-bar">
                     <h3>{{ $t('editDialog.batch-set-character') }}</h3>
                     <div style="display: flex;align-items: center;gap: 8px;">
@@ -801,7 +801,7 @@ EventSystem.on('toggledMod', (mod) => {
    chữ đậm, cỡ như tiêu đề "Characters" của danh sách nhân vật. */
 .preset-title {
     font-weight: bolder;
-    font-size: 0.95rem;
+    font-size: 16px;
 }
 
 .left-column {
@@ -816,8 +816,16 @@ EventSystem.on('toggledMod', (mod) => {
     min-width: 44px;
     text-align: center;
     color: var(--s-color-on-surface-variant);
-    font-size: 0.85em;
+    font-size: 14px;
     align-self: center;
+}
+
+/* Chữ nút Refresh/Undo về bậc S (14px): chữ trong nút đang là 16px
+   của Sober × 0.93em của .font-hongmeng = 14.88px. Nút Undo chưa có
+   trong nhánh này (PR #92) nhưng ghi sẵn selector để gộp vào là đúng
+   thang luôn. */
+#refresh-button p, #undo-button p {
+    font-size: 14px;
 }
 
 /* Viên con nhộng chuyển kiểu thẻ (Dọc/Ngang), ở đầu trái thanh dưới

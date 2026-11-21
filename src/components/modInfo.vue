@@ -159,7 +159,7 @@ const openModFolder = async () => {
 <style scoped>
 h4 {
     text-align: left;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: bolder;
     margin-bottom: -7px;
     margin-left: 17px;
@@ -213,7 +213,7 @@ s-scroll-view {
 
 .mod-title {
     flex-shrink: 0;
-    font-size: 25px;
+    font-size: 24px;
     font-weight: bold;
     padding: 10px 0;
     text-align: left;
