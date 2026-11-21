@@ -121,10 +121,11 @@
     "close": "Close"
   },
   "stats": {
-    "line": "{total} mods · {enabled} enabled · {characters} chips"
+    "line": "{total} mods · {enabled} enabled · {characters} characters"
   },
   "filter": {
     "button": "Filter",
+    "characters": "Characters",
     "showCounts": "Show mod counts",
     "allTypes": "All types",
     "sortDefault": "Default",

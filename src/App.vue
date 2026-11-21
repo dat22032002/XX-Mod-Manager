@@ -24,6 +24,10 @@
                     </s-icon>
                 </s-icon-button>
             </div>
+            <!-- Cụm lọc của tab Mod (tìm kiếm + Bộ lọc + Tất cả + Đã chọn)
+                 Teleport từ ModCharacterFilter tới đây — ngang hàng nút
+                 thoát app, chỉ hiện khi đang ở tab Mod. -->
+            <div id="top-filter-bar" v-show="currentSection === 'mod'"></div>
             <div id="drag-bar" style="flex: 1;height: 100%;app-region: drag;"></div>
             <sectionSelector :sections="sections" @update:currentSection="handleSectionChange"></sectionSelector>
         </div>
@@ -212,6 +216,19 @@ waitInitIManager().then((iManager) => {
 
 .window-controls .window-control-btn + .window-control-btn {
     border-left: 1px solid var(--s-color-outline-variant);
+}
+
+/* Nơi chứa cụm lọc Teleport từ tab Mod: ngang hàng nút cửa sổ.
+   position relative để bảng lọc (absolute) neo theo đây; z-index để
+   bảng nổi lên trên nội dung bên dưới khi bung ra. */
+#top-filter-bar {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-left: 16px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 30;
 }
 
 .section-container {

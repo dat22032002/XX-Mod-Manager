@@ -333,9 +333,15 @@ const setModCardRef = (id) => (el) => {
 
 // 定义 handleFilterChange 方法
 const handleFilterChange = (character) => {
-    // A character chip was clicked: any active search is over.
+    // Chọn nhân vật (hàng trong danh sách dọc): tìm kiếm đang gõ hết hiệu lực.
     searchText.value = '';
     iManager.setCurrentCharacter(character);
+};
+
+// Danh sách nhân vật dọc (cột trái) gọi qua đây — giống hệt chọn nhân
+// vật cũ. modCardSection gọi qua ref (selectCharacter đã expose).
+const selectCharacter = (character) => {
+    handleFilterChange(character);
 };
 
 const handleFilterChangeToAll = () => {
@@ -369,8 +375,8 @@ const handleFilterChangeToSearch = (search) => {
 
 async function changeFilterToSearch(search){
     // Lọc danh sách thật nằm ở filteredMods (theo searchText); hàm này chỉ
-    // chuyển chip đang chọn khi từ khóa khớp đúng 1 nhân vật, để thanh
-    // trượt trong hàng phím lọc theo kịp từ khóa tìm kiếm.
+    // đổi nhân vật đang chọn khi từ khóa khớp đúng 1 nhân vật, để danh
+    // sách dọc vàng đúng hàng của nhân vật đó.
     // 搜索不区分大小写：统一转小写再比较
     const keyword = (search || '').trim().toLowerCase();
     if (keyword === '') {
@@ -792,7 +798,8 @@ function handleMarqueeClickCapture(event) {
 
 
 defineExpose({
-    loadPreset
+    loadPreset,
+    selectCharacter
 });
 </script>
 

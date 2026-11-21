@@ -1,8 +1,9 @@
 <template>
     <div class="main-container">
 
+        <div class="left-column">
         <leftMenu :tabs="presets" :translatedTabs="translatedPresets" @tabChange="handlePresetChange"
-            ref="presetSelectorRef">
+            ref="presetSelectorRef" fit-content>
             <template #up-button>
                 <s-icon type="arrow_drop_up"></s-icon>
             </template>
@@ -44,6 +45,8 @@
                 </s-tooltip>
             </template>
         </leftMenu>
+        <characterList @itemChange="handleCharacterListChange" />
+        </div>
         <modCardManager id="mod-card-manager" :compactMode="compactMode" :cardWidth="cardWidth"
             :cardLayout="cardLayout" :fullImage="cardFullImage" ref="modCardManagerRef">
         </modCardManager>
@@ -238,6 +241,7 @@
 
 <script setup>
 import modCardManager from '../components/modCardManager.vue';
+import characterList from '../components/characterList.vue';
 import leftMenu from '../components/leftMenu.vue';
 import modInfo from '../components/modInfo.vue';
 import chipRadioBar from '../components/chipRadioBar.vue';
@@ -664,6 +668,13 @@ onUnmounted(() => {
 });
 
 const presetSelectorRef = useTemplateRef('presetSelectorRef');
+const modCardManagerRef = useTemplateRef('modCardManagerRef');
+
+// Bấm tên nhân vật trong danh sách dọc: lọc lưới mod theo nhân vật đó
+// (giống hệt bấm chip nhân vật cũ).
+const handleCharacterListChange = (character) => {
+    modCardManagerRef.value?.selectCharacter(character);
+};
 
 //#endregion
 
@@ -764,6 +775,16 @@ EventSystem.on('toggledMod', (mod) => {
     flex-direction: row;
     align-items: stretch;
     justify-content: flex-start;
+}
+
+/* Cột trái: khung preset ngắn (vừa đủ số preset) + danh sách nhân vật
+   dọc chiếm phần còn lại. */
+.left-column {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    flex-shrink: 0;
+    height: calc(100% - 20px);
 }
 
 .zoom-label {

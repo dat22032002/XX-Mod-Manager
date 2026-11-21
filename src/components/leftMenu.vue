@@ -23,14 +23,14 @@
 </div> -->
 
 <template>
-    <div class="left-menu OO-box">
+    <div class="left-menu OO-box" :class="{ 'fit-content': fitContent }">
         <div class="OO-button-box" id="up-button">
             <slot name="up-button">
                 <s-icon type="arrow_drop_up"></s-icon>
             </slot>
         </div>
 
-        <div style="position: relative; overflow-y: auto; overflow-x: hidden; height: calc(100% - 64px);">
+        <div :style="tabsContainerStyle">
             <div v-for="(tab, index) in tabs" :key="index" :class="['tab', { active: currentTab === tab }]"
                 @click="selectTab(tab, index)" :ref="setTabRef(tab)">
                 <p> {{ translatedTabs[index] || tab }} </p>
@@ -50,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 const props = defineProps({
     tabs: {
         type: Array,
@@ -60,8 +60,21 @@ const props = defineProps({
         type: Array,
         required: false,
         default: () => []
+    },
+    // fitContent: menu ngắn lại vừa đủ số tab (không căng hết chiều cao),
+    // danh sách tab lăn khi quá 240px. Tab Mod dùng để chừa chỗ cho danh
+    // sách nhân vật dọc ở dưới; Help/Setting giữ nguyên căng hết.
+    fitContent: {
+        type: Boolean,
+        default: false
     }
 });
+
+// Kiểu khung danh sách tab: mặc định căng hết chiều cao menu (trừ 2 nút
+// trên/dưới 32px); fitContent thì cao theo nội dung, tối đa 240px.
+const tabsContainerStyle = computed(() => props.fitContent
+    ? { position: 'relative', overflowY: 'auto', overflowX: 'hidden', height: 'auto', maxHeight: '240px' }
+    : { position: 'relative', overflowY: 'auto', overflowX: 'hidden', height: 'calc(100% - 64px)' });
 
 const emit = defineEmits(['tabChange']);
 const currentTab = ref(props.tabs[0]);
@@ -140,6 +153,12 @@ defineExpose({
     min-width: 100px;
     max-width: 200px;
     height: calc(100% - 20px)
+}
+
+/* fitContent: menu co lại vừa nội dung (tab + 2 nút trên/dưới), phần
+   đệm flex ở giữa co về 0 vì không còn chỗ trống. */
+.left-menu.fit-content {
+    height: fit-content;
 }
 
 .tab {

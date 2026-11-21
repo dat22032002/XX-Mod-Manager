@@ -121,10 +121,11 @@
     "close": "Đóng"
   },
   "stats": {
-    "line": "{total} mod · {enabled} đang bật · {characters} chip"
+    "line": "{total} mod · {enabled} đang bật · {characters} nhân vật"
   },
   "filter": {
     "button": "Bộ lọc",
+    "characters": "Nhân vật",
     "showCounts": "Hiện số lượng mod",
     "allTypes": "Mọi loại",
     "sortDefault": "Mặc định",

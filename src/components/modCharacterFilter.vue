@@ -1,6 +1,15 @@
-<!-- 这个是原本的上面的横幅，但是现在我将其封装起来，只留下接口 -->
+<!-- Hàng lọc giờ trống: toàn bộ cụm lọc (tìm kiếm + Bộ lọc + Tất cả
+     + Đã chọn + bảng lọc) Teleport lên hàng trên cùng của cửa sổ
+     (ngang nút thoát app) — component vẫn gắn ở lưới mod nên trạng
+     thái + sự kiện không đổi. Hàng chip nhân vật đã bỏ, thay bằng
+     danh sách dọc ở cột trái (characterList.vue). -->
 <template>
     <div class="filter-row">
+        <!-- defer: khung đích nằm ở App.vue (component khác) — đợi cả cây
+             gắn xong mới chuyển nội dung sang, tránh lúc gắn sớm khung
+             đích chưa sẵn sàng. -->
+        <Teleport to="#top-filter-bar" defer>
+            <div class="top-filter-row">
         <!-- Search box is slanted like the filter chips (outer skew -20deg),
              with the icon + input counter-skewed back so the text stays
              straight. (Skewing the input itself would slant/clip the text,
@@ -94,21 +103,14 @@
                 <s-switch id="chip-counts-switch" :checked="showChipCounts" @change="toggleChipCounts"></s-switch>
             </div>
         </div>
-        <horizontalScrollBar class="chip-radio-bar" id="character-filter-bar" style="height: fit-content;">
-            <!-- Chỉ còn tag nhân vật — Tất cả / Đã chọn đã dời ra nút
-                 cố định bên trái (xem trên). -->
-            <chipButton v-for="(item, index) in characterList" :key="index" :text="chipLabel(item)" :filterCharacter="item"
-                @click="updateSliderByEvent($event)"></chipButton>
-            <div class="slider OO-color-gradient" :style="sliderStyle" v-show="currentFilter !== 'all' && currentFilter !== 'selected'"></div>
-        </horizontalScrollBar>
+            </div>
+        </Teleport>
     </div>
 </template>
 
 <script setup lang="ts">
-import horizontalScrollBar from './horizontalScrollBar.vue';
-import { ref, reactive, watch, Ref, onMounted, onBeforeUnmount, nextTick, computed, useTemplateRef } from 'vue';
+import { ref, watch, onMounted, nextTick, computed, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import chipButton from './chipButton.vue';
 import chipRadioBar from './chipRadioBar.vue';
 import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
 import { selectedModIdSet } from '../../helper/SelectedMods';
@@ -117,13 +119,11 @@ import IManager from '../../electron/IManager';
 const iManager = new IManager();
 
 import { g_config_vue } from '../../electron/IManager';
-import { g_data_vue } from '../../electron/IManager';
 
-const lastClickedElement = ref<HTMLElement | null>(null);
 const searchInput = ref<string>('');
 // Lọc nhân vật đang chọn: 'all' | 'selected' | tên nhân vật. Nút Tất
-// cả / Đã chọn vàng theo biến này; thanh vàng chỉ hiện khi đang chọn
-// 1 nhân vật cụ thể (không thì nó không có chip nào để bám vào).
+// cả / Đã chọn vàng theo biến này; nhân vật cụ thể thì danh sách dọc
+// vàng hàng của nhân vật đó.
 const currentFilter = ref<string>('all');
 
 // Nút Bộ lọc: bảng overlay bung hay đóng — trạng thái chỉ trong phiên
@@ -208,13 +208,12 @@ function handleSortChange(sort) {
 }
 
 const language = g_config_vue.language;
-const characterList = g_data_vue.characterList as Ref<string[]>;
 
-//-=============== Hiện số lượng mod trên chip ===============//
-// Công tắc trong bảng lọc (Đạt dặn 20/11): bật thì mỗi chip nhân vật hiện
-// thêm số mod của nhân vật đó trong ngoặc, vd Ellen (24); Tất cả hiện
-// tổng số mod, Đã chọn hiện số mod đang bật vàng. Tắt thì chip về tên
-// trần như cũ. Lựa chọn lưu trong config nên mở app lại vẫn nhớ.
+//-=============== Hiện số lượng mod ===============//
+// Công tắc trong bảng lọc (Đạt dặn 20/11): bật thì mỗi nhân vật trong
+// danh sách dọc hiện thêm số mod trong ngoặc, vd Ellen (24); Tất cả hiện
+// tổng số mod, Đã chọn hiện số mod đang bật vàng. Tắt thì về tên trần
+// như cũ. Lựa chọn lưu trong config nên mở app lại vẫn nhớ.
 // Số đếm theo TOÀN BỘ kho mod (không theo lọc tag/tìm kiếm đang bật)
 // để con số ổn định, đúng nghĩa "nhân vật này có bao nhiêu mod".
 const showChipCounts = g_config_vue.showChipCounts;
@@ -225,22 +224,10 @@ const showChipCounts = g_config_vue.showChipCounts;
 // computed dưới đây tính lại (giống cách modCardManager tải lại lưới).
 const modListVersion = ref(0);
 EventSystem.on(EventType.modListChanged, () => { modListVersion.value++; });
-const modCountsByCharacter = computed(() => {
-    void modListVersion.value;
-    const counts = {};
-    for (const mod of iManager.data.modList) {
-        const c = mod.character;
-        counts[c] = (counts[c] || 0) + 1;
-    }
-    return counts;
-});
 const totalModCount = computed(() => {
     void modListVersion.value;
     return iManager.data.modList.length;
 });
-const chipLabel = (name) => showChipCounts.value
-    ? `${name} (${modCountsByCharacter.value[name] || 0})`
-    : name;
 const allFilterLabel = computed(() => showChipCounts.value
     ? `${t('buttons.all')} (${totalModCount.value})`
     : t('buttons.all'));
@@ -251,13 +238,7 @@ function toggleChipCounts() {
     iManager.config.showChipCounts = !g_config_vue.showChipCounts.value;
     saveFilterSettings();
 }
-// Chip đổi rộng khi thêm/bớt số lượng → thanh vàng bám sai vị trí cũ,
-// đo lại sau khi Vue vẽ xong (giống lúc đổi ngôn ngữ).
-watch(showChipCounts, () => { nextTick(repositionSlider); });
-watch(language, (newValue) => {
-    // 刷新一下滑块，因为不同语言的长度不一样
-    const elment = lastClickedElement.value;
-    if (elment) updateSlider(elment);
+watch(language, () => {
     // Chữ trên chip lọc/xếp đổi độ dài theo ngôn ngữ nên đặt lại thanh
     // trượt 2 hàng đó nếu bảng đang mở (bảng đóng thì lần bung sau đo lại).
     if (panelOpen.value) {
@@ -268,7 +249,7 @@ watch(language, (newValue) => {
             if (sortBarRef.value) sortBarRef.value.selectItemByName(sort);
         });
     }
-}, { immediate: true });
+});
 
 //-=============== 定义事件 ===============
 // 1. itemChange事件，发生在筛选项发生变化时
@@ -283,34 +264,6 @@ const emit = defineEmits([
     'filterChangeToSearch'
 ]);
 
-//-=============== 滑块 ===============
-const sliderStyle = reactive({
-    width: '0px',
-    left: '0px'
-});
-const updateSlider = (element) => {
-    //debug
-    // console.log(`updateSlider: `, element)
-    if (!element) return;
-    lastClickedElement.value = element;
-    sliderStyle.width = `${element.offsetWidth}px`;
-    sliderStyle.left = `${element.offsetLeft}px`;
-    // Lần đo đầu tiên lúc mới mở app có thể chạy khi bố cục chưa ổn định
-    // (chữ chưa tải xong) nên thanh vàng bị lệch khỏi tag; đo lại sau 2 khung
-    // hình để nó khớp đúng vị trí tag. Chỉ đo lại khi tag đó vẫn đang chọn.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (lastClickedElement.value === element) {
-            sliderStyle.width = `${element.offsetWidth}px`;
-            sliderStyle.left = `${element.offsetLeft}px`;
-        }
-    }));
-};
-
-// Chữ tải xong / cửa sổ đổi kích thước đều có thể làm tag đổi rộng → đo lại
-// thanh vàng cho khớp.
-const repositionSlider = () => {
-    if (lastClickedElement.value) updateSlider(lastClickedElement.value);
-};
 onMounted(() => {
     // Config cũ còn lưu loại 'outfit' (tên cũ trước khi có tag): đổi 1 lần
     // thành 'character' cho khớp tag mới.
@@ -318,75 +271,27 @@ onMounted(() => {
         iManager.config.modTypeFilter = 'character';
         saveFilterSettings();
     }
-    if (document.fonts && document.fonts.ready) {
-        document.fonts.ready.then(repositionSlider);
-    }
-    window.addEventListener('resize', repositionSlider);
     // Lúc mới mở app, đặt trạng thái chọn theo nhân vật đang chọn: Tất
-    // cả / Đã chọn thì chỉ vàng nút cố định (thanh vàng ẩn vì không có
-    // chip nhân vật nào để bám); nhân vật cụ thể thì nhảy thanh tới tag.
+    // cả / Đã chọn thì vàng nút cố định; nhân vật cụ thể thì nút Tất cả /
+    // Đã chọn hết vàng (danh sách dọc tự vàng theo currentCharacter).
     nextTick(() => {
         const current = iManager.temp.currentCharacter || 'all';
         if (current === 'all' || current === 'selected') {
             currentFilter.value = current;
-            lastClickedElement.value = null;
         } else {
             selectItemByName(current);
         }
     });
 });
-onBeforeUnmount(() => {
-    window.removeEventListener('resize', repositionSlider);
-});
 
-// Bấm nút cố định Tất cả / Đã chọn: đổi lọc, vàng nút đó, ẩn thanh
-// vàng (không còn chip nhân vật nào đang chọn), bỏ đánh dấu các tag
-// nhân vật. Bấm lại nút đang chọn thì không làm gì.
+// Bấm nút cố định Tất cả / Đã chọn: đổi lọc, vàng nút đó (danh sách
+// dọc hết vàng hàng nào vì currentCharacter không còn là nhân vật).
+// Bấm lại nút đang chọn thì không làm gì.
 const selectFixedFilter = (kind) => {
     if (currentFilter.value === kind) return;
     currentFilter.value = kind;
-    lastClickedElement.value = null;
-    const bar = document.getElementById('character-filter-bar');
-    if (bar) {
-        for (const child of bar.children as unknown as HTMLElement[]) {
-            child.setAttribute('checked', 'false');
-        }
-    }
     if (kind === 'all') emit('filterChangeToAll');
     else emit('filterChangeToSelected');
-};
-
-const updateSliderByEvent = (e) => {
-    const elment = e.currentTarget;
-    //debug
-    // console.log(`updateSlider: `, elment)
-    if (!elment) return;
-    // debug
-    // console.log(`updateSliderByEvent: `, elment, lastClickedElement.value)
-
-    // Thanh tag giờ chỉ còn tag nhân vật (Tất cả / Đã chọn đã dời ra
-    // nút cố định, bấm qua selectFixedFilter).
-    const filterCharacter = elment.getAttribute('filterCharacter');
-    // 如果 lastClickedElement和当前点击的元素相同，则不处理
-    if (lastClickedElement.value != elment && filterCharacter) {
-        currentFilter.value = filterCharacter;
-        emit('itemChange', filterCharacter);
-    }
-
-    // 将element的checked属性设置为true，并且将其他的设置为false
-    const children = elment.parentElement?.children;
-    if (!children) return;
-    for (let i = 0; i < children.length; i++) {
-        const child = children[i] as HTMLElement;
-        if (child !== elment) {
-            child.setAttribute('checked', 'false');
-        } else {
-            child.setAttribute('checked', 'true');
-        }
-    }
-
-    // 更新滑块
-    updateSlider(elment);
 };
 
 //-=============== 搜索按钮 ===============
@@ -402,52 +307,22 @@ const handleSearchInput = (e) => {
 }
 
 //-=============== 对外的接口 ===============
+// modCardManager gọi khi currentCharacter đổi từ bên ngoài (đổi preset,
+// đặt nhân vật hàng loạt, tìm kiếm khớp đúng 1 nhân vật): đồng bộ nút
+// Tất cả / Đã chọn theo lựa chọn mới.
 const selectItemByName = (name) => {
-    // 对于all-filter-chip和selected-filter-chip的处理
-    if (name === 'all') {
-        const allFilterChip = document.getElementById('all-filter-chip');
-        if (allFilterChip) {
-            allFilterChip.click();
-        }
-        return;
-    } else if (name === 'selected') {
-        const selectedFilterChip = document.getElementById('selected-filter-chip');
-        if (selectedFilterChip) {
-            selectedFilterChip.click();
-        }
+    // Tất cả / Đã chọn: bấm nút cố định (đang Teleport ở hàng trên,
+    // vẫn tìm được bằng id) — nút tự phát sự kiện đổi lọc.
+    if (name === 'all' || name === 'selected') {
+        const chip = document.getElementById(name === 'all' ? 'all-filter-chip' : 'selected-filter-chip');
+        if (chip) chip.click();
         return;
     }
-    const index = characterList.value.indexOf(name);
-    if (index === -1) return;
-    // Tag nhân vật giờ là con thứ index của thanh (Tất cả / Đã chọn đã
-    // dời ra ngoài thanh nên không còn +2 nữa; thanh trượt là con cuối,
-    // sau các chip, nên không lệch chỉ số).
-    // 主要的目的是滑块同步，lastClickedElement.value = elment
-    const characterFilterBar = document.getElementById("character-filter-bar");
-    if (!characterFilterBar) return;
-    const elment = characterFilterBar.children[index] as HTMLElement;
-    if (!elment) return;
-    // console.log(`selectItemByName: `, name, index, elment)
-    lastClickedElement.value = elment;
-    // 直接调用updateSliderByEvent
-    updateSliderByEvent({ currentTarget: elment });
+    // Nhân vật: chỉ cập nhật currentFilter để nút Tất cả / Đã chọn hết
+    // vàng; danh sách dọc tự vàng theo currentCharacter nên không cần
+    // bấm gì thêm, và không phát itemChange (lọc đã đổi rồi).
+    currentFilter.value = name;
 };
-
-// EventSystem.on(EventType.currentCharacterChanged, (character) => {
-//     // 对于all-filter-chip和selected-filter-chip的处理
-//     if (character === 'all') {
-//         const allFilterChip = document.getElementById('all-filter-chip');
-//         if (allFilterChip) {
-//             allFilterChip.click();
-//         }
-//     } else if (character === 'selected') {
-//         const selectedFilterChip = document.getElementById('selected-filter-chip');
-//         if (selectedFilterChip) {
-//             selectedFilterChip.click();
-//         }
-//     }
-//     selectItemByName(character);
-// });
 
 
 defineExpose({
@@ -467,23 +342,16 @@ defineExpose({
 </script>
 
 <style scoped>
+/* Hàng lọc giờ trống (nội dung Teleport lên hàng trên) nên div gốc
+   không chiếm chỗ — chỉ còn là nơi gắn component. */
 .filter-row {
+    display: contents;
+}
+
+/* Cụm lọc Teleport lên hàng trên: xếp ngang như hàng lọc cũ. */
+.top-filter-row {
     display: flex;
     align-items: center;
-    width: 100%;
-    /* Bảng lọc overlay định vị theo hàng này (absolute) và phải nổi lên
-       trên lưới mod ở dưới (z-index). */
-    position: relative;
-    z-index: 30;
-    /* Khe dưới hàng lọc với lưới thẻ mod ở dưới — trước đây 2 khối dí
-       sát nhau quá (Đạt báo 19/11). */
-    margin-bottom: 10px;
-    /* Không để khe: mép trái thanh tag đã nghiêng cùng góc 20° với ô
-    tìm kiếm (xem .chip-radio-bar) nên hai mép song song, thanh tag có
-    thể dí sát ô tìm kiếm mà không chèn lên nhau — Đạt muốn sát vào
-    (19/11). Thanh tag còn lấn trái thêm 7px bằng margin; tag đầu ngồi
-    cách ô tìm kiếm ~9px (đủ nhìn thấy khe, xem padding-left ở dưới). */
-    gap: 0;
 }
 
 .search-box-fixed {
@@ -608,19 +476,20 @@ defineExpose({
     background: transparent;
 }
 
-/* Bảng lọc overlay: thả xuống từ nút Bộ lọc, phủ lên lưới mod chứ
-   không đẩy nội dung. Mép trái thẳng với mép trái nút (= ô tìm kiếm
-   160px + khe 8px; đổi rộng ô tìm kiếm thì đổi cả số này). Bảng ôm
-   vừa nội dung (chỉ rộng bằng hàng chip dài nhất cộng đệm) — trước
-   đây kéo dài hết hàng lọc nên thừa cả một khoảng trống bên phải
-   (Đạt báo 19/11). Giới hạn để không tràn mép phải hàng lọc; cửa sổ
-   hẹp quá thì hàng chip tự lăn ngang như cũ. */
+/* Bảng lọc overlay: thả xuống từ nút Bộ lọc (giờ ở hàng trên), phủ lên
+   lưới mod chứ không đẩy nội dung. Mép trái thẳng với mép trái nút
+   (= ô tìm kiếm 160px + khe 8px tính từ mép trái khung chứa ở hàng
+   trên; đổi rộng ô tìm kiếm thì đổi cả số này). Bảng ôm vừa nội dung
+   (chỉ rộng bằng hàng chip dài nhất cộng đệm). Giới hạn để không tràn
+   mép phải cửa sổ (mép trái bảng cách mép trái cửa sổ ~354px: đệm đầu
+   20 + lề nút cửa sổ 8 + nút cửa sổ 142 + khe 16 + ô tìm kiếm 168;
+   chừa 10px mép phải); cửa sổ hẹp quá thì hàng chip tự lăn ngang như cũ. */
 .filter-panel {
     position: absolute;
     top: calc(100% + 8px);
     left: 168px;
     width: fit-content;
-    max-width: calc(100% - 168px);
+    max-width: calc(100vw - 364px);
     z-index: 50;
     display: flex;
     flex-direction: column;
@@ -675,60 +544,4 @@ defineExpose({
     flex-shrink: 0;
 }
 
-.chip-radio-bar {
-    display: flex;
-    align-items: center;
-    overflow-x: auto;
-    overflow-y: hidden;
-    position: relative;
-    height: fit-content;
-    /* Lề trái 16px: tag đầu (lúc chưa kéo) ngồi cách ô tìm kiếm ~9px,
-       vừa đủ nhìn thấy khe mà vẫn sát như Đạt muốn; đồng thời giữ tag
-       đầu nằm phải đường cắt nghiêng ở dưới (nó cách đường cắt 3px). */
-    padding: 3px 10px 3px 16px;
-    flex: 1;
-    min-width: 0;
-    min-height: 35px;
-    /* Cách nút Bộ lọc 8px (trước đây lấn trái 7px dí sát — từ khi có
-       nút Bộ lọc ở giữa, thanh tag dí sát nút quá, Đạt báo 19/11).
-       Mép cắt nghiêng vẫn song song với mép phải nút nên không chèn
-       lên nhau. */
-    margin-left: 8px;
-    /* Mép trái cắt nghiêng theo ô tìm kiếm (cùng góc 20°): khi lăn
-       chuột, tag trượt vào từ phải bị cắt theo đường này, trông như
-       chui ra sau mép ô tìm kiếm. Đường cắt nằm cách mép phải ô tìm
-       kiếm 6px suốt chiều cao — đủ nhìn thấy khe. Đường cắt cũ
-       (7.5px/-7.5px) tính cho thời khe còn 18px; từ khi thanh dí sát
-       ô (1.5.13) nó trùng gần như đúng mép ô (chỉ 0.5px ở mép trên)
-       nên tag lúc lăn trông như dí sát vào ô. Tag đầu lúc chưa kéo
-       vẫn hiện đủ (mép trái của nó nằm phải đường cắt 3px nhờ lề
-       trái 16px ở trên). */
-    clip-path: polygon(14px 0, 100% 0, 100% 100%, -1px 100%);
-
-    >* {
-        margin-right: 5px;
-        transition: all 0.1s ease-in-out;
-    }
-}
-
-.slider {
-    /* height: 35px; */
-    transform: skew(-20deg);
-    z-index: 0;
-    padding: 0px 16px;
-    box-sizing: border-box;
-    border: 1px solid #00000000;
-    border-radius: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-
-    position: absolute;
-    height: 35px;
-    top: 3px;
-    transform: skew(-20deg);
-    background-color: var(--s-color-primary);
-    transition: left 0.3s, width 0.3s;
-
-    will-change: left, width;
-}
 </style>
