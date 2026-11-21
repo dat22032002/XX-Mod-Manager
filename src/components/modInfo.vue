@@ -290,6 +290,17 @@ s-scroll-view {
 
 .hotkey {
     height: 40px;
+    /* Đường kẻ phân cách giữa các hàng phím tắt (Đạt dặn 21/11 — hàng
+       không còn nền riêng sau thang xám nên tên/phím khó ghép cặp):
+       kẻ 1px #303030 (màu viền mỏng của app) ở đáy hàng, hàng cuối
+       không kẻ. border-box để hàng vẫn cao đúng 40px (kẻ nằm trong
+       40px, không đội thêm). */
+    box-sizing: border-box;
+    border-bottom: 1px solid #303030;
+}
+
+.hotkey:last-child {
+    border-bottom: none;
 }
 
 /* Vùng lăn căng hết khung dưới (flex); không còn margin âm — margin
