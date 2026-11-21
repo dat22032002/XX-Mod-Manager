@@ -779,10 +779,14 @@ EventSystem.on('toggledMod', (mod) => {
 
 /* Cột trái: khung preset ngắn (vừa đủ số preset) + danh sách nhân vật
    dọc chiếm phần còn lại. */
+/* Cột trái: 226px = đúng tổng rộng khung preset (rộng 200 + đệm
+   10px mỗi bên + viền 3px mỗi bên của OO-box). Để 200px thì khung
+   preset lòi ra 26px sang phải, đụng vào khung lưới mod (Đạt báo
+   21/11 trên bản test6). */
 .left-column {
     display: flex;
     flex-direction: column;
-    width: 200px;
+    width: 226px;
     flex-shrink: 0;
     height: calc(100% - 20px);
 }

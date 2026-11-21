@@ -3,7 +3,7 @@
      vàng như nút Tất cả / Đã chọn. Số trong ngoặc là số mod của nhân
      vật (theo công tắc "Hiện số lượng mod" trong bảng lọc). -->
 <template>
-    <div class="character-list">
+    <div class="character-list OO-box">
         <div class="character-list-title">{{ $t('filter.characters') }}</div>
         <div class="character-list-rows">
             <div v-for="name in characterList" :key="name" class="character-row"
@@ -60,10 +60,12 @@ const selectCharacter = (name) => {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    /* Vạch ngăn với khung preset ở trên. */
-    border-top: 1px solid var(--s-color-outline-variant);
+    /* Khung giống hệt khung preset (OO-box: viền 3px + đệm 10px +
+       bo 20px). border-box để tổng rộng = đúng rộng cột 226px, không
+       lòi sang phải như khung preset từng bị. Đệm của OO-box thay cho
+       padding riêng; vạch ngăn cũ bỏ vì đã có khung. */
+    box-sizing: border-box;
     margin-top: 8px;
-    padding: 8px 10px 0;
 }
 
 .character-list-title {
@@ -78,10 +80,13 @@ const selectCharacter = (name) => {
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    /* Chặn lăn chuột "tràn" ra ngoài: lăn tới cuối danh sách thì dừng
+       ở đó, không kéo cả cửa sổ app trượt lên (trang app vốn lăn
+       được, scrollIntoView từng kéo cả hàng trên trôi khỏi màn hình). */
+    overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding-bottom: 10px;
 }
 
 .character-row {
