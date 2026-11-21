@@ -2,7 +2,7 @@
     <!-- Khung phải = 2 khung RIÊNG ngang hàng (Đạt đính chính 20/11:
          KHÔNG phải khung ngoài lồng 2 khung nhỏ bên trong — khung chính
          tự chia đôi). Gốc chỉ là khung bọc trơn xếp dọc, không viền. -->
-    <div class="mod-info-panel" ref="modInfoRef" :class="{ 'mod-fading': fading }">
+    <div class="mod-info-panel" ref="modInfoRef">
         <!-- Khung trên: tên + ảnh + tag. Tag nằm DƯỚI hình, nền xám
              giống ô tìm kiếm; phím tắt ở khung dưới riêng nên không
              đè lên tag. -->
@@ -114,21 +114,8 @@ onUnmounted(() => {
     window.removeEventListener('keydown', onShowcaseKeydown);
 });
 
-// Hiệu ứng đổi mod (Đạt duyệt 21/11): khung phải mờ đi 75ms rồi mờ
-// lại 75ms khi bấm sang mod khác — nội dung mới hiện ra sau nhịp mờ,
-// nhìn mượt thay vì đổi 1 phát. Giữ lớp mờ 125ms (dài hơn 75ms của
-// transition một nhịp khung hình) để nhịp mờ đi chạy xong hẳn rồi mới
-// mờ lại — giữ đúng 75ms thì nhịp mờ đi bị cắt ngang trước khi chạm 0.
-// Bấm liên tục thì hẹn giờ chạy lại từ đầu nên khung giữ mờ cho tới khi
-// ngừng bấm rồi mới mờ lại.
-const fading = ref(false);
-let fadeTimer = null;
-
 watch(() => props.mod, (newMod) => {
     closeShowcase();
-    fading.value = true;
-    clearTimeout(fadeTimer);
-    fadeTimer = setTimeout(() => { fading.value = false; }, 125);
     if (newMod == null) {
         img.value = null;
         return;
@@ -204,13 +191,6 @@ s-scroll-view {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    /* Hiệu ứng đổi mod (Đạt duyệt 21/11): mờ đi/mờ lại 75ms mỗi chiều
-       khi bấm sang mod khác (lớp .mod-fading do watch props.mod gắn). */
-    transition: opacity 75ms ease;
-}
-
-.mod-info-panel.mod-fading {
-    opacity: 0;
 }
 
 /* Khung trên: ảnh + tag. Chiều cao theo nội dung (ảnh 200 + tag). */
