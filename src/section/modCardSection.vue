@@ -48,10 +48,11 @@
                 </s-tooltip>
             </template>
         </leftMenu>
-        <characterList @itemChange="handleCharacterListChange" @search="handleCharacterSearch" />
+        <characterList ref="characterListRef" @itemChange="handleCharacterListChange" @search="handleCharacterSearch" />
         </div>
         <modCardManager id="mod-card-manager" :compactMode="compactMode" :cardWidth="cardWidth"
-            :cardLayout="cardLayout" :fullImage="cardFullImage" ref="modCardManagerRef">
+            :cardLayout="cardLayout" :fullImage="cardFullImage" ref="modCardManagerRef"
+            @filtersCleared="handleFiltersCleared">
         </modCardManager>
         <modInfo :mod="displayModRef"></modInfo>
     </div>
@@ -672,6 +673,7 @@ onUnmounted(() => {
 
 const presetSelectorRef = useTemplateRef('presetSelectorRef');
 const modCardManagerRef = useTemplateRef('modCardManagerRef');
+const characterListRef = useTemplateRef('characterListRef');
 
 // Bấm tên nhân vật trong danh sách dọc: lọc lưới mod theo nhân vật đó
 // (giống hệt bấm chip nhân vật cũ).
@@ -683,6 +685,15 @@ const handleCharacterListChange = (character) => {
 // (khớp đầu tên, đúng 1 nhân vật mới lọc — luật ở filteredMods).
 const handleCharacterSearch = (text) => {
     modCardManagerRef.value?.applySearch(text);
+};
+
+// Nút "Xóa bộ lọc" trên màn hình trống (modCardManager phát
+// 'filtersCleared'): ô tìm kiếm trong characterList cũng phải xóa chữ
+// — watcher currentCharacter ở đó chỉ chạy khi nhân vật ĐỔI, mà lúc gõ
+// tìm không ra mod nào nhân vật vẫn đang là Tất cả nên không đổi, ô
+// tìm sẽ giữ chữ cũ trong khi lưới đã về đủ mod.
+const handleFiltersCleared = () => {
+    characterListRef.value?.clearSearchInput();
 };
 
 //#endregion

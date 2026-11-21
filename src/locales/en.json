@@ -137,7 +137,9 @@
     "sortTimeDesc": "Newest first",
     "sortTimeAsc": "Oldest first",
     "sortSizeDesc": "Largest first",
-    "sortSizeAsc": "Smallest first"
+    "sortSizeAsc": "Smallest first",
+    "empty": "No mods found",
+    "clearFilters": "Clear filters"
   },
   "modTag": {
     "character": "Character",

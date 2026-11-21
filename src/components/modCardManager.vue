@@ -13,6 +13,17 @@
                 <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true
                     :compactMode="compactMode" :cardWidth="effectiveCardWidth" :cardLayout="cardLayout" :fullImage="fullImage"
                     :ref="setModCardRef(mod.id)" />
+                <!-- Lưới lọc ra 0 mod thì hiện chữ + nút xóa bộ lọc thay
+                     vì để trống trơn (Đạt dặn 21/11). Chỉ hiện sau khi
+                     đã tải xong danh sách (modsLoaded) để lúc mở app
+                     chưa tải xong không nháy lên. @mousedown.stop để bấm
+                     nút không kéo khung bôi đen của lưới. -->
+                <div v-if="modsLoaded && filteredMods.length === 0" id="empty-state" class="empty-state" @mousedown.stop>
+                    <div class="empty-state-text">{{ $t('filter.empty') }}</div>
+                    <s-button id="clear-filters-button" @click="clearAllFilters" class="OO-button font-hongmeng">
+                        {{ $t('filter.clearFilters') }}
+                    </s-button>
+                </div>
                 <!-- Khung bôi đen chọn mod (kéo như Windows): vàng = chọn
                      Áp Dụng, giữ Ctrl thì xanh = chọn hàng loạt. -->
                 <div v-if="marquee.active" id="marquee-box" :class="marquee.batch ? 'batch' : 'apply'"
@@ -56,6 +67,10 @@ const props = defineProps({
 
 // 定义 mods 变量
 const mods = ref([]);
+
+// Đã tải xong danh sách mod lần đầu chưa — màn hình trống chỉ hiện sau
+// khi tải xong, không thì lúc mở app (mods còn rỗng) nó nháy lên.
+const modsLoaded = ref(false);
 
 const currentCharacter = g_temp_vue.currentCharacter;
 
@@ -292,6 +307,7 @@ function updateWindow() {
 // 定义 loadMods 方法
 const loadMods = async () => {
     mods.value = iManager.data.modList
+    modsLoaded.value = true;
 
     // 检查是否选择了预设，如果选择了预设，则加载预设
     // preset Mặc định cũng được khôi phục từ config (defaultPresetModIds)，
@@ -320,6 +336,20 @@ const modCardRefs = ref({});
 // 定义 setModCardRef 方法
 const setModCardRef = (id) => (el) => {
     modCardRefs.value[id] = el;
+};
+
+// Xóa hết bộ lọc về mặc định (nút trên màn hình trống): xóa chữ tìm
+// kiếm, nhân vật về Tất cả, loại về All types, xếp về Default. Phát
+// 'filtersCleared' để modCardSection bảo characterList xóa chữ trong ô
+// tìm — watcher currentCharacter ở đó chỉ chạy khi nhân vật ĐỔI, mà lúc
+// gõ tìm không ra mod nào nhân vật vẫn đang là Tất cả nên không đổi.
+const emit = defineEmits(['filtersCleared']);
+const clearAllFilters = () => {
+    applySearch('');
+    iManager.config.modTypeFilter = 'all';
+    iManager.config.modSortBy = 'default';
+    iManager.saveConfig();
+    emit('filtersCleared');
 };
 
 // 定义 handleFilterChange 方法
@@ -826,6 +856,26 @@ defineExpose({
 #mod-container[data-layout="vertical"] {
     grid-template-columns: repeat(auto-fill, var(--card-width, 250px));
     grid-auto-rows: calc(var(--card-width, 250px) * 1.4);
+}
+
+/* Màn hình trống khi lọc ra 0 mod: chữ + nút xóa bộ lọc, chiếm hết
+   1 hàng lưới, căn giữa. */
+.empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 280px;
+    padding: 24px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.empty-state-text {
+    color: var(--s-color-on-surface-variant);
+    font-size: 1rem;
 }
 
 /* Khung bôi đen chọn mod: viền + nền mờ, vàng = chọn Áp Dụng, xanh =

@@ -191,6 +191,14 @@ const handleSearchInput = (e) => {
     emit('search', e.target.value);
 };
 
+// Nút "Xóa bộ lọc" trên màn hình trống gọi qua đây (modCardSection
+// chuyển tiếp từ modCardManager): xóa chữ trong ô tìm — watcher
+// currentCharacter không chạy được trường hợp này (lúc gõ tìm không ra
+// mod nào, nhân vật vẫn đang là Tất cả nên đặt lại Tất cả không đổi).
+const clearSearchInput = () => {
+    searchInput.value = '';
+};
+
 // Chữ tìm kiếm cũ phải xóa khi lọc đổi sang chỗ khác, không thì ô vẫn
 // hiện chữ cũ trong khi lưới đang lọc theo cái khác: bấm hàng thì xóa
 // ở selectCharacter dưới; lọc đổi sang Tất cả / Đã chọn từ bên ngoài
@@ -304,6 +312,8 @@ onMounted(() => {
         saveFilterSettings();
     }
 });
+
+defineExpose({ clearSearchInput });
 </script>
 
 <style scoped>
