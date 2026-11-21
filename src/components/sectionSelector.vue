@@ -162,10 +162,11 @@ defineExpose({
     flex: none;
 }
 
-/* Bản thu gọn (Dọc/Ngang): khung chữ nhật (Đạt dặn 21/11) thay cho
-   khung con nhộng bo 20px. Nút Mod/Help/Setting giữ khung con nhộng. */
+/* Bản thu gọn (Dọc/Ngang): khung chữ nhật bo góc (Đạt dặn 21/11: đổi
+   từ con nhộng sang chữ nhật rồi thêm bo góc 10px). Nút Mod/Help/
+   Setting giữ khung con nhộng bo 20px. */
 .slider-container.compact .section-selector {
-    border-radius: 0;
+    border-radius: 10px;
 }
 
 /* Bản thu gọn (Dọc/Ngang): viên vàng vừa đúng 1 nửa nút, vừa đúng cao
@@ -183,8 +184,10 @@ defineExpose({
     bottom: 3px;
     padding: 0;
     border: 5px solid var(--s-color-outline-variant);
-    /* Viên chữ nhật theo khung (bo 0, Đạt dặn 21/11). */
-    border-radius: 0;
+    /* Viên chữ nhật bo góc theo khung (Đạt dặn 21/11: bo góc cả 2 góc
+       bên trong khung nữa). Bo 10px bằng khung để 2 góc ngoài của viên
+       trùng đúng đường cong của khung, không thò ra ngoài. */
+    border-radius: 10px;
 }
 
 
