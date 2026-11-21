@@ -14,6 +14,8 @@
       "intro": "Giới thiệu",
       "basic": "Cơ bản",
       "advanced": "Nâng cao",
+      "vertical": "Dọc",
+      "horizontal": "Ngang",
       "auto": "Tự động",
       "more": "Thêm"
     },
@@ -119,17 +121,23 @@
     "close": "Đóng"
   },
   "stats": {
-    "line": "{total} mod · {enabled} đang bật · {characters} chip"
+    "line": "{total} mod · {enabled} đang bật · {characters} nhân vật"
   },
   "filter": {
     "button": "Bộ lọc",
+    "characters": "Nhân vật",
+    "preset": "Preset",
+    "typeGroup": "Loại",
+    "sortGroup": "Xếp",
     "showCounts": "Hiện số lượng mod",
     "allTypes": "Mọi loại",
     "sortDefault": "Mặc định",
     "sortNameAsc": "Tên A–Z",
     "sortNameDesc": "Tên Z–A",
     "sortTimeDesc": "Mới nhất",
-    "sortTimeAsc": "Cũ nhất"
+    "sortTimeAsc": "Cũ nhất",
+    "sortSizeDesc": "Lớn trước",
+    "sortSizeAsc": "Nhỏ trước"
   },
   "modTag": {
     "character": "Nhân vật",

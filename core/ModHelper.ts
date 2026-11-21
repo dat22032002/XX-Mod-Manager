@@ -30,6 +30,13 @@ class ImageBase64 {
     }
 }
 
+// Mô tả mod: thiếu hoặc là chữ mặc định cũ của app thì trả về rỗng
+// (thẻ không hiện gì) thay vì hiện "no description" (Đạt dặn 20/11).
+function normalizeDescription(desc: any): string {
+    if (!desc || desc === 'no description') return '';
+    return desc;
+}
+
 class ModData {
     public name: string;
     public character: string;
@@ -48,6 +55,9 @@ class ModData {
     // là "mod mới thêm" nữa. 0 = chưa rõ (hệ thống file không có birthtime
     // và cũng không đo được giờ sửa).
     public addedMs: number = 0;
+    // Dung lượng thư mục mod (byte) — cộng dồn mọi file trong thư mục.
+    // -1 = chưa quét (quét nền xong mới có; lần sau lấy từ bộ nhớ sẵn).
+    public sizeBytes: number = -1;
 
     private index = 0; // mod的id
     private static indexCount = 0; // mod的id计数器
@@ -116,7 +126,7 @@ class ModData {
         const modData = new ModData(
             json.name,
             json.character || "Unknown",
-            json.description || "no description",
+            normalizeDescription(json.description),
             json.url || "",
             json.preview || "",
             json.hotkeys || []
@@ -141,7 +151,7 @@ class ModData {
         const modData = new ModData(
             JSON.parse(JSON.stringify(modInfo.metaData.get('name') || modInfo.modName)),
             JSON.parse(JSON.stringify(modInfo.metaData.get('character') || "Unknown")),
-            JSON.parse(JSON.stringify(modInfo.metaData.get('description') || "no description")),
+            JSON.parse(JSON.stringify(normalizeDescription(modInfo.metaData.get('description')))),
             JSON.parse(JSON.stringify(modInfo.metaData.get('url') || "no url")),
             "", // preview will be handled below
             JSON.parse(JSON.stringify(modInfo.metaData.get('hotkeys') || []))
@@ -165,7 +175,7 @@ class ModData {
         const modData = new ModData(
             modInfo.modName,
             meta.character || "Unknown",
-            meta.description || "no description",
+            normalizeDescription(meta.description),
             meta.url || "no url",
             entry.previewPath || "",
             meta.hotkeys || []
@@ -177,6 +187,7 @@ class ModData {
         // để kiểm tra mod có đổi không). ModLoader sẽ ghi đè bằng giờ tạo
         // thư mục thật (lấy lúc kiểm tra cache, không tốn thêm lần đọc đĩa).
         modData.addedMs = entry.folderMtimeMs || 0;
+        modData.sizeBytes = entry.sizeBytes ?? -1;
         return modData;
     }
 

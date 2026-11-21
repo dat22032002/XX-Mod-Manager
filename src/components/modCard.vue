@@ -20,6 +20,9 @@
             </button>
         </div>
         <div slot="text" id="mod-item-text">
+            <!-- Dung lượng thư mục mod (Đạt dặn 20/11): chữ nhỏ kiểu dòng
+                 đếm mod, ngay dưới tên mod, thẳng lề trái với tên. -->
+            <div class="mod-item-size">{{ sizeText }}</div>
             <s-scroll-view>
                 <!-- <p id="mod-hotkeys">Hotkeys: {{ displayHotKeys }}</p> -->
                 <p id="mod-item-description">{{ props.modRef.description }}</p>
@@ -39,6 +42,7 @@ const iManager = new IManager();
 import { EventSystem, EventType } from '../../helper/EventSystem';
 import { TranslatedText } from '../../helper/Language';
 import { ModData } from '../../core/ModHelper';
+import { formatModSize } from '../../helper/ModSizeScanner';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
 import { selectedModIdSet, toggleModSelection, toggleModPin, batchSelectedModIdSet, toggleBatchSelection } from '../../helper/SelectedMods';
 
@@ -66,6 +70,17 @@ const enteredWindow = ref(false);
 const ifDisplayImage = ref(true);
 
 const img = ref(null);
+
+// Dung lượng mod: đọc từ thẻ lúc gắn (đã quét thì có ngay từ bộ nhớ
+// sẵn), quét nền xong thì sự kiện modSizeReady cập nhật riêng thẻ này
+// (không tải lại cả lưới).
+const sizeBytesRef = ref(props.modRef.sizeBytes ?? -1);
+const sizeText = computed(() => formatModSize(sizeBytesRef.value));
+const onModSizeReady = (mod) => {
+    if (mod && mod.id === props.modRef.id) {
+        sizeBytesRef.value = mod.sizeBytes;
+    }
+};
 
 // Số thứ tự lần tải ảnh gần nhất: bấm nút chuyển đổi lia lịa (hay bấm
 // đúng lúc ảnh đầu tiên chưa tải xong) thì chỉ lần tải MỚI NHẤT mới được
@@ -205,10 +220,12 @@ onMounted(() => {
     // lúc mới hiện (enterWindow) nên file đã đổi mà thẻ vẫn hiện ảnh cũ.
     // Chi tiết bên phải (modInfo) đã nghe sự kiện này từ trước, thẻ thì chưa.
     EventSystem.on(EventType.modInfoChanged, onModInfoChanged);
+    EventSystem.on(EventType.modSizeReady, onModSizeReady);
 });
 
 onUnmounted(() => {
     EventSystem.off(EventType.modInfoChanged, onModInfoChanged);
+    EventSystem.off(EventType.modSizeReady, onModSizeReady);
     clearHoverFollow();
 });
 
@@ -447,6 +464,17 @@ defineExpose({
     border-radius: 12px;
 }
 
+/* Xem trước lúc bôi đen: viền nét đứt ngoài thẻ (không đè lên viền
+   chọn 5px), vàng = sắp chọn Áp Dụng, xanh = sắp chọn hàng loạt. */
+.mod-item[marquee="apply"] {
+    outline: 3px dashed rgba(220, 254, 0, 0.9);
+    outline-offset: 2px;
+}
+.mod-item[marquee="batch"] {
+    outline: 3px dashed rgba(33, 150, 243, 0.95);
+    outline-offset: 2px;
+}
+
 /* Cả 2 loại chọn: 1 viền đỏ duy nhất (Đạt dặn 20/11) — thay cho kiểu
    cũ viền vàng + vòng xanh chồng nhau. background-image: none để tắt
    vệt vàng gradient của trạng thái chọn vàng (nền tối của thẻ vẫn giữ
@@ -558,6 +586,8 @@ defineExpose({
        phía trên; bỏ dòng đó rồi thì kéo âm làm mô tả chồng lên tên. */
     margin-top: 0;
     border: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .mod-item[data-layout="vertical"] #mod-item-text {
@@ -565,8 +595,25 @@ defineExpose({
 }
 
 .mod-item s-scroll-view {
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     width: 110%;
+}
+
+/* Dung lượng thư mục mod: chữ nhỏ kiểu dòng đếm mod (14px, xám
+   nhạt), ngay dưới tên mod, thẳng lề trái với tên (Đạt dặn 20/11).
+   Dòng cố định 20px trên đầu ô chữ (flex cột); ô lăn mô tả chiếm
+   phần còn lại nên không còn chữ nào bị che. */
+.mod-item .mod-item-size {
+    flex-shrink: 0;
+    height: 20px;
+    line-height: 20px;
+    text-align: left;
+    font-size: 14px;
+    color: var(--s-color-on-surface-variant);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mod-item .placeholder {

@@ -14,6 +14,8 @@
       "intro": "Intro",
       "basic": "Basics",
       "advanced": "Advanced",
+      "vertical": "Vertical",
+      "horizontal": "Horizontal",
       "auto": "Auto",
       "more": "More"
     },
@@ -119,17 +121,23 @@
     "close": "Close"
   },
   "stats": {
-    "line": "{total} mods · {enabled} enabled · {characters} chips"
+    "line": "{total} mods · {enabled} enabled · {characters} characters"
   },
   "filter": {
     "button": "Filter",
+    "characters": "Characters",
+    "preset": "Preset",
+    "typeGroup": "Type",
+    "sortGroup": "Sort",
     "showCounts": "Show mod counts",
     "allTypes": "All types",
     "sortDefault": "Default",
     "sortNameAsc": "Name A–Z",
     "sortNameDesc": "Name Z–A",
     "sortTimeDesc": "Newest first",
-    "sortTimeAsc": "Oldest first"
+    "sortTimeAsc": "Oldest first",
+    "sortSizeDesc": "Largest first",
+    "sortSizeAsc": "Smallest first"
   },
   "modTag": {
     "character": "Character",

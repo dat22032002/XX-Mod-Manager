@@ -2,18 +2,21 @@
     <div id="mod-card-manager" class="OO-box" ref="modCardManagerRef">
         <!-- <chipRadioBar class="characterFilter" :items="characters" @itemChange="handleFilterChange"
             :translatedItems="translateCharacters" ref="characterFilterRef" /> -->
-        <ModCharacterFilter class="characterFilter" @itemChange="handleFilterChange" ref="characterFilterRef" @filterChangeToAll="handleFilterChangeToAll"
-            @filterChangeToSelected="handleFilterChangeToSelected" @filterChangeToSearch="handleFilterChangeToSearch" />
-        <!-- Giao diện lọc theo loại mod + sắp xếp (nút "Bộ lọc" + bảng
-             overlay) nằm trong ModCharacterFilter; chỗ này chỉ đọc lựa
-             chọn đã lưu trong config để lọc/xếp danh sách (xem
-             filteredMods). -->
+        <!-- Giao diện lọc (tìm kiếm + nút "Bộ lọc" + bảng overlay + Tất
+             cả / Đã chọn) nằm trong characterList.vue ở cột trái; chỗ này
+             chỉ đọc lựa chọn đã lưu trong config để lọc/xếp danh sách
+             (xem filteredMods). -->
         <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
-            <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle">
+            <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle"
+                @mousedown="handleMarqueeMouseDown">
                 <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true
                     :compactMode="compactMode" :cardWidth="effectiveCardWidth" :cardLayout="cardLayout" :fullImage="fullImage"
                     :ref="setModCardRef(mod.id)" />
+                <!-- Khung bôi đen chọn mod (kéo như Windows): vàng = chọn
+                     Áp Dụng, giữ Ctrl thì xanh = chọn hàng loạt. -->
+                <div v-if="marquee.active" id="marquee-box" :class="marquee.batch ? 'batch' : 'apply'"
+                    :style="marqueeBoxStyle"></div>
             </div>
             <div class="placeholder"></div>
         </s-scroll-view>
@@ -28,9 +31,8 @@ import { Tween, Group } from "@tweenjs/tween.js";
 import IManager, { g_data_vue } from '../../electron/IManager';
 import { g_config_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
-import ModCharacterFilter from './modCharacterFilter.vue';
 import { computeWindow, CARD_GAP, OVERSCAN_ROWS, rangeCheckedWidth, computeFillLayout } from './modWindowing.js';
-import { selectedModIdSet, setSelectedModIdsExclusive, getModTag } from '../../helper/SelectedMods';
+import { selectedModIdSet, setSelectedModIdsExclusive, getModTag, toggleModsInOrder, toggleBatchMods } from '../../helper/SelectedMods';
 import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
 
 const iManager = new IManager();
@@ -55,14 +57,12 @@ const props = defineProps({
 // 定义 mods 变量
 const mods = ref([]);
 
-const characterFilterRef = useTemplateRef('characterFilterRef');
 const currentCharacter = g_temp_vue.currentCharacter;
 
 watch(currentCharacter, (newVal) => {
     if (newVal) {
         //debug
         console.log('currentCharacter changed:', newVal);
-        characterFilterRef.value.selectItemByName(newVal);
         // Snapshot the selection when the 'selected' filter is applied, so
         // the list behaves as before: toggling a card while viewing
         // 'selected' does not make it vanish until the filter is re-applied.
@@ -72,14 +72,10 @@ watch(currentCharacter, (newVal) => {
     }
 });
 
-// 切换语言的时候，all 和 全部 的长度不一样，所以需要切换
-// (Thanh trượt hàng chip lọc/xếp đặt lại trong modCharacterFilter khi
-// đổi ngôn ngữ — thanh đó nằm ở bảng overlay bên đó.)
-watch(g_config_vue.language, (newVal) => {
-    setTimeout(() => {
-        characterFilterRef.value.selectItemByName(currentCharacter.value);
-    }, 0);
-});
+// (Đổi ngôn ngữ: thanh trượt hàng chip lọc/xếp tự đặt lại trong
+// characterList — thanh đó nằm ở bảng overlay bên đó. Hàng vàng
+// Tất cả / Đã chọn / nhân vật tự theo currentCharacter nên không cần
+// đồng bộ gì thêm ở đây.)
 
 const characters = computed(() => {
     const characterList = g_data_vue.characterList;
@@ -99,12 +95,12 @@ const translateCharacters = computed(() => {
 
 //-==================== Lọc theo tag mod + sắp xếp ====================//
 // Giao diện lọc/xếp (nút "Bộ lọc" + bảng overlay) nằm ở
-// modCharacterFilter; chỗ này chỉ đọc lựa chọn đã lưu trong config để
+// characterList; chỗ này chỉ đọc lựa chọn đã lưu trong config để
 // lọc/xếp danh sách. Tag mod theo getModTag (SelectedMods): Character,
 // Skin, Weapon, Effect, Accessory — chuẩn duy nhất từ 1.5.18, thay tiền
 // tố tên thư mục. Thêm tag mới thì thêm vào MOD_TAGS + 1 khóa locale
 // modTag.*.
-const SORT_VALUES = ['default', 'name-asc', 'name-desc', 'time-desc', 'time-asc'];
+const SORT_VALUES = ['default', 'name-asc', 'name-desc', 'time-desc', 'time-asc', 'size-desc', 'size-asc'];
 
 // Đọc qua g_config_vue (lưu trong config.json nên mở app lại vẫn giữ);
 // giá trị lạ trong config cũ thì về mặc định ('outfit' cũ thành
@@ -112,6 +108,13 @@ const SORT_VALUES = ['default', 'name-asc', 'name-desc', 'time-desc', 'time-asc'
 const typeFilter = computed(() => normalizeTypeFilter(g_config_vue.modTypeFilter.value));
 const sortBy = computed(() =>
     SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default');
+
+// Đếm lần dung lượng về (xem listener modSizeReady ở dưới): filteredMods
+// đọc nó để xếp lại khi đang xếp theo dung lượng. Khai báo ở đây vì
+// watch(filteredMods) đánh giá ngay trong setup — để ở cuối file thì
+// đọc trúng vùng chết (TDZ) làm cả lưới không gắn được.
+const sizeVersion = ref(0);
+let sizeBumpTimer = null;
 
 //-==================== 只渲染视口附近的卡片（虚拟列表） ====================//
 // The grid used to mount every mod card at once; with hundreds of mods that
@@ -121,7 +124,7 @@ const sortBy = computed(() =>
 // were mounted. The math lives in ./modWindowing.js so it can be checked
 // without a browser.
 
-// Current search text, mirrored from handleFilterChangeToSearch. The list is
+// Current search text, mirrored from applySearch. The list is
 // filtered in Vue state (not only by hiding DOM nodes) because unmounted
 // cards have no DOM node to hide.
 const searchText = ref('');
@@ -130,6 +133,8 @@ const searchText = ref('');
 const selectedSnapshot = ref(null);
 
 const filteredMods = computed(() => {
+    // Đọc để xếp lại khi có dung lượng mới về (xem sizeVersion ở trên).
+    void sizeVersion.value;
     const list = mods.value || [];
     let result;
     // Search: same rule as changeFilterToSearch (character-prefix spec) —
@@ -167,6 +172,16 @@ const filteredMods = computed(() => {
     // giữ thứ tự tải vào như trước; sort của JS là ổn định nên mod ngang
     // nhau không bị xáo trộn). slice() để không sửa mảng gốc.
     const sort = sortBy.value;
+    // So sánh dung lượng: mod chưa quét xong (-1) luôn xếp cuối ở cả
+    // 2 chiều (không thì chiều nhỏ-trước sẽ đẩy mod chưa biết lên đầu).
+    const compareSize = (a, b, desc) => {
+        const sa = (typeof a.sizeBytes === 'number' && a.sizeBytes >= 0) ? a.sizeBytes : -1;
+        const sb = (typeof b.sizeBytes === 'number' && b.sizeBytes >= 0) ? b.sizeBytes : -1;
+        if (sa === -1 && sb === -1) return 0;
+        if (sa === -1) return 1;
+        if (sb === -1) return -1;
+        return desc ? sb - sa : sa - sb;
+    };
     return result.slice().sort((a, b) => {
         const pinDiff = Number(!!b.pinned) - Number(!!a.pinned);
         if (pinDiff !== 0) return pinDiff;
@@ -175,6 +190,8 @@ const filteredMods = computed(() => {
             case 'name-desc': return (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base' });
             case 'time-desc': return (b.addedMs || 0) - (a.addedMs || 0);
             case 'time-asc': return (a.addedMs || 0) - (b.addedMs || 0);
+            case 'size-desc': return compareSize(a, b, true);
+            case 'size-asc': return compareSize(a, b, false);
             default: return 0;
         }
     });
@@ -307,23 +324,28 @@ const setModCardRef = (id) => (el) => {
 
 // 定义 handleFilterChange 方法
 const handleFilterChange = (character) => {
-    // A character chip was clicked: any active search is over.
+    // Chọn nhân vật (hàng trong danh sách dọc): tìm kiếm đang gõ hết hiệu lực.
     searchText.value = '';
     iManager.setCurrentCharacter(character);
 };
 
-const handleFilterChangeToAll = () => {
-    iManager.setCurrentCharacter('all');
-    searchText.value = '';
+// Danh sách nhân vật dọc (cột trái) gọi qua đây — giống hệt chọn nhân
+// vật cũ. modCardSection gọi qua ref (selectCharacter đã expose).
+// 'all' / 'selected' đi chung đường này (2 hàng cố định trên cùng
+// danh sách gọi selectCharacter('all' | 'selected')) nên không cần
+// handler riêng cho Tất cả / Đã chọn nữa.
+const selectCharacter = (character) => {
+    handleFilterChange(character);
 };
 
-const handleFilterChangeToSelected = () => {
-    iManager.setCurrentCharacter('selected');
-    searchText.value = '';
-};
-
-const handleFilterChangeToSearch = (search) => {
-    console.log('handleFilterChangeToSearch', search);
+// Nhận chữ tìm kiếm từ ô tìm kiếm cạnh tiêu đề Characters
+// (characterList.vue phát 'search', modCardSection chuyển vào đây).
+// Hàm này từng là handler của sự kiện filterChangeToSearch từ
+// modCharacterFilter (đã xóa, logic dời sang characterList) — ô tìm kiếm
+// đã dời chỗ nên đổi thành hàm mở cho
+// modCardSection gọi trực tiếp, logic không đổi.
+const applySearch = (search) => {
+    console.log('applySearch', search);
     if (!search || !search.trim()) {
         // Blank search (e.g. only spaces): same as clearing the search.
         // Without this reset, filteredMods would fall back to the previous
@@ -343,8 +365,8 @@ const handleFilterChangeToSearch = (search) => {
 
 async function changeFilterToSearch(search){
     // Lọc danh sách thật nằm ở filteredMods (theo searchText); hàm này chỉ
-    // chuyển chip đang chọn khi từ khóa khớp đúng 1 nhân vật, để thanh
-    // trượt trong hàng phím lọc theo kịp từ khóa tìm kiếm.
+    // đổi nhân vật đang chọn khi từ khóa khớp đúng 1 nhân vật, để danh
+    // sách dọc vàng đúng hàng của nhân vật đó.
     // 搜索不区分大小写：统一转小写再比较
     const keyword = (search || '').trim().toLowerCase();
     if (keyword === '') {
@@ -438,6 +460,18 @@ EventSystem.on(EventType.addMod, (mod) => {
     //debug
     console.log('get addMod, reload display mods', mods.value);
     scheduleReload();
+});
+
+// Dung lượng về dần khi quét nền chạy: mỗi lần có size mới thì xếp
+// lại danh sách (chỉ khi đang xếp theo dung lượng). Dồn 200ms để đợt
+// quét đầu (hàng trăm mod về liên tiếp) không xếp lại từng cái.
+EventSystem.on(EventType.modSizeReady, () => {
+    if (sortBy.value !== 'size-desc' && sortBy.value !== 'size-asc') return;
+    if (sizeBumpTimer) return;
+    sizeBumpTimer = setTimeout(() => {
+        sizeBumpTimer = null;
+        sizeVersion.value++;
+    }, 200);
 });
 
 EventSystem.on('currentPresetChanged', (preset) => {
@@ -568,13 +602,17 @@ onMounted(async () => {
         if (modContainerRef.value) windowResizeObserver.observe(modContainerRef.value);
         if (scrollView) windowResizeObserver.observe(scrollView);
     }
+    // Chặn cú bấm ngay sau 1 lần bôi đen (khung bôi chạy ở pha bắt).
+    if (modContainerRef.value) {
+        modContainerRef.value.addEventListener('click', handleMarqueeClickCapture, true);
+    }
     // Đặt chiều cao hàng theo mức phóng to/kiểu hiển thị đã lưu ngay từ đầu
     // (không thì lần đầu mở app vẫn dùng cỡ mặc định của CSS).
     syncRowHeight();
     updateWindow();
 
     // Thanh trượt hàng chip lọc/xếp đo lại mỗi lần bảng overlay bung ra
-    // (modCharacterFilter) — bảng đóng lúc mở app nên không đo ở đây.
+    // (characterList) — bảng đóng lúc mở app nên không đo ở đây.
 
     // 接受文件拖拽事件，可以直接通过拖拽文件到窗口中导入 mod，或者拖拽图片到窗口中为 mod 添加预览图
     modCardManagerRef.value.addEventListener('dragover', (event) => {
@@ -610,11 +648,149 @@ onUnmounted(() => {
         cancelAnimationFrame(windowRaf);
         windowRaf = 0;
     }
+    stopMarqueeListeners();
+    if (modContainerRef.value) {
+        modContainerRef.value.removeEventListener('click', handleMarqueeClickCapture, true);
+    }
 });
+
+//===================== bôi đen chọn mod (kéo khung như Windows) ===========
+// Nhấn giữ chuột trái trong lưới rồi kéo: khung chữ nhật hiện ra, mod nào
+// nằm trong khung thì được chọn khi thả chuột. Kéo thường = chọn vàng (Áp
+// Dụng, có luật 1 mod/1 loại); giữ Ctrl khi kéo = chọn xanh (hàng loạt),
+// khung bôi cũng đổi sang xanh. Bôi đen BẬT/TẮT từng mod trong khung: mod
+// chưa chọn thì chọn, mod đã chọn thì hủy chọn (bôi lại lần nữa là tắt).
+// Chỉ chọn được thẻ đang thấy trên màn hình (thẻ ngoài khung nhìn chưa
+// gắn vào trang nên không nằm trong vùng kéo được).
+const MARQUEE_START_PX = 5;
+const marquee = reactive({
+    active: false,          // đã kéo quá ngưỡng, khung đang hiện
+    batch: false,           // true = giữ Ctrl = chọn xanh
+    startX: 0, startY: 0,   // điểm nhấn chuột (tọa độ trong lưới)
+    x: 0, y: 0, w: 0, h: 0, // khung hiện tại (tọa độ trong lưới)
+});
+const marqueeBoxStyle = computed(() => ({
+    left: marquee.x + 'px',
+    top: marquee.y + 'px',
+    width: marquee.w + 'px',
+    height: marquee.h + 'px',
+}));
+let marqueePending = null; // { x, y } điểm nhấn chuột, chờ kéo quá ngưỡng
+let marqueeHighlighted = []; // thẻ đang tô viền xem trước
+let marqueeSuppressClick = false;
+
+function marqueeContainerPoint(event) {
+    const rect = modContainerRef.value.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
+
+function handleMarqueeMouseDown(event) {
+    // Chỉ chuột trái, không bắt đầu từ nút bấm (ghim...) hay ô nhập.
+    if (event.button !== 0) return;
+    if (event.target.closest('button, input, s-button, s-switch, s-icon-button, a')) return;
+    marqueePending = marqueeContainerPoint(event);
+    marquee.batch = !!(event.ctrlKey || event.metaKey);
+    window.addEventListener('mousemove', handleMarqueeMouseMove);
+    window.addEventListener('mouseup', handleMarqueeMouseUp, { once: true });
+}
+
+function marqueeRectInClient() {
+    const rect = modContainerRef.value.getBoundingClientRect();
+    return {
+        left: rect.left + marquee.x,
+        top: rect.top + marquee.y,
+        right: rect.left + marquee.x + marquee.w,
+        bottom: rect.top + marquee.y + marquee.h,
+    };
+}
+
+// Thẻ nào đang nằm trong khung (theo thứ tự hiển thị = thứ tự trong trang).
+function marqueeIntersectedCards() {
+    const box = marqueeRectInClient();
+    const hit = [];
+    for (const el of modContainerRef.value.querySelectorAll('.mod-item')) {
+        const r = el.getBoundingClientRect();
+        if (r.right > box.left && r.left < box.right && r.bottom > box.top && r.top < box.bottom) {
+            hit.push(el);
+        }
+    }
+    return hit;
+}
+
+function setMarqueeHighlight(cards) {
+    for (const el of marqueeHighlighted) el.removeAttribute('marquee');
+    marqueeHighlighted = cards;
+    for (const el of cards) el.setAttribute('marquee', marquee.batch ? 'batch' : 'apply');
+}
+
+function handleMarqueeMouseMove(event) {
+    if (!marqueePending) return;
+    // Giữ/thả Ctrl giữa chừng thì đổi màu khung + loại chọn ngay.
+    marquee.batch = !!(event.ctrlKey || event.metaKey);
+    const p = marqueeContainerPoint(event);
+    const dx = p.x - marqueePending.x;
+    const dy = p.y - marqueePending.y;
+    if (!marquee.active) {
+        if (Math.abs(dx) < MARQUEE_START_PX && Math.abs(dy) < MARQUEE_START_PX) return;
+        marquee.active = true;
+        marquee.startX = marqueePending.x;
+        marquee.startY = marqueePending.y;
+        document.body.style.userSelect = 'none';
+    }
+    marquee.x = Math.min(marquee.startX, p.x);
+    marquee.y = Math.min(marquee.startY, p.y);
+    marquee.w = Math.abs(dx);
+    marquee.h = Math.abs(dy);
+    setMarqueeHighlight(marqueeIntersectedCards());
+}
+
+function handleMarqueeMouseUp() {
+    stopMarqueeListeners();
+    marqueePending = null;
+    document.body.style.userSelect = '';
+    if (!marquee.active) return;
+    const cards = marqueeIntersectedCards();
+    const batch = marquee.batch;
+    marquee.active = false;
+    setMarqueeHighlight([]);
+    if (cards.length === 0) return;
+    // Thẻ vừa bấm vào cũng nhận sự kiện click khi thả chuột — chặn cú
+    // bấm đó để bôi đen không làm đổi chọn của thẻ dưới chuột.
+    marqueeSuppressClick = true;
+    const byId = new Map((mods.value || []).map(m => [m.id, m]));
+    const hitMods = [];
+    for (const el of cards) {
+        const mod = byId.get(el.id);
+        if (mod) hitMods.push(mod);
+    }
+    if (batch) {
+        toggleBatchMods(hitMods);
+    } else {
+        toggleModsInOrder(iManager.data.modList || [], hitMods);
+    }
+    iManager.setCurrentMod(hitMods[hitMods.length - 1]);
+}
+
+function stopMarqueeListeners() {
+    window.removeEventListener('mousemove', handleMarqueeMouseMove);
+    window.removeEventListener('mouseup', handleMarqueeMouseUp);
+}
+
+// Chặn cú bấm (click) ngay sau 1 lần bôi đen — chạy ở pha bắt (capture)
+// nên chặn trước khi thẻ kịp xử lý click.
+function handleMarqueeClickCapture(event) {
+    if (marqueeSuppressClick) {
+        marqueeSuppressClick = false;
+        event.stopPropagation();
+        event.preventDefault();
+    }
+}
 
 
 defineExpose({
-    loadPreset
+    loadPreset,
+    selectCharacter,
+    applySearch
 });
 </script>
 
@@ -622,7 +798,8 @@ defineExpose({
 #mod-container {
     width: 100%;
     height: fit-content;
-
+    position: relative;
+    /* Khung bôi đen là con tuyệt đối của lưới (không chiếm ô lưới). */
     display: grid;
     /* grid-column: span 4;
     grid-column-start: span 4; */
@@ -649,6 +826,24 @@ defineExpose({
 #mod-container[data-layout="vertical"] {
     grid-template-columns: repeat(auto-fill, var(--card-width, 250px));
     grid-auto-rows: calc(var(--card-width, 250px) * 1.4);
+}
+
+/* Khung bôi đen chọn mod: viền + nền mờ, vàng = chọn Áp Dụng, xanh =
+   chọn hàng loạt (giữ Ctrl). Không nhận chuột để lần kéo sau vẫn bắt
+   đầu được từ chính chỗ khung đang phủ. */
+#marquee-box {
+    position: absolute;
+    z-index: 50;
+    pointer-events: none;
+    border-radius: 4px;
+}
+#marquee-box.apply {
+    border: 1px solid rgba(220, 254, 0, 0.95);
+    background-color: rgba(220, 254, 0, 0.15);
+}
+#marquee-box.batch {
+    border: 1px solid rgba(33, 150, 243, 0.95);
+    background-color: rgba(33, 150, 243, 0.18);
 }
 
 #mod-card-manager {

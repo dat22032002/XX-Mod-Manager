@@ -90,6 +90,44 @@ export function toggleModSelection(allMods: ModData[], mod: ModData): boolean {
     return true;
 }
 
+//===================== bôi đen chọn nhiều mod (kéo khung) =====================
+// Bôi đen BẬT/TẮT từng mod trong khung (Đạt dặn 21/11): mod chưa chọn
+// thì chọn, mod đã chọn thì hủy chọn — bôi lại lần nữa là tắt hết. Mod
+// nằm ngoài khung không đụng tới. Vàng: duyệt theo thứ tự hiển thị, mod
+// được BẬT sau cùng nhân vật + cùng tag độc quyền thắng mod trước (luật
+// 1 mod/1 tag, giống lúc tải preset) — gom tất cả mod bị tắt vào 1
+// thông báo duy nhất thay vì báo từng mod. Xanh: bật/tắt thẳng, không
+// có luật độc quyền.
+export function toggleModsInOrder(allMods: ModData[], mods: ModData[]): ModData[] {
+    const evictedAll: ModData[] = [];
+    for (const mod of mods) {
+        if (selectedModIdSet.has(mod.id)) {
+            selectedModIdSet.delete(mod.id);
+            continue;
+        }
+        evictedAll.push(...evictSameTagMods(allMods, mod));
+        selectedModIdSet.add(mod.id);
+    }
+    if (evictedAll.length > 0) {
+        const names = [...new Set(evictedAll.map(m => m.name))].join(', ');
+        t_snack(new TranslatedText(
+            `Turned off ${names} — only one mod per character and tag can be on`,
+            `Đã tắt ${names} — mỗi nhân vật chỉ bật 1 mod mỗi loại cùng lúc`
+        ), SnackType.info);
+    }
+    return evictedAll;
+}
+
+export function toggleBatchMods(mods: ModData[]): void {
+    for (const mod of mods) {
+        if (batchSelectedModIdSet.has(mod.id)) {
+            batchSelectedModIdSet.delete(mod.id);
+        } else {
+            batchSelectedModIdSet.add(mod.id);
+        }
+    }
+}
+
 //===================== chọn làm hàng loạt (Ctrl+bấm) =====================
 // Tập chọn RIÊNG cho thao tác hàng loạt (đặt nhân vật/tag): Ctrl+bấm
 // thẻ để thêm/bớt mod, không tắt mod nào khác, không đụng tới tập

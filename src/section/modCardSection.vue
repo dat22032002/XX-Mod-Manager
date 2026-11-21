@@ -1,10 +1,14 @@
 <template>
     <div class="main-container">
 
+        <div class="left-column">
         <leftMenu :tabs="presets" :translatedTabs="translatedPresets" @tabChange="handlePresetChange"
-            ref="presetSelectorRef">
+            ref="presetSelectorRef" fit-content>
             <template #up-button>
-                <s-icon type="arrow_drop_up"></s-icon>
+                <!-- Nhãn khung preset (Đạt dặn 21/11: để chữ Preset
+                     thay mũi tên lên — mũi tên vốn chỉ trang trí,
+                     không bấm được). -->
+                <span class="preset-title">{{ $t('filter.preset') }}</span>
             </template>
             <template #down-button>
                 <!-- Lề phải chừa 80px cho 2 nút bên phải (xóa + thêm),
@@ -44,6 +48,8 @@
                 </s-tooltip>
             </template>
         </leftMenu>
+        <characterList @itemChange="handleCharacterListChange" @search="handleCharacterSearch" />
+        </div>
         <modCardManager id="mod-card-manager" :compactMode="compactMode" :cardWidth="cardWidth"
             :cardLayout="cardLayout" :fullImage="cardFullImage" ref="modCardManagerRef">
         </modCardManager>
@@ -54,12 +60,11 @@
         <div class="bottom-left">
             <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, ở đầu trái
                  thanh dưới (chỗ nút Refresh cũ — Đạt dặn 20/11). -->
-            <div class="layout-capsule" id="layout-capsule">
-                <button :class="{ active: cardLayout === 'vertical' }" data-layout="vertical"
-                    @click="handleLayoutClicked('vertical')">{{ $t('buttons.layoutVertical') }}</button>
-                <button :class="{ active: cardLayout === 'horizontal' }" data-layout="horizontal"
-                    @click="handleLayoutClicked('horizontal')">{{ $t('buttons.layoutHorizontal') }}</button>
-            </div>
+            <!-- Nút Dọc/Ngang dùng thẳng component nút Mod/Help/Setting
+                 (sectionSelector), chỉ có 2 mục thay vì 3 (Đạt dặn 21/11):
+                 viên vàng + kiểu trượt y hệt nút Mod. -->
+            <sectionSelector id="layout-capsule" :sections="layoutSections" :modelValue="cardLayout" :compact="true"
+                @update:modelValue="handleLayoutClicked" />
             <s-tooltip>
                 <s-switch class="OO-color-gradient-word" v-model="compactMode" @change="handleCompactButtonClicked"
                     slot="trigger" />
@@ -239,9 +244,11 @@
 
 <script setup>
 import modCardManager from '../components/modCardManager.vue';
+import characterList from '../components/characterList.vue';
 import leftMenu from '../components/leftMenu.vue';
 import modInfo from '../components/modInfo.vue';
 import chipRadioBar from '../components/chipRadioBar.vue';
+import sectionSelector from '../components/sectionSelector.vue';
 import { ref, onMounted, onUnmounted, useTemplateRef, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dialogTemplate from '../dialogs/dialogTemplate.vue';
@@ -453,6 +460,10 @@ function handleCompactButtonClicked() {
 // iManager.config để _config + ref cùng đổi (ghi thẳng vào ref thì file
 // config không đổi theo).
 const cardLayout = g_config_vue.cardLayout;
+// 2 mục của nút Dọc/Ngang (component sectionSelector dùng chung với nút
+// Mod/Help/Setting; khai 1 lần để watcher của component không chạy lại
+// mỗi lần vẽ).
+const layoutSections = ['vertical', 'horizontal'];
 const cardWidth = g_config_vue.cardWidth;
 
 // Phóng to theo CỘT (Đạt dặn 20/11): nấc rộng cũ (301 → 350 → 400...)
@@ -660,6 +671,19 @@ onUnmounted(() => {
 });
 
 const presetSelectorRef = useTemplateRef('presetSelectorRef');
+const modCardManagerRef = useTemplateRef('modCardManagerRef');
+
+// Bấm tên nhân vật trong danh sách dọc: lọc lưới mod theo nhân vật đó
+// (giống hệt bấm chip nhân vật cũ).
+const handleCharacterListChange = (character) => {
+    modCardManagerRef.value?.selectCharacter(character);
+};
+
+// Gõ ô tìm kiếm cạnh tiêu đề Characters: lọc theo tên nhân vật
+// (khớp đầu tên, đúng 1 nhân vật mới lọc — luật ở filteredMods).
+const handleCharacterSearch = (text) => {
+    modCardManagerRef.value?.applySearch(text);
+};
 
 //#endregion
 
@@ -762,6 +786,32 @@ EventSystem.on('toggledMod', (mod) => {
     justify-content: flex-start;
 }
 
+/* Cột trái: khung preset ngắn (vừa đủ số preset) + danh sách nhân vật
+   dọc chiếm phần còn lại. */
+/* Cột trái: 226px = đúng tổng rộng khung preset (rộng 200 + đệm
+   10px mỗi bên + viền 3px mỗi bên của OO-box). Để 200px thì khung
+   preset lòi ra 26px sang phải, đụng vào khung lưới mod (Đạt báo
+   21/11 trên bản test6). Cao calc(100% + 6px) để đáy khung danh sách
+   thẳng đáy khung lưới: khung lưới (manager) cao hơn khung chứa 6px
+   vì viền 3px×2 của nó lòi ra ngoài (height:100% content-box của app
+   gốc) — để 100% thì đáy danh sách vẫn cao hơn đáy lưới 6px.
+   Để calc(100% - 20px) như khung preset gốc thì đáy danh sách cao
+   hơn đáy lưới tới 26px, trông lệch khung (Đạt báo 21/11). */
+/* Nhãn "Preset" trên đầu khung preset (thay mũi tên trang trí):
+   chữ đậm, cỡ như tiêu đề "Characters" của danh sách nhân vật. */
+.preset-title {
+    font-weight: bolder;
+    font-size: 0.95rem;
+}
+
+.left-column {
+    display: flex;
+    flex-direction: column;
+    width: 226px;
+    flex-shrink: 0;
+    height: calc(100% + 6px);
+}
+
 .zoom-label {
     min-width: 44px;
     text-align: center;
@@ -773,29 +823,10 @@ EventSystem.on('toggledMod', (mod) => {
 /* Viên con nhộng chuyển kiểu thẻ (Dọc/Ngang), ở đầu trái thanh dưới
    (Đạt dặn 20/11). Kiểu đang chọn nền vàng như nút MOD; kiểu còn lại
    nền trong suốt. Cao 40px bằng nút phóng to. */
-.layout-capsule {
-    display: flex;
-    align-items: stretch;
-    height: 40px;
-    box-sizing: border-box;
-    background-color: var(--s-color-surface-container-low);
-    border: 1px solid var(--s-color-outline-variant);
-    border-radius: 20px;
-    overflow: hidden;
+/* Nút Dọc/Ngang dùng component sectionSelector (kiểu dáng nằm trong
+   component đó); chỉ giữ cho nút không bị thanh dưới co lại. */
+#layout-capsule {
     flex-shrink: 0;
-}
-.layout-capsule button {
-    border: none;
-    background: transparent;
-    color: var(--s-color-on-surface);
-    font-size: 14px;
-    font-weight: 600;
-    padding: 0 14px;
-    cursor: pointer;
-}
-.layout-capsule button.active {
-    background-color: var(--s-color-primary);
-    color: var(--s-color-on-primary);
 }
 
 /* Nút chuyển đổi ảnh gốc / ảnh thu nhỏ: tròn 40px như nút zoom, đang
