@@ -136,7 +136,7 @@
                      (#222222 — trùng màu hàng + nút bấm, cả bảng thành
                      một khối xám phẳng, không phân biệt được). Hàng và
                      nút giữ màu gốc #222222 nên nổi rõ trên nền đen. -->
-                <div style="width: fit-content;height: max-content;background-color: #000000;border: 2px solid var(--s-color-outline-variant);border-radius: 16px;padding: 10px 6px;box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);box-sizing: border-box;">
+                <div style="width: fit-content;height: max-content;background-color: #000000;border: 2px solid var(--s-color-outline-variant);border-radius: 12px;padding: 10px 6px;box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);box-sizing: border-box;">
                     <p style="margin: 0 20px 2px;font-size: 13px;color: var(--s-color-outline);">{{ $t('editDialog.batch-hint') }}</p>
                     <div class="OO-setting-bar">
                     <h3>{{ $t('editDialog.batch-set-character') }}</h3>
