@@ -71,11 +71,17 @@ const sliderStyle = computed(() => {
     // Horizontal trắng trên nền vàng) và khi chọn mục 2 thì viên trượt
     // quá tay, chữ H hết vàng. calc(50% - 10px) = đúng 1 nửa nút.
     const shift = props.compact ? index * 100 : index * 85 - 15;
+    // Bản thu gọn bỏ nghiêng: khung vuông + viên nghiêng thì góc viên
+    // thò ra ngoài mép thẳng của khung (Đạt dặn đổi sang viền chữ nhật
+    // 21/11). Nút Mod giữ nghiêng -20° như cũ.
+    const transform = props.compact
+        ? `translateX(${shift}%)`
+        : `translateX(${shift}%) skew(-20deg)`;
     return {
         width: props.compact
             ? `calc(${100 / props.sections.length}% - 10px)`
             : `${100 / props.sections.length}%`,
-        transform: `translateX(${shift}%) skew(-20deg)`
+        transform
     };
 });
 
@@ -132,6 +138,34 @@ defineExpose({
 /* Bản thu gọn: đệm 2 bên chữ 40px -> 16px, nút ngắn đi ~48px mỗi mục. */
 .slider-container.compact .section-item {
     padding: 10px 16px;
+    /* Chữ căn giữa khung (Đạt dặn 21/11): flex: 1 mặc định không co
+       dưới cỡ chữ (min-width: auto) nên mục "Horizontal" dài hơn mục
+       "Vertical" (118,7px so với 96,5px), ranh giới 2 mục lệch khỏi
+       giữa khung 11px. min-width: 0 cho 2 mục rộng bằng nhau đúng nửa
+       khung. */
+    min-width: 0;
+    /* Căn giữa chữ trong mục bằng flex: style.css toàn app đặt `p {
+       width: fit-content }` nên <p> co vừa chữ rồi dính mép trái mục;
+       cho <p> rộng 100% thì chữ "Vertical" căn giữa được nhưng chữ
+       "Horizontal" (86,7px) vẫn tràn khỏi <p> 75,6px — Chrome không
+       căn giữa dòng chữ tràn (phần thừa dồn sang phải hết). Flex
+       justify-content: center thì tràn đều 2 bên nên chữ vẫn giữa. */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* <p> trong mục thu gọn không được co (flex-shrink mặc định sẽ bóp
+   <p> "Horizontal" về 75,6px rồi chữ lại tràn lệch phải). Nút Mod giữ
+   nguyên (chữ trái như tác giả gốc). */
+.slider-container.compact .section-item p {
+    flex: none;
+}
+
+/* Bản thu gọn (Dọc/Ngang): khung chữ nhật (Đạt dặn 21/11) thay cho
+   khung con nhộng bo 20px. Nút Mod/Help/Setting giữ khung con nhộng. */
+.slider-container.compact .section-selector {
+    border-radius: 0;
 }
 
 /* Bản thu gọn (Dọc/Ngang): viên vàng vừa đúng 1 nửa nút, vừa đúng cao
@@ -149,6 +183,8 @@ defineExpose({
     bottom: 3px;
     padding: 0;
     border: 5px solid var(--s-color-outline-variant);
+    /* Viên chữ nhật theo khung (bo 0, Đạt dặn 21/11). */
+    border-radius: 0;
 }
 
 
