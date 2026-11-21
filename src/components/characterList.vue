@@ -438,18 +438,19 @@ onMounted(() => {
 
 /* Bảng lọc overlay: thả xuống từ khối đầu danh sách, phủ lên danh sách
    + lưới mod chứ không đẩy nội dung. Mép trái thẳng với mép trái khối
-   đầu (tức mép trong khung danh sách). Rộng cố định 460px — đủ cho mỗi
-   nhóm chip xếp 2 hàng cân (loại 5+2, xếp 4+3, cả tiếng Việt), hẹp hơn
-   thì chip dồn 3 hàng, rộng hơn thì hàng đầu ôm gần hết, hàng sau trơ
-   1 chip. Giới hạn để không tràn mép phải cửa sổ (mép trái bảng cách
-   mép trái cửa sổ ~13px: cột trái bắt đầu ~10px + viền 3px của khung;
-   chừa 10px mép phải); cửa sổ hẹp quá thì bảng co theo giới hạn, chip
-   tự xuống thêm hàng. */
+   đầu (tức mép trong khung danh sách). Rộng 420px (nội dung 400px) —
+   đo thật trên app: hàng chip dài nhất là loại hàng 1 (386,9px) và xếp
+   hàng 1 (378,8px), nên 400px vừa đủ cho cả 2 hàng đầy với lề 13–21px;
+   hẹp hơn nữa thì hàng 1 vỡ sang 3 hàng, rộng hơn thì bên phải dư
+   khoảng trống (Đạt chỉ ra 21/11). Giới hạn để không tràn mép phải cửa
+   sổ (mép trái bảng cách mép trái cửa sổ ~13px: cột trái bắt đầu ~10px
+   + viền 3px của khung; chừa 10px mép phải); cửa sổ hẹp quá thì bảng
+   co theo giới hạn, chip tự xuống thêm hàng. */
 .filter-panel {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
-    width: 460px;
+    width: 420px;
     max-width: calc(100vw - 23px);
     z-index: 50;
     display: flex;
@@ -482,9 +483,14 @@ onMounted(() => {
     padding: 2px 2px 6px;
 }
 
+/* Chip xếp lưới, căn giữa từng hàng: hàng ngắn (vd hàng 2 của nhóm
+   loại chỉ có 2 chip) thì khoảng trống chia đều 2 bên thay vì dồn hết
+   sang phải thành 1 khúc dư (Đạt chỉ ra 21/11). Hàng đầy thì căn giữa
+   không khác gì căn trái vì chip đã gần hết chiều rộng. */
 .filter-chips {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 6px;
 }
 
