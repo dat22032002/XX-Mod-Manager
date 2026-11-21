@@ -27,10 +27,17 @@
             <h4 v-if="props.mod && props.mod.hotkeys && props.mod.hotkeys.length > 0"> {{ $t('modInfo.hotkeys') }}</h4>
             <s-scroll-view class="mod-info-content">
                 <div id="hotkey-container" class="OO-colunm-center">
-                    <div v-for="hotkey in props.mod ? props.mod.hotkeys : []" class="hotkey OO-setting-bar OO-shade-box a-little-left" style="margin-bottom: 5px;">
-                        <h3>{{ hotkey.description }}</h3>
-                        <h3>{{ hotkey.key }}</h3>
-                    </div>
+                    <!-- Kẻ phân cách THẲNG giữa các hàng (Đạt dặn 21/11): phần tử
+                         kẻ riêng sau mỗi hàng trừ hàng cuối — bản trước dùng
+                         border-bottom trên hàng nên kẻ bo cong theo bo 28px
+                         của hàng, nhìn như mép ô chứ không phải đường kẻ. -->
+                    <template v-for="(hotkey, i) in props.mod ? props.mod.hotkeys : []" :key="i">
+                        <div class="hotkey OO-setting-bar OO-shade-box a-little-left" style="margin-bottom: 5px;">
+                            <h3>{{ hotkey.description }}</h3>
+                            <h3>{{ hotkey.key }}</h3>
+                        </div>
+                        <div v-if="i < (props.mod ? props.mod.hotkeys.length : 0) - 1" class="hotkey-divider"></div>
+                    </template>
                 </div>
                 <p v-if="props.mod && (!props.mod.hotkeys || props.mod.hotkeys.length === 0)" class="mod-no-hotkeys">{{ $t('modInfo.noHotkeys') }}</p>
             </s-scroll-view>
@@ -290,6 +297,20 @@ s-scroll-view {
 
 .hotkey {
     height: 40px;
+}
+
+/* Đường kẻ phân cách giữa các hàng phím tắt (Đạt dặn 21/11 — hàng
+   không còn nền riêng sau thang xám nên tên/phím khó ghép cặp):
+   phần tử kẻ RIÊNG 1px #303030 (màu viền mỏng của app), thẳng ngang,
+   rộng FULL hàng, không bo góc (Đạt đổi 20:37, bỏ bản 2/3 căn giữa).
+   Bản đầu dùng border-bottom trên hàng nên kẻ bo cong theo bo 28px
+   của hàng. */
+.hotkey-divider {
+    height: 1px;
+    width: 100%;
+    background-color: #303030;
+    border-radius: 0;
+    flex: none;
 }
 
 /* Vùng lăn căng hết khung dưới (flex); không còn margin âm — margin
