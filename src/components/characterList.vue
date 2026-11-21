@@ -47,23 +47,19 @@
                     </div>
                 </div>
             </div>
-            <!-- Tất cả / Đã chọn: chung 1 hàng, mỗi bên một nửa, cố định
-                 trên cùng ngoài khung lăn nên không trôi đi khi lăn danh
-                 sách. Giữ nguyên id để probe cũ vẫn tìm được mà bấm. Số
-                 trong ngoặc: Tất cả = tổng số mod, Đã chọn = số mod đang
-                 chọn (đọc thẳng từ tập chọn, mới mỗi lần vẽ lại). Hàng Tất
-                 cả vàng cả khi chưa chọn gì (currentCharacter = null lúc
-                 mới mở app — lưới lúc đó hiện tất cả, giống luật
-                 filteredMods coi trống là 'all'). -->
+            <!-- Tất cả / Đã chọn DẠNG TRƯỢT (Đạt dặn 23/11): 1 khung viên
+                 nang, viên vàng trượt qua lại giữa 2 bên khi bấm — dùng
+                 thẳng component sectionSelector như nút Dọc/Ngang (viên
+                 vàng + kiểu trượt y hệt, không tự vẽ lại). Số đếm giữ
+                 trong nhãn, cập nhật theo thời gian thực như nút cũ.
+                 Khi đang chọn 1 nhân vật cụ thể thì modelValue là tên
+                 nhân vật, không khớp mục nào nên viên vàng ẩn đi (không
+                 đậu sai chỗ gây hiểu nhầm). Bấm vẫn gọi selectCharacter
+                 như cũ nên hành vi lọc không đổi. Giữ nguyên hàng cố
+                 định trên cùng ngoài khung lăn nên không trôi đi khi lăn
+                 danh sách. -->
             <div class="character-list-fixed">
-                <div id="all-filter-chip" class="character-row" :class="{ active: currentCharacter === 'all' || !currentCharacter }" @click="selectCharacter('all')">
-                    <span class="character-name">{{ $t('buttons.all') }}</span>
-                    <span v-if="showChipCounts" class="character-count">({{ totalModCount }})</span>
-                </div>
-                <div id="selected-filter-chip" class="character-row" :class="{ active: currentCharacter === 'selected' }" @click="selectCharacter('selected')">
-                    <span class="character-name">{{ $t('buttons.selected') }}</span>
-                    <span v-if="showChipCounts" class="character-count">({{ selectedModIdSet.size }})</span>
-                </div>
+                <sectionSelector id="all-selected-slider" :sections="ALL_SELECTED_SECTIONS" :labels="allSelectedLabels" :modelValue="currentCharacter || 'all'" :compact="true" @update:modelValue="selectCharacter" />
             </div>
             <!-- Lớp bắt bấm trong suốt phủ cả màn hình khi bảng đang mở:
                  bấm ra ngoài bảng thì đóng bảng. Nằm dưới nút và bảng
@@ -140,6 +136,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import sectionSelector from './sectionSelector.vue';
 import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
 import IManager, { g_config_vue, g_data_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
@@ -253,6 +250,16 @@ const typeItems = TYPE_ITEMS;
 const sortItems = SORT_VALUES;
 const translatedTypes = computed(() => TYPE_ITEMS.map(item => t(TYPE_LABEL_KEYS[item])));
 const translatedSorts = computed(() => SORT_OPTIONS.map(o => t(o.labelKey)));
+
+// Nhãn nút trượt Tất cả/Đã chọn (Đạt dặn 23/11): tên + số đếm tách
+// riêng (tên cắt … khi dài, số đếm giữ nguyên) — số đếm chỉ hiện khi
+// công tắc "Hiện số lượng mod" đang bật, giống nút cũ. Số đọc thẳng từ
+// tập chọn/tổng mod nên cập nhật theo thời gian thực.
+const ALL_SELECTED_SECTIONS = ['all', 'selected'];
+const allSelectedLabels = computed(() => [
+    { name: t('buttons.all'), count: showChipCounts.value ? `(${totalModCount.value})` : '' },
+    { name: t('buttons.selected'), count: showChipCounts.value ? `(${selectedModIdSet.size})` : '' },
+]);
 
 // Lựa chọn đang bật (để vàng chip tương ứng trong bảng): loại chuẩn hóa
 // qua normalizeTypeFilter (config cũ còn 'outfit'), xếp lạ thì về
@@ -583,10 +590,50 @@ onMounted(() => {
     border-bottom: 1px solid var(--s-color-outline-variant);
 }
 
-.character-list-fixed .character-row {
-    flex: 1;
+/* Nút trượt Tất cả/Đã chọn (Đạt dặn 23/11): dùng thẳng component
+   sectionSelector như nút Dọc/Ngang — kiểu viên vàng + khung nằm trong
+   component, chỗ này chỉ chỉnh RIÊNG cho khung hẹp 200px: khung tràn 2
+   bên đệm của panel (margin -10px, rộng 220px) để nhãn + số đếm đủ chỗ
+   ("Selected (0)" ở rộng 200px thì cắt mất chữ); đệm mục thu lại; chữ
+   tên 14px + số đếm 13px mờ (thang chữ S/XS); tên cắt … khi dài, số đếm
+   không bao giờ cắt (giống hàng nút cũ). */
+.character-list-fixed :deep(#all-selected-slider) {
+    /* Rộng 100% = 200px NỘI DUNG + đệm 10px mỗi bên của khung chứa =
+       tổng 220px (tràn 10px mỗi bên đệm panel, vừa tới mép trong của
+       viền khung trái). KHÔNG dùng border-box ở đây: khung chứa đặt
+       height: 20px, border-box sẽ hiểu 20px là tổng cao (cả đệm 26px)
+       làm khung sập còn 20px, viên + chữ bị cắt — bẫy gặp khi thử. */
+    width: 100%;
+    margin: 0 -10px;
+    flex: none;
+}
+/* Khung nút phải lấp đầy khung chứa (mặc định nó chỉ rộng vừa nội dung
+   nên 2 mục hẹp lại, viên vàng 100px không khớp mục 71px). */
+.character-list-fixed :deep(#all-selected-slider .section-selector) {
+    width: 100%;
+}
+.character-list-fixed :deep(#all-selected-slider .section-item) {
+    padding: 10px 4px;
+    gap: 4px;
+}
+.character-list-fixed :deep(#all-selected-slider .section-item p) {
+    font-size: 14px;
+    /* Tên co lại + cắt … khi nhãn dài hơn nửa khung (số đếm giữ
+       nguyên): flex: 0 1 auto = không phình khi ngắn, co khi dài;
+       min-width: 0 cho co dưới cỡ chữ. Ghi đè flex: none của bản
+       compact trong component (chỉ cho nút này, nút Dọc/Ngang giữ
+       nguyên). */
+    flex: 0 1 auto;
+    width: auto;
     min-width: 0;
-    padding: 6px 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.character-list-fixed :deep(#all-selected-slider .section-label-count) {
+    flex: none;
+    font-size: 13px;
+    opacity: 0.75;
 }
 
 .character-list-rows {
