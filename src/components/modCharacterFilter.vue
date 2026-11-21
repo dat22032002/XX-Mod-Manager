@@ -1,8 +1,10 @@
-<!-- Hàng lọc giờ trống: toàn bộ cụm lọc (tìm kiếm + Bộ lọc + Tất cả
-     + Đã chọn + bảng lọc) Teleport lên hàng trên cùng của cửa sổ
-     (ngang nút thoát app) — component vẫn gắn ở lưới mod nên trạng
-     thái + sự kiện không đổi. Hàng chip nhân vật đã bỏ, thay bằng
-     danh sách dọc ở cột trái (characterList.vue). -->
+<!-- Hàng lọc giờ trống: cụm lọc (Bộ lọc + Tất cả + Đã chọn + bảng
+     lọc) Teleport lên hàng trên cùng của cửa sổ (ngang nút thoát app)
+     — component vẫn gắn ở lưới mod nên trạng thái + sự kiện không đổi.
+     Hàng chip nhân vật đã bỏ, thay bằng danh sách dọc ở cột trái
+     (characterList.vue); ô tìm kiếm cũng dời xuống cạnh tiêu đề
+     Characters trong danh sách đó (Đạt dặn 21/11) vì nó tìm theo tên
+     nhân vật, không tìm tên mod. -->
 <template>
     <div class="filter-row">
         <!-- defer: khung đích nằm ở App.vue (component khác) — đợi cả cây
@@ -10,32 +12,6 @@
              đích chưa sẵn sàng. -->
         <Teleport to="#top-filter-bar" defer>
             <div class="top-filter-row">
-        <!-- Search box is slanted like the filter chips (outer skew -20deg),
-             with the icon + input counter-skewed back so the text stays
-             straight. (Skewing the input itself would slant/clip the text,
-             which is why round 3 kept this box straight.)
-             The input is a PLAIN <input>, not Sober s-text-field: Sober's
-             field paints its own yellow border inside its shadow DOM (it
-             ignores the border-color var when focused, and theming the
-             primary color transparent would also hide the text caret), so
-             the only way to have NO inner box at all — just the slanted
-             outer frame — is a native input with transparent background
-             and no border/outline. Focus is shown on the outer frame
-             instead (:focus-within below). -->
-        <div id="search-filter-chip" class="search-box-fixed">
-          <div class="search-box-inner">
-            <s-icon>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                    <path
-                        d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z">
-                    </path>
-                </svg>
-            </s-icon>
-            <div id="search-input-container" style="display: flex;align-items: center;flex: 1;min-width: 0;margin-left: 8px;">
-                <input id="search-input" type="text" class="search-input-field" @input="handleSearchInput" v-model="searchInput" />
-            </div>
-          </div>
-        </div>
         <!-- Nút Bộ lọc: bấm vào thì bảng lọc hiện ra dưới dạng overlay
              phủ lên lưới mod (không đẩy nội dung xuống), mép trái bảng
              thẳng với mép trái nút. Nút phát sáng khi bảng đang mở.
@@ -120,7 +96,6 @@ const iManager = new IManager();
 
 import { g_config_vue } from '../../electron/IManager';
 
-const searchInput = ref<string>('');
 // Lọc nhân vật đang chọn: 'all' | 'selected' | tên nhân vật. Nút Tất
 // cả / Đã chọn vàng theo biến này; nhân vật cụ thể thì danh sách dọc
 // vàng hàng của nhân vật đó.
@@ -255,13 +230,13 @@ watch(language, () => {
 // 1. itemChange事件，发生在筛选项发生变化时
 // 2. filterChangeToAll事件，发生在筛选项为全部时
 // 3. filterChangeToSelected事件，发生在筛选项为已选时
-// 4. filterChangeToSearch事件，发生在筛选项为搜索时，包含一个参数，表示搜索的内容
+// (Tìm kiếm từng phát filterChangeToSearch từ đây — ô tìm kiếm đã dời
+// sang characterList.vue, sự kiện tìm kiếm giờ đi đường khác.)
 
 const emit = defineEmits([
     'itemChange',
     'filterChangeToAll',
-    'filterChangeToSelected',
-    'filterChangeToSearch'
+    'filterChangeToSelected'
 ]);
 
 onMounted(() => {
@@ -293,18 +268,6 @@ const selectFixedFilter = (kind) => {
     if (kind === 'all') emit('filterChangeToAll');
     else emit('filterChangeToSelected');
 };
-
-//-=============== 搜索按钮 ===============
-const handleSearchInput = (e) => {
-    // 发送搜索请求
-    const searchText = e.target.value;
-    if (searchText) {
-        emit('filterChangeToSearch', searchText);
-    } else {
-        // 如果搜索框为空，则发送空搜索请求
-        emit('filterChangeToAll');
-    }
-}
 
 //-=============== 对外的接口 ===============
 // modCardManager gọi khi currentCharacter đổi từ bên ngoài (đổi preset,
@@ -354,41 +317,9 @@ defineExpose({
     align-items: center;
 }
 
-.search-box-fixed {
-    /* Rộng 160px (Đạt dặn 19:23 19/11: ngắn lại xíu cho gọn; trước đây
-       200px). Ngắn ô thì thanh tag có thêm chỗ, đỡ phải lăn. */
-    width: 160px;
-    min-width: 0;
-    flex-shrink: 0;
-    height: 35px;
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-    padding: 0px 16px;
-    border-radius: 8px;
-    /* Nền phải nhìn thấy được: surface-container (8,8,8) gần như trùng màu
-       nền hàng (12,12,12) nên ô tìm kiếm chỉ còn thấy viền méo, phần nền
-       trông như nền thẳng. surface-container-low (34,34,34 — cùng tông
-       với các hàng cài đặt) để khối nền méo hiện rõ như viền.
-       (surface-container-high đo ra vẫn chỉ (11,11,11) nên không dùng.) */
-    background-color: var(--s-color-surface-container-low);
-    border: 1px solid var(--s-color-outline-variant);
-    overflow: hidden;
-    /* Nghiêng như tag chip (-20deg); nội dung bên trong nghiêng ngược lại
-       để chữ và ô nhập vẫn thẳng. */
-    transform: skew(-20deg);
-}
-
-/* Ô nhập đang gõ thì VIỀN MÉO bên ngoài sáng lên (thay cho viền của ô
-   nhập đã bỏ): chỉ còn đúng 1 viền là khung méo. */
-.search-box-fixed:focus-within {
-    border-color: var(--s-color-primary);
-}
-
-/* Nút Bộ lọc: cùng kiểu khối nghiêng -20° cao 35px như ô tìm kiếm, chữ
-   và biểu tượng nghiêng ngược lại cho thẳng. Cách ô tìm kiếm 8px; thanh
-   tag dí sát mép phải nút nhờ margin-left -7px của nó (như trước đây
-   dí sát ô tìm kiếm). */
+/* Nút Bộ lọc: khối nghiêng -20° cao 35px, chữ và biểu tượng nghiêng
+   ngược lại cho thẳng. Là nút đầu tiên ở hàng trên (ô tìm kiếm đã
+   dời xuống danh sách nhân vật). */
 .filter-toggle {
     flex-shrink: 0;
     height: 35px;
@@ -478,18 +409,19 @@ defineExpose({
 
 /* Bảng lọc overlay: thả xuống từ nút Bộ lọc (giờ ở hàng trên), phủ lên
    lưới mod chứ không đẩy nội dung. Mép trái thẳng với mép trái nút
-   (= ô tìm kiếm 160px + khe 8px tính từ mép trái khung chứa ở hàng
-   trên; đổi rộng ô tìm kiếm thì đổi cả số này). Bảng ôm vừa nội dung
-   (chỉ rộng bằng hàng chip dài nhất cộng đệm). Giới hạn để không tràn
-   mép phải cửa sổ (mép trái bảng cách mép trái cửa sổ ~354px: đệm đầu
-   20 + lề nút cửa sổ 8 + nút cửa sổ 142 + khe 16 + ô tìm kiếm 168;
-   chừa 10px mép phải); cửa sổ hẹp quá thì hàng chip tự lăn ngang như cũ. */
+   (= lề trái 8px của nút tính từ mép trái khung chứa ở hàng trên; nút
+   Bộ lọc giờ là nút đầu tiên vì ô tìm kiếm đã dời xuống danh sách nhân
+   vật). Bảng ôm vừa nội dung (chỉ rộng bằng hàng chip dài nhất cộng
+   đệm). Giới hạn để không tràn mép phải cửa sổ (mép trái bảng cách mép
+   trái cửa sổ ~192px: đệm đầu 20 + lề nút cửa sổ 8 + nút cửa sổ 142 +
+   khe 16 + lề nút Bộ lọc 8, trừ 2px làm tròn; chừa 10px mép phải);
+   cửa sổ hẹp quá thì hàng chip tự lăn ngang như cũ. */
 .filter-panel {
     position: absolute;
     top: calc(100% + 8px);
-    left: 168px;
+    left: 8px;
     width: fit-content;
-    max-width: calc(100vw - 364px);
+    max-width: calc(100vw - 202px);
     z-index: 50;
     display: flex;
     flex-direction: column;
@@ -516,32 +448,4 @@ defineExpose({
 .sort-wrap {
     width: 100%;
 }
-
-.search-input-field {
-    flex: 1;
-    width: 100%;
-    min-width: 0;
-    min-height: 25px;
-    padding: 0;
-    border: none;
-    outline: none;
-    background: transparent;
-    box-shadow: none;
-    color: var(--s-color-on-surface);
-    font: inherit;
-    caret-color: var(--s-color-on-surface);
-}
-
-.search-box-inner {
-    transform: skew(20deg);
-    display: flex;
-    align-items: center;
-    flex: 1;
-    min-width: 0;
-}
-
-#search-filter-chip s-icon {
-    flex-shrink: 0;
-}
-
 </style>

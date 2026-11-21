@@ -3,7 +3,7 @@
         <!-- <chipRadioBar class="characterFilter" :items="characters" @itemChange="handleFilterChange"
             :translatedItems="translateCharacters" ref="characterFilterRef" /> -->
         <ModCharacterFilter class="characterFilter" @itemChange="handleFilterChange" ref="characterFilterRef" @filterChangeToAll="handleFilterChangeToAll"
-            @filterChangeToSelected="handleFilterChangeToSelected" @filterChangeToSearch="handleFilterChangeToSearch" />
+            @filterChangeToSelected="handleFilterChangeToSelected" />
         <!-- Giao diện lọc theo loại mod + sắp xếp (nút "Bộ lọc" + bảng
              overlay) nằm trong ModCharacterFilter; chỗ này chỉ đọc lựa
              chọn đã lưu trong config để lọc/xếp danh sách (xem
@@ -133,7 +133,7 @@ let sizeBumpTimer = null;
 // were mounted. The math lives in ./modWindowing.js so it can be checked
 // without a browser.
 
-// Current search text, mirrored from handleFilterChangeToSearch. The list is
+// Current search text, mirrored from applySearch. The list is
 // filtered in Vue state (not only by hiding DOM nodes) because unmounted
 // cards have no DOM node to hide.
 const searchText = ref('');
@@ -354,8 +354,13 @@ const handleFilterChangeToSelected = () => {
     searchText.value = '';
 };
 
-const handleFilterChangeToSearch = (search) => {
-    console.log('handleFilterChangeToSearch', search);
+// Nhận chữ tìm kiếm từ ô tìm kiếm cạnh tiêu đề Characters
+// (characterList.vue phát 'search', modCardSection chuyển vào đây).
+// Hàm này từng là handler của sự kiện filterChangeToSearch từ
+// modCharacterFilter — ô tìm kiếm đã dời chỗ nên đổi thành hàm mở cho
+// modCardSection gọi trực tiếp, logic không đổi.
+const applySearch = (search) => {
+    console.log('applySearch', search);
     if (!search || !search.trim()) {
         // Blank search (e.g. only spaces): same as clearing the search.
         // Without this reset, filteredMods would fall back to the previous
@@ -799,7 +804,8 @@ function handleMarqueeClickCapture(event) {
 
 defineExpose({
     loadPreset,
-    selectCharacter
+    selectCharacter,
+    applySearch
 });
 </script>
 

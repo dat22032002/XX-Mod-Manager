@@ -48,7 +48,7 @@
                 </s-tooltip>
             </template>
         </leftMenu>
-        <characterList @itemChange="handleCharacterListChange" />
+        <characterList @itemChange="handleCharacterListChange" @search="handleCharacterSearch" />
         </div>
         <modCardManager id="mod-card-manager" :compactMode="compactMode" :cardWidth="cardWidth"
             :cardLayout="cardLayout" :fullImage="cardFullImage" ref="modCardManagerRef">
@@ -677,6 +677,12 @@ const modCardManagerRef = useTemplateRef('modCardManagerRef');
 // (giống hệt bấm chip nhân vật cũ).
 const handleCharacterListChange = (character) => {
     modCardManagerRef.value?.selectCharacter(character);
+};
+
+// Gõ ô tìm kiếm cạnh tiêu đề Characters: lọc theo tên nhân vật
+// (khớp đầu tên, đúng 1 nhân vật mới lọc — luật ở filteredMods).
+const handleCharacterSearch = (text) => {
+    modCardManagerRef.value?.applySearch(text);
 };
 
 //#endregion

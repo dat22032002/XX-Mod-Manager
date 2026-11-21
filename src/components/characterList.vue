@@ -4,7 +4,23 @@
      vật (theo công tắc "Hiện số lượng mod" trong bảng lọc). -->
 <template>
     <div class="character-list OO-box">
-        <div class="character-list-title">{{ $t('filter.characters') }}</div>
+        <!-- Hàng tiêu đề: chữ Characters + ô tìm kiếm cạnh bên (Đạt dặn
+             21/11). Ô tìm kiếm vốn ở hàng trên — dời xuống đây vì nó tìm
+             theo TÊN NHÂN VẬT (khớp đầu tên, đúng 1 nhân vật mới lọc),
+             không tìm tên mod. -->
+        <div class="character-list-header">
+            <div class="character-list-title">{{ $t('filter.characters') }}</div>
+            <div class="character-search">
+                <s-icon>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                        <path
+                            d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z">
+                        </path>
+                    </svg>
+                </s-icon>
+                <input id="search-input" type="text" v-model="searchInput" @input="handleSearchInput" />
+            </div>
+        </div>
         <div class="character-list-rows">
             <div v-for="name in characterList" :key="name" class="character-row"
                 :class="{ active: currentCharacter === name }" @click="selectCharacter(name)">
@@ -16,12 +32,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import IManager, { g_config_vue, g_data_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 
 const iManager = new IManager();
-const emit = defineEmits(['itemChange']);
+const emit = defineEmits(['itemChange', 'search']);
 
 const characterList = g_data_vue.characterList;
 // Hàng vàng theo nhân vật đang chọn — đọc thẳng từ biến dùng chung nên
@@ -45,11 +61,30 @@ const modCountsByCharacter = computed(() => {
     return counts;
 });
 
+// Ô tìm kiếm (dời từ hàng trên xuống đây): gõ thì phát chữ lên
+// modCardSection để lọc — khớp đầu tên nhân vật, đúng 1 nhân vật mới
+// lọc (luật ở filteredMods, không đổi). Xóa hết chữ thì phát '' để
+// lưới về Tất cả (nhánh blank của applySearch).
+const searchInput = ref('');
+const handleSearchInput = () => {
+    emit('search', searchInput.value);
+};
+
+// Chữ tìm kiếm cũ phải xóa khi lọc đổi sang chỗ khác, không thì ô vẫn
+// hiện chữ cũ trong khi lưới đang lọc theo cái khác: bấm hàng thì xóa
+// ở selectCharacter dưới; bấm Tất cả / Đã chọn (nút ở hàng trên) thì
+// currentCharacter đổi thành 'all'/'selected' — xóa ở đây. Đổi sang
+// tên nhân vật thì KHÔNG xóa (đó có thể là do đang gõ tìm).
+watch(currentCharacter, (val) => {
+    if (val === 'all' || val === 'selected') searchInput.value = '';
+});
+
 // Bấm hàng: phát lên modCardSection để gọi vào lưới mod (giống hệt bấm
 // chip nhân vật cũ: bỏ tìm kiếm đang gõ rồi đổi nhân vật lọc). Bấm lại
 // hàng đang chọn thì không làm gì.
 const selectCharacter = (name) => {
     if (name === currentCharacter.value) return;
+    searchInput.value = '';
     emit('itemChange', name);
 };
 </script>
@@ -68,11 +103,57 @@ const selectCharacter = (name) => {
     margin-top: 8px;
 }
 
+/* Hàng tiêu đề: chữ Characters + ô tìm kiếm cạnh bên. */
+.character-list-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 6px;
+}
+
 .character-list-title {
+    flex-shrink: 0;
     font-weight: bolder;
     color: var(--s-color-on-surface-variant);
-    padding: 0 2px 6px;
+    padding: 0 2px;
     font-size: 0.9rem;
+}
+
+/* Ô tìm kiếm: thẳng (không nghiêng như ô cũ ở hàng trên), cùng kiểu
+   với hàng nhân vật (nền surface-container-low, bo 8px). */
+.character-search {
+    flex: 1;
+    min-width: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-sizing: border-box;
+    padding: 0 8px;
+    border-radius: 8px;
+    background-color: var(--s-color-surface-container-low);
+    color: var(--s-color-on-surface);
+}
+
+.character-search:focus-within {
+    outline: 1px solid var(--s-color-primary);
+}
+
+.character-search s-icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+.character-search input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--s-color-on-surface);
+    font-size: 0.9rem;
+    padding: 0;
 }
 
 .character-list-rows {
