@@ -64,9 +64,17 @@ const sliderStyle = computed(() => {
     // mục cuối — chấp nhận được khi nút rộng (đệm 40px) nhưng lộ rõ khi
     // nút thu gọn. Bản thu gọn (compact) dùng translateX theo đúng chỉ số
     // mục: viên rộng 100/N% nên đi đúng 1 mục = 100% chiều rộng viên.
+    // Bản thu gọn còn trừ 10px khỏi rộng viên: khung chứa (.slider-
+    // container) rộng hơn khung nút 20px do đệm ngang 10px mỗi bên, nên
+    // viên 50% của khung chứa thừa 10px so với 1 nửa nút — thừa đó làm
+    // viên lấn ~22px sang chữ nút còn lại (Đạt báo 21/11: "Ho" của
+    // Horizontal trắng trên nền vàng) và khi chọn mục 2 thì viên trượt
+    // quá tay, chữ H hết vàng. calc(50% - 10px) = đúng 1 nửa nút.
     const shift = props.compact ? index * 100 : index * 85 - 15;
     return {
-        width: `${100 / props.sections.length}%`,
+        width: props.compact
+            ? `calc(${100 / props.sections.length}% - 10px)`
+            : `${100 / props.sections.length}%`,
         transform: `translateX(${shift}%) skew(-20deg)`
     };
 });
@@ -124,6 +132,23 @@ defineExpose({
 /* Bản thu gọn: đệm 2 bên chữ 40px -> 16px, nút ngắn đi ~48px mỗi mục. */
 .slider-container.compact .section-item {
     padding: 10px 16px;
+}
+
+/* Bản thu gọn (Dọc/Ngang): viên vàng vừa đúng 1 nửa nút, vừa đúng cao
+   khung, và có viền như khung (Đạt dặn 21/11). Viên gốc dùng content-box
+   + đệm ngang 10px nên rộng thừa ~30px so với nửa nút, lại cao 46px
+   (trồi 3px khỏi khung 40px) và không có viền. Bản thu gọn dùng
+   border-box + bỏ đệm (rộng viên = đúng nửa nút, tính cả viền), neo
+   đúng mép khung (trái 10px = đệm khung chứa, trên/dưới 3px = khung
+   40px nằm giữa khung chứa 46px), viền 5px cùng màu viền khung. Nút
+   Mod/Help/Setting không truyền compact nên giữ nguyên như cũ. */
+.slider-container.compact .slider {
+    box-sizing: border-box;
+    left: 10px;
+    top: 3px;
+    bottom: 3px;
+    padding: 0;
+    border: 5px solid var(--s-color-outline-variant);
 }
 
 
