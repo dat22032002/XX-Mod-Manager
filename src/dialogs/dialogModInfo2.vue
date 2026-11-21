@@ -67,17 +67,30 @@
                    cũng z-index 1, hàng Tag đứng sau trong DOM nên che
                    mất bảng chọn (Đạt thấy 20/11). Nâng lên 10 thì bảng
                    chọn nổi lên trên chip. -->
-              <s-popup id="character-picker-popup" ref="characterPopupRef" style="--z-index: 10;">
-                <!-- Nut tu can giua theo hang (absolute + top 50% +
-                     translateY(-50%)): khung s-popup cao hon nut 10px
-                     nen dat top cho khung lam nut lech xuong duoi. -->
+              <!-- Vị trí tuyệt đối đặt trên KHUNG s-popup (không đặt
+                   trên nút): Sober neo bảng chọn theo khung chứa nút
+                   (slot trigger), nút mà tuyệt đối thì khung đó co về
+                   0x0, bảng chọn mở ra ở đầu hàng rồi đè lên nút
+                   (Đạt thấy 21/11). Nút nằm trong luồng bình thường
+                   thì khung chứa ôm đúng nút, bảng chọn mở ngay dưới
+                   nút, không che nút nữa. Hàng .OO-setting-bar đã
+                   position: relative nên khung neo đúng mép phải hàng.
+                   z-index: 10 trên KHUNG (không chỉ --z-index):
+                   transform tạo stacking context nhốt z-index của
+                   bảng chọn, chip hàng Tag (z-index 1) đè lên bảng
+                   nếu khung không có z-index riêng (soi ảnh 21/11). -->
+              <s-popup id="character-picker-popup" ref="characterPopupRef"
+                style="--z-index: 10; position: absolute; right: 5px; top: 50%; transform: translateY(-50%); z-index: 10;">
+                <!-- scale(1): nút s-icon-button không có scale(1) thì
+                     co về 0.83x (33px thay vì 40px), lệch khỏi nút
+                     Hotkeys bên dưới (soi ảnh 21/11). -->
                 <s-icon-button slot="trigger" class="OO-icon-button" id="character-picker-button"
-                  style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%) scale(1); margin: 0; border: 5px solid var(--s-color-surface-container-high);">
+                  style="margin: 0; border: 5px solid var(--s-color-surface-container-high); transform: scale(1);">
                   <s-icon type="chevron_down"></s-icon>
                 </s-icon-button>
                 <div class="OO-box OO-shade-box character-picker-list">
                   <div v-for="name in characterList" :key="name" class="character-picker-item"
-                    :class="{ current: name === tempModInfo.character }" @click="selectCharacter(name)">
+                    :class="{ current: name === tempModInfo.character }" :title="name" @click="selectCharacter(name)">
                     {{ name }}
                   </div>
                 </div>
@@ -512,9 +525,11 @@ onMounted(() => {
 
 /* Danh sách chọn nhân vật có sẵn trong bảng chọn: cao tối đa 300px,
    nhiều nhân vật thì lăn dọc. Hàng đang là nhân vật của mod thì vàng
-   lên như chip đang chọn. */
+   lên như chip đang chọn. Rộng 130px = một nửa 260px cũ (Đạt dặn 21/11);
+   tên nhân vật dài nhất (Alexandrina, 11 chữ) vẫn vừa, tên dài hơn thì
+   cắt bằng dấu ... nhờ text-overflow ở .character-picker-item. */
 .character-picker-list {
-  width: 260px;
+  width: 130px;
   max-height: 300px;
   overflow-y: auto;
   padding: 6px;
