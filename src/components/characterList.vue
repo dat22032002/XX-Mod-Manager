@@ -84,16 +84,32 @@
                 <div class="filter-grid">
                     <div class="filter-group">
                         <div class="filter-group-label">{{ $t('filter.typeGroup') }}</div>
+                        <!-- Chip chia 2 hàng cố định (4+3), chip trong mỗi
+                             hàng rộng bằng nhau (flex: 1 1 0) — Đạt dặn
+                             21/11: không cái quá dài, cái quá ngắn. Hàng 1
+                             4 chip ~95px, hàng 2 3 chip ~129px. -->
                         <div class="filter-chips">
-                            <div v-for="(item, i) in typeItems" :key="item" class="filter-chip"
-                                :class="{ active: currentType === item }" @click="handleTypeChange(item)">{{ translatedTypes[i] }}</div>
+                            <div class="filter-chip-row">
+                                <div v-for="(item, i) in typeItems.slice(0, 4)" :key="item" class="filter-chip"
+                                    :class="{ active: currentType === item }" @click="handleTypeChange(item)">{{ translatedTypes[i] }}</div>
+                            </div>
+                            <div class="filter-chip-row">
+                                <div v-for="(item, i) in typeItems.slice(4)" :key="item" class="filter-chip"
+                                    :class="{ active: currentType === item }" @click="handleTypeChange(item)">{{ translatedTypes[i + 4] }}</div>
+                            </div>
                         </div>
                     </div>
                     <div class="filter-group">
                         <div class="filter-group-label">{{ $t('filter.sortGroup') }}</div>
                         <div class="filter-chips">
-                            <div v-for="(item, i) in sortItems" :key="item" class="filter-chip"
-                                :class="{ active: currentSort === item }" @click="handleSortChange(item)">{{ translatedSorts[i] }}</div>
+                            <div class="filter-chip-row">
+                                <div v-for="(item, i) in sortItems.slice(0, 4)" :key="item" class="filter-chip"
+                                    :class="{ active: currentSort === item }" @click="handleSortChange(item)">{{ translatedSorts[i] }}</div>
+                            </div>
+                            <div class="filter-chip-row">
+                                <div v-for="(item, i) in sortItems.slice(4)" :key="item" class="filter-chip"
+                                    :class="{ active: currentSort === item }" @click="handleSortChange(item)">{{ translatedSorts[i + 4] }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -164,9 +180,15 @@ const totalModCount = computed(() => {
 // modCardSection để lọc — khớp đầu tên nhân vật, đúng 1 nhân vật mới
 // lọc (luật ở filteredMods, không đổi). Xóa hết chữ thì phát '' để
 // lưới về Tất cả (nhánh blank của applySearch).
+// ĐỌC e.target.value, KHÔNG đọc ref searchInput: Vue v-model không cập
+// nhật ref trong lúc bộ gõ tiếng Việt đang giữ chữ chưa chốt
+// (composition), nên đọc ref thì lúc gõ bằng bộ gõ Telex app nhận giá
+// trị cũ, phải bấm Enter chốt chữ thì tìm kiếm mới chạy — đúng lỗi Đạt
+// báo 21/11 ("phải bấm enter mới tìm dc"). Bản gốc cũng đọc
+// e.target.value, y hệt thế này.
 const searchInput = ref('');
-const handleSearchInput = () => {
-    emit('search', searchInput.value);
+const handleSearchInput = (e) => {
+    emit('search', e.target.value);
 };
 
 // Chữ tìm kiếm cũ phải xóa khi lọc đổi sang chỗ khác, không thì ô vẫn
@@ -483,32 +505,40 @@ onMounted(() => {
     padding: 2px 2px 6px;
 }
 
-/* Chip xếp lưới, căn lề trái (Đạt dặn 21/11 — bản căn giữa nhìn lạ).
-   Hàng ngắn (vd hàng 2 của nhóm loại chỉ có 2 chip) sẽ thừa bên phải,
-   nhưng bảng đã thu hẹp còn 420px nên khúc thừa nhỏ hơn trước nhiều. */
+/* Nhóm chip trong bảng: 2 hàng cố định (4+3), xếp dọc, cách nhau 6px.
+   Chip trong mỗi hàng rộng bằng nhau — hàng 4 chip ~95px, hàng 3 chip
+   ~129px (Đạt dặn 21/11: không cái quá dài, cái quá ngắn). Mỗi hàng
+   lấp đầy bề rộng bảng nên không còn khúc trống bên phải. */
 .filter-chips {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-chip-row {
+    display: flex;
     gap: 6px;
 }
 
 /* Chip trong bảng: thẳng (không nghiêng như chip trượt cũ), cùng kiểu
-   với hàng nhân vật — chip đang chọn nền vàng, chữ đậm. Nền chip dùng
+   với hàng nhân vật — chip đang chọn nền vàng. Nền chip dùng
    surface-container-lowest (#323232): theme tối của app đặt tên ngược
    với Material — "lowest" mới là màu sáng nhất, "highest" (#191919) còn
    tối hơn nền bảng (#222222).
-   Chip giãn đầy hàng (flex: 1 0 auto): mỗi hàng chip kéo dài ra tới
-   mép phải bảng, không còn khúc trống bên phải (Đạt chỉ ra 21/11 —
-   hàng 2 chỉ có 2 chip thì bên phải thừa cả khúc). flex-shrink: 0 để
-   chip không bị bóp nhỏ làm vỡ cách xếp 5+2 / 4+3; chữ căn giữa trong
-   chip cho chip giãn ra vẫn cân. */
+   Chip chia đều hàng (flex: 1 1 0, min-width: 0): nhãn dài nhất
+   "Newest first" chỉ vừa ô 95px khi cỡ chữ 0.8125rem + đệm ngang 6px
+   (đo thật: 0.875rem thì chữ chạm đúng mép ô, máy Đạt vẽ chữ rộng hơn
+   chút là tràn) — KHÔNG tăng đệm hay cỡ chữ nếu chưa đo lại, và KHÔNG
+   thêm font-weight cho chip đang chọn (chữ đậm rộng hơn sẽ tràn ô;
+   nền vàng đã đủ báo đang chọn). */
 .filter-chip {
-    flex: 1 0 auto;
-    padding: 6px 12px;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px;
     border-radius: 8px;
     background-color: var(--s-color-surface-container-lowest);
     color: var(--s-color-on-surface);
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
@@ -518,7 +548,6 @@ onMounted(() => {
 .filter-chip.active {
     background-color: var(--s-color-primary);
     color: var(--s-color-on-primary);
-    font-weight: bolder;
 }
 
 /* Hàng công tắc ẩn/hiện số lượng trong bảng lọc: nhãn trái, công tắc
