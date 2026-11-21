@@ -1,43 +1,100 @@
 <!-- Danh sách nhân vật dọc dưới khung preset (thay hàng chip ngang đã
-     bỏ): bấm tên là lọc lưới mod theo nhân vật đó. Hàng đang chọn nền
-     vàng. Tất cả / Đã chọn là 2 hàng CỐ ĐỊNH trên cùng (không lăn theo
-     danh sách) — dời từ hàng trên xuống đây vì chúng cùng họ với chọn
-     nhân vật ("cho xem mod nào"). Số trong ngoặc là số mod của nhân
-     vật (theo công tắc "Hiện số lượng mod" trong bảng lọc). -->
+     bỏ) — giờ là nơi gom HẾT cụm lọc của tab Mod: ô tìm kiếm + nút Bộ
+     lọc + Tất cả / Đã chọn + bảng lọc (Đạt dặn 21/11, dời dần từng món
+     từ hàng trên xuống đây vì chúng cùng họ với chọn nhân vật, để chung
+     1 chỗ thì nhìn là biết đang lọc gì). Bấm tên là lọc lưới mod theo
+     nhân vật đó. Hàng đang chọn nền vàng. Số trong ngoặc là số mod của
+     nhân vật (theo công tắc "Hiện số lượng mod" trong bảng lọc). -->
 <template>
     <div class="character-list OO-box">
-        <!-- Hàng tiêu đề: chữ Characters + ô tìm kiếm cạnh bên (Đạt dặn
-             21/11). Ô tìm kiếm vốn ở hàng trên — dời xuống đây vì nó tìm
-             theo TÊN NHÂN VẬT (khớp đầu tên, đúng 1 nhân vật mới lọc),
-             không tìm tên mod. -->
-        <div class="character-list-header">
-            <div class="character-list-title">{{ $t('filter.characters') }}</div>
-            <div class="character-search">
-                <s-icon>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                        <path
-                            d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z">
-                        </path>
-                    </svg>
-                </s-icon>
-                <input id="search-input" type="text" v-model="searchInput" @input="handleSearchInput" />
+        <!-- Khối đầu cố định (không lăn): tiêu đề + hàng tìm kiếm/Bộ lọc
+             + hàng Tất cả/Đã chọn + bảng lọc thả xuống. position relative
+             để bảng lọc (absolute) neo theo đây, bung ra ngay dưới khối. -->
+        <div class="character-list-top">
+            <div class="character-list-header">
+                <div class="character-list-title">{{ $t('filter.characters') }}</div>
             </div>
-        </div>
-        <!-- Tất cả / Đã chọn: 2 hàng cố định trên cùng, ngoài khung lăn
-             nên không trôi đi khi lăn danh sách. Giữ nguyên id để probe
-             cũ vẫn tìm được mà bấm. Số trong ngoặc: Tất cả = tổng số
-             mod, Đã chọn = số mod đang chọn (đọc thẳng từ tập chọn,
-             mới mỗi lần vẽ lại). Hàng Tất cả vàng cả khi chưa chọn gì
-             (currentCharacter = null lúc mới mở app — lưới lúc đó hiện
-             tất cả, giống luật filteredMods coi trống là 'all'). -->
-        <div class="character-list-fixed">
-            <div id="all-filter-chip" class="character-row" :class="{ active: currentCharacter === 'all' || !currentCharacter }" @click="selectCharacter('all')">
-                <span class="character-name">{{ $t('buttons.all') }}</span>
-                <span v-if="showChipCounts" class="character-count">({{ totalModCount }})</span>
+            <!-- Hàng tìm kiếm + Bộ lọc: ô tìm kiếm bên trái, nút Bộ lọc
+                 bên phải (Đạt dặn 21/11). 4 món (tìm kiếm + Bộ lọc +
+                 Tất cả + Đã chọn) chung 1 hàng thì ô tìm kiếm còn ~40px,
+                 không gõ được — nên tách 2 hàng: hàng này tìm kiếm +
+                 Bộ lọc, hàng dưới Tất cả + Đã chọn. -->
+            <div class="character-list-searchrow">
+                <div class="character-search">
+                    <s-icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                            <path
+                                d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z">
+                            </path>
+                        </svg>
+                    </s-icon>
+                    <input id="search-input" type="text" v-model="searchInput" @input="handleSearchInput" />
+                </div>
+                <!-- Nút Bộ lọc: bấm vào thì bảng lọc hiện ra dưới dạng
+                     overlay phủ lên danh sách + lưới mod (không đẩy nội
+                     dung xuống). Nút vàng lên khi bảng đang mở hoặc đang
+                     có lọc/xếp khác mặc định — nhìn là biết lưới đang bị
+                     lọc dù bảng đã đóng. -->
+                <div id="filter-toggle-chip" class="filter-toggle" :class="{ active: hasActiveFilter, open: panelOpen }" @click="panelOpen = !panelOpen">
+                    <div class="filter-toggle-inner">
+                        <s-icon>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"></path>
+                            </svg>
+                        </s-icon>
+                        <span>{{ $t('filter.button') }}</span>
+                        <span class="filter-toggle-chevron">▼</span>
+                    </div>
+                </div>
             </div>
-            <div id="selected-filter-chip" class="character-row" :class="{ active: currentCharacter === 'selected' }" @click="selectCharacter('selected')">
-                <span class="character-name">{{ $t('buttons.selected') }}</span>
-                <span v-if="showChipCounts" class="character-count">({{ selectedModIdSet.size }})</span>
+            <!-- Tất cả / Đã chọn: chung 1 hàng, mỗi bên một nửa, cố định
+                 trên cùng ngoài khung lăn nên không trôi đi khi lăn danh
+                 sách. Giữ nguyên id để probe cũ vẫn tìm được mà bấm. Số
+                 trong ngoặc: Tất cả = tổng số mod, Đã chọn = số mod đang
+                 chọn (đọc thẳng từ tập chọn, mới mỗi lần vẽ lại). Hàng Tất
+                 cả vàng cả khi chưa chọn gì (currentCharacter = null lúc
+                 mới mở app — lưới lúc đó hiện tất cả, giống luật
+                 filteredMods coi trống là 'all'). -->
+            <div class="character-list-fixed">
+                <div id="all-filter-chip" class="character-row" :class="{ active: currentCharacter === 'all' || !currentCharacter }" @click="selectCharacter('all')">
+                    <span class="character-name">{{ $t('buttons.all') }}</span>
+                    <span v-if="showChipCounts" class="character-count">({{ totalModCount }})</span>
+                </div>
+                <div id="selected-filter-chip" class="character-row" :class="{ active: currentCharacter === 'selected' }" @click="selectCharacter('selected')">
+                    <span class="character-name">{{ $t('buttons.selected') }}</span>
+                    <span v-if="showChipCounts" class="character-count">({{ selectedModIdSet.size }})</span>
+                </div>
+            </div>
+            <!-- Lớp bắt bấm trong suốt phủ cả màn hình khi bảng đang mở:
+                 bấm ra ngoài bảng thì đóng bảng. Nằm dưới nút và bảng
+                 (z-index) nên không chặn 2 cái đó. -->
+            <div class="filter-backdrop" v-show="panelOpen" @click="panelOpen = false"></div>
+            <!-- Bảng lọc overlay: mỗi nhóm 1 hàng riêng để đủ chỗ hiện hết
+                 chip mà không phải lăn ngang. Bấm chip thì bảng ở lại mở
+                 để chọn tiếp nhóm còn lại; bấm nút hoặc bấm ra ngoài thì
+                 đóng. Dùng v-show để chipRadioBar không bị gắn lại (thanh
+                 vàng giữ nguyên vị trí đã đo) khi đóng bảng. -->
+            <div class="filter-panel" v-show="panelOpen">
+                <div class="type-filter-wrap">
+                    <chipRadioBar :items="typeItems" :translatedItems="translatedTypes"
+                        @itemChange="handleTypeChange" ref="typeFilterRef" />
+                </div>
+                <div class="sort-wrap">
+                    <chipRadioBar :items="sortItems" :translatedItems="translatedSorts"
+                        @itemChange="handleSortChange" ref="sortBarRef" />
+                </div>
+                <!-- Công tắc ẩn/hiện số lượng mod trên chip (Đạt dặn 20/11):
+                     nằm ẩn trong bảng lọc thay vì nút # trên thanh lọc. Bật
+                     thì mỗi chip nhân vật hiện thêm số mod trong ngoặc,
+                     vd Ellen (24). :checked lấy trạng thái đã lưu từ config;
+                     @change tự lật config qua Proxy (công tắc Sober tự đổi
+                     trạng thái hiển thị khi bấm, giống công tắc gọn ở thanh
+                     dưới — không dùng v-model vào ref config vì v-model ghi
+                     thẳng vào ref, file config không đổi theo). -->
+                <div class="counts-wrap">
+                    <span class="counts-label">{{ $t('filter.showCounts') }}</span>
+                    <s-switch id="chip-counts-switch" :checked="showChipCounts" @change="toggleChipCounts"></s-switch>
+                </div>
             </div>
         </div>
         <div class="character-list-rows">
@@ -51,7 +108,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, nextTick, useTemplateRef } from 'vue';
+import { useI18n } from 'vue-i18n';
+import chipRadioBar from './chipRadioBar.vue';
+import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
 import IManager, { g_config_vue, g_data_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
 import { selectedModIdSet } from '../../helper/SelectedMods';
@@ -114,6 +174,125 @@ const selectCharacter = (name) => {
     searchInput.value = '';
     emit('itemChange', name);
 };
+
+//-==================== Nút Bộ lọc + bảng lọc ====================//
+// (Dời từ modCharacterFilter.vue sang đây 21/11 — component đó giờ trống
+// nên xóa hẳn. Nút + bảng từng Teleport lên hàng trên; giờ nằm thẳng
+// trong khối đầu danh sách nên không cần Teleport nữa.)
+// Nút Bộ lọc: bảng overlay bung hay đóng — trạng thái chỉ trong phiên
+// làm việc (mở app lại thì bảng đóng, như mọi bảng thả xuống). Nút vàng
+// lên khi đang có lọc theo loại hoặc xếp khác mặc định — nhìn là biết
+// lưới đang bị lọc dù bảng đã đóng.
+const panelOpen = ref(false);
+const hasActiveFilter = computed(() =>
+    g_config_vue.modTypeFilter.value !== 'all' || g_config_vue.modSortBy.value !== 'default');
+
+// Tag mod (ModTag): Character, Skin, Weapon, Effect, Accessory, ETC —
+// chuẩn phân loại duy nhất từ 1.5.18, thay tiền tố tên thư mục. Thêm
+// tag mới thì thêm vào MOD_TAGS + 1 khóa locale modTag.* + 1 dòng vào
+// TYPE_LABEL_KEYS dưới đây. Lựa chọn lưu trong config (modCardManager
+// đọc để lọc/xếp danh sách).
+const TYPE_ITEMS = ['all', ...MOD_TAGS];
+const TYPE_LABEL_KEYS = {
+    all: 'filter.allTypes',
+    character: 'modTag.character',
+    skin: 'modTag.skin',
+    weapon: 'modTag.weapon',
+    effect: 'modTag.effect',
+    accessory: 'modTag.accessory',
+    etc: 'modTag.etc',
+};
+const SORT_OPTIONS = [
+    { value: 'default', labelKey: 'filter.sortDefault' },
+    { value: 'name-asc', labelKey: 'filter.sortNameAsc' },
+    { value: 'name-desc', labelKey: 'filter.sortNameDesc' },
+    { value: 'time-desc', labelKey: 'filter.sortTimeDesc' },
+    { value: 'time-asc', labelKey: 'filter.sortTimeAsc' },
+    { value: 'size-desc', labelKey: 'filter.sortSizeDesc' },
+    { value: 'size-asc', labelKey: 'filter.sortSizeAsc' },
+];
+const SORT_VALUES = SORT_OPTIONS.map(o => o.value);
+
+const { t } = useI18n();
+const typeItems = TYPE_ITEMS;
+const sortItems = SORT_VALUES;
+const translatedTypes = computed(() => TYPE_ITEMS.map(item => t(TYPE_LABEL_KEYS[item])));
+const translatedSorts = computed(() => SORT_OPTIONS.map(o => t(o.labelKey)));
+
+const typeFilterRef = useTemplateRef('typeFilterRef');
+const sortBarRef = useTemplateRef('sortBarRef');
+
+// Bung bảng lọc ra thì đo lại thanh vàng 2 hàng: lúc bảng đóng (display:
+// none) chip có kích thước 0 nên thanh trượt đo lúc gắn/mở app bị lệch;
+// đo lại sau 2 khung hình cho bố cục ổn định (giống thanh tag nhân vật).
+// selectItemByName với mục đang chọn chỉ đo lại, không phát sự kiện đổi.
+watch(panelOpen, (open) => {
+    if (!open) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        const type = normalizeTypeFilter(g_config_vue.modTypeFilter.value);
+        const sort = SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default';
+        if (typeFilterRef.value) typeFilterRef.value.selectItemByName(type);
+        if (sortBarRef.value) sortBarRef.value.selectItemByName(sort);
+    }));
+});
+
+// Ghi config dồn: bấm lia lịa thì chờ 300ms sau lần bấm cuối mới ghi
+// 1 lần (giống cách ghi mức phóng to ở modCardSection).
+let saveFilterTimer = null;
+function saveFilterSettings() {
+    if (saveFilterTimer) clearTimeout(saveFilterTimer);
+    saveFilterTimer = setTimeout(() => {
+        saveFilterTimer = null;
+        iManager.saveConfig();
+    }, 300);
+}
+
+function handleTypeChange(type) {
+    if (!TYPE_ITEMS.includes(type)) return;
+    iManager.config.modTypeFilter = type;
+    saveFilterSettings();
+}
+
+function handleSortChange(sort) {
+    if (!SORT_VALUES.includes(sort)) return;
+    iManager.config.modSortBy = sort;
+    saveFilterSettings();
+}
+
+const language = g_config_vue.language;
+
+//-=============== Hiện số lượng mod ===============//
+// Công tắc trong bảng lọc (Đạt dặn 20/11): bật thì mỗi nhân vật trong
+// danh sách dọc hiện thêm số mod trong ngoặc, vd Ellen (24); Tất cả hiện
+// tổng số mod, Đã chọn hiện số mod đang bật vàng. Tắt thì về tên trần
+// như cũ. Lựa chọn lưu trong config nên mở app lại vẫn nhớ.
+// Số đếm theo TOÀN BỘ kho mod (không theo lọc tag/tìm kiếm đang bật)
+// để con số ổn định, đúng nghĩa "nhân vật này có bao nhiêu mod".
+function toggleChipCounts() {
+    iManager.config.showChipCounts = !g_config_vue.showChipCounts.value;
+    saveFilterSettings();
+}
+watch(language, () => {
+    // Chữ trên chip lọc/xếp đổi độ dài theo ngôn ngữ nên đặt lại thanh
+    // trượt 2 hàng đó nếu bảng đang mở (bảng đóng thì lần bung sau đo lại).
+    if (panelOpen.value) {
+        nextTick(() => {
+            const type = normalizeTypeFilter(g_config_vue.modTypeFilter.value);
+            const sort = SORT_VALUES.includes(g_config_vue.modSortBy.value) ? g_config_vue.modSortBy.value : 'default';
+            if (typeFilterRef.value) typeFilterRef.value.selectItemByName(type);
+            if (sortBarRef.value) sortBarRef.value.selectItemByName(sort);
+        });
+    }
+});
+
+onMounted(() => {
+    // Config cũ còn lưu loại 'outfit' (tên cũ trước khi có tag): đổi 1 lần
+    // thành 'character' cho khớp tag mới.
+    if (g_config_vue.modTypeFilter.value === 'outfit') {
+        iManager.config.modTypeFilter = 'character';
+        saveFilterSettings();
+    }
+});
 </script>
 
 <style scoped>
@@ -130,7 +309,15 @@ const selectCharacter = (name) => {
     margin-top: 8px;
 }
 
-/* Hàng tiêu đề: chữ Characters + ô tìm kiếm cạnh bên. */
+/* Khối đầu cố định: position relative để bảng lọc (absolute) neo theo
+   đây; không đặt overflow để bảng bung ra ngoài khung được. */
+.character-list-top {
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Hàng tiêu đề: chỉ còn chữ Characters (ô tìm kiếm đã xuống hàng dưới,
+   cạnh nút Bộ lọc). */
 .character-list-header {
     display: flex;
     align-items: center;
@@ -146,6 +333,15 @@ const selectCharacter = (name) => {
     font-size: 0.9rem;
 }
 
+/* Hàng tìm kiếm + Bộ lọc: ô tìm kiếm chiếm phần còn lại, nút Bộ lọc
+   rộng vừa chữ. */
+.character-list-searchrow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 6px;
+}
+
 /* Ô tìm kiếm: thẳng (không nghiêng như ô cũ ở hàng trên), cùng kiểu
    với hàng nhân vật (nền surface-container-low, bo 8px). */
 .character-search {
@@ -154,9 +350,9 @@ const selectCharacter = (name) => {
     height: 32px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     box-sizing: border-box;
-    padding: 0 8px;
+    padding: 0 6px;
     border-radius: 8px;
     background-color: var(--s-color-surface-container-low);
     color: var(--s-color-on-surface);
@@ -183,16 +379,151 @@ const selectCharacter = (name) => {
     padding: 0;
 }
 
-/* 2 hàng Tất cả / Đã chọn: cố định trên cùng, ngoài khung lăn. Vạch
-   ngăn dưới để mắt phân biệt "2 hàng đứng yên" với "danh sách lăn". */
+/* Nút Bộ lọc: thẳng như ô tìm kiếm (không nghiêng -20° như nút cũ ở
+   hàng trên), cao 32px cho ngang ô tìm kiếm. */
+.filter-toggle {
+    flex-shrink: 0;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 8px;
+    border-radius: 8px;
+    background-color: var(--s-color-surface-container-low);
+    border: 1px solid var(--s-color-outline-variant);
+    color: var(--s-color-on-surface);
+    cursor: pointer;
+    user-select: none;
+    /* Nổi trên lớp bắt bấm (z-index 40) để bấm nút vẫn tắt/bật được
+       bảng khi bảng đang mở. */
+    position: relative;
+    z-index: 60;
+}
+
+/* Đang có lọc/xếp khác mặc định thì nút vàng như chip đang chọn. */
+.filter-toggle.active {
+    background-color: var(--s-color-primary);
+    border-color: var(--s-color-primary);
+    color: var(--s-color-on-primary);
+}
+
+/* Bảng đang mở thì nút cũng vàng lên như chip đang chọn (Đạt muốn
+   nút đổi màu vàng thay vì hiệu ứng phát sáng — 19/11). Phân biệt
+   với nút vàng do đang lọc bằng mũi tên: ▲ là bảng đang mở. */
+.filter-toggle.open {
+    background-color: var(--s-color-primary);
+    border-color: var(--s-color-primary);
+    color: var(--s-color-on-primary);
+}
+
+.filter-toggle-inner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.filter-toggle-inner s-icon {
+    flex-shrink: 0;
+}
+
+/* Mũi tên xoay ngược khi bảng lọc đang bung ra. */
+.filter-toggle-chevron {
+    font-size: 10px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.filter-toggle.open .filter-toggle-chevron {
+    transform: rotate(180deg);
+}
+
+/* Lớp bắt bấm trong suốt phủ cả màn hình khi bảng lọc đang mở: bấm ra
+   ngoài bảng thì đóng bảng. Nằm dưới nút (60) và bảng (50) nên không
+   chặn 2 cái đó. */
+.filter-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: transparent;
+}
+
+/* Bảng lọc overlay: thả xuống từ khối đầu danh sách, phủ lên danh sách
+   + lưới mod chứ không đẩy nội dung. Mép trái thẳng với mép trái khối
+   đầu (tức mép trong khung danh sách). Bảng ôm vừa nội dung (chỉ rộng
+   bằng hàng chip dài nhất cộng đệm). Giới hạn để không tràn mép phải
+   cửa sổ (mép trái bảng cách mép trái cửa sổ ~13px: cột trái bắt đầu
+   ~10px + viền 3px của khung; chừa 10px mép phải); cửa sổ hẹp quá thì
+   hàng chip tự lăn ngang như cũ. */
+.filter-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: fit-content;
+    max-width: calc(100vw - 23px);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    background-color: var(--s-color-surface-container-low);
+    border: 1px solid var(--s-color-outline-variant);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Trong bảng overlay, thanh chip chiếm hết chiều rộng bảng (bỏ khe
+   20px mặc định của chipRadioBar) để hàng chip dài nhất không bị cắt
+   mất 20px cuối khi bảng ôm vừa nội dung. */
+.filter-panel .chip-radio-bar {
+    width: 100%;
+}
+
+.type-filter-wrap {
+    width: 100%;
+}
+
+.sort-wrap {
+    width: 100%;
+}
+
+/* Hàng công tắc ẩn/hiện số lượng trong bảng lọc: nhãn trái, công tắc
+   phải, cách hàng xếp phía trên 1 khoảng. */
+.counts-wrap {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 4px 2px;
+    box-sizing: border-box;
+}
+
+.counts-label {
+    font-size: 0.875rem;
+    color: var(--s-color-on-surface);
+    white-space: nowrap;
+}
+
+/* 2 hàng Tất cả / Đã chọn: chung 1 hàng, mỗi bên một nửa (Đạt dặn
+   21/11). Cố định trên cùng, ngoài khung lăn. Vạch ngăn dưới để mắt
+   phân biệt "2 hàng đứng yên" với "danh sách lăn". Đệm ngang thu lại
+   (8px thay vì 12px như hàng nhân vật) để tên + số còn chỗ — nửa hàng
+   chỉ ~98px, tên dài thì tự cắt ngắn, số trong ngoặc vẫn hiện đủ. */
 .character-list-fixed {
     flex-shrink: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 4px;
     padding-bottom: 6px;
     margin-bottom: 6px;
     border-bottom: 1px solid var(--s-color-outline-variant);
+}
+
+.character-list-fixed .character-row {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 8px;
 }
 
 .character-list-rows {

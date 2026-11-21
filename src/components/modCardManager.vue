@@ -2,11 +2,10 @@
     <div id="mod-card-manager" class="OO-box" ref="modCardManagerRef">
         <!-- <chipRadioBar class="characterFilter" :items="characters" @itemChange="handleFilterChange"
             :translatedItems="translateCharacters" ref="characterFilterRef" /> -->
-        <ModCharacterFilter class="characterFilter" @itemChange="handleFilterChange" />
-        <!-- Giao diện lọc theo loại mod + sắp xếp (nút "Bộ lọc" + bảng
-             overlay) nằm trong ModCharacterFilter; chỗ này chỉ đọc lựa
-             chọn đã lưu trong config để lọc/xếp danh sách (xem
-             filteredMods). -->
+        <!-- Giao diện lọc (tìm kiếm + nút "Bộ lọc" + bảng overlay + Tất
+             cả / Đã chọn) nằm trong characterList.vue ở cột trái; chỗ này
+             chỉ đọc lựa chọn đã lưu trong config để lọc/xếp danh sách
+             (xem filteredMods). -->
         <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 10px 10px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
             <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle"
@@ -32,7 +31,6 @@ import { Tween, Group } from "@tweenjs/tween.js";
 import IManager, { g_data_vue } from '../../electron/IManager';
 import { g_config_vue, g_temp_vue } from '../../electron/IManager';
 import { EventType, EventSystem } from '../../helper/EventSystem';
-import ModCharacterFilter from './modCharacterFilter.vue';
 import { computeWindow, CARD_GAP, OVERSCAN_ROWS, rangeCheckedWidth, computeFillLayout } from './modWindowing.js';
 import { selectedModIdSet, setSelectedModIdsExclusive, getModTag, toggleModsInOrder, toggleBatchMods } from '../../helper/SelectedMods';
 import { MOD_TAGS, normalizeTypeFilter } from '../../helper/ModTag';
@@ -75,7 +73,7 @@ watch(currentCharacter, (newVal) => {
 });
 
 // (Đổi ngôn ngữ: thanh trượt hàng chip lọc/xếp tự đặt lại trong
-// modCharacterFilter — thanh đó nằm ở bảng overlay bên đó. Hàng vàng
+// characterList — thanh đó nằm ở bảng overlay bên đó. Hàng vàng
 // Tất cả / Đã chọn / nhân vật tự theo currentCharacter nên không cần
 // đồng bộ gì thêm ở đây.)
 
@@ -97,7 +95,7 @@ const translateCharacters = computed(() => {
 
 //-==================== Lọc theo tag mod + sắp xếp ====================//
 // Giao diện lọc/xếp (nút "Bộ lọc" + bảng overlay) nằm ở
-// modCharacterFilter; chỗ này chỉ đọc lựa chọn đã lưu trong config để
+// characterList; chỗ này chỉ đọc lựa chọn đã lưu trong config để
 // lọc/xếp danh sách. Tag mod theo getModTag (SelectedMods): Character,
 // Skin, Weapon, Effect, Accessory — chuẩn duy nhất từ 1.5.18, thay tiền
 // tố tên thư mục. Thêm tag mới thì thêm vào MOD_TAGS + 1 khóa locale
@@ -343,7 +341,8 @@ const selectCharacter = (character) => {
 // Nhận chữ tìm kiếm từ ô tìm kiếm cạnh tiêu đề Characters
 // (characterList.vue phát 'search', modCardSection chuyển vào đây).
 // Hàm này từng là handler của sự kiện filterChangeToSearch từ
-// modCharacterFilter — ô tìm kiếm đã dời chỗ nên đổi thành hàm mở cho
+// modCharacterFilter (đã xóa, logic dời sang characterList) — ô tìm kiếm
+// đã dời chỗ nên đổi thành hàm mở cho
 // modCardSection gọi trực tiếp, logic không đổi.
 const applySearch = (search) => {
     console.log('applySearch', search);
@@ -613,7 +612,7 @@ onMounted(async () => {
     updateWindow();
 
     // Thanh trượt hàng chip lọc/xếp đo lại mỗi lần bảng overlay bung ra
-    // (modCharacterFilter) — bảng đóng lúc mở app nên không đo ở đây.
+    // (characterList) — bảng đóng lúc mở app nên không đo ở đây.
 
     // 接受文件拖拽事件，可以直接通过拖拽文件到窗口中导入 mod，或者拖拽图片到窗口中为 mod 添加预览图
     modCardManagerRef.value.addEventListener('dragover', (event) => {
