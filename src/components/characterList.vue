@@ -127,9 +127,10 @@
                 </div>
             </div>
         </div>
-        <div class="character-list-rows">
+        <div class="character-list-rows" @mouseleave="hoveredIndex = null">
             <div v-for="(name, i) in characterList" :key="name" class="character-row"
-                :class="{ active: currentCharacter === name }" :data-arrow="arrowLevel(i)" @click="selectCharacter(name)">
+                :class="{ active: currentCharacter === name }" :data-arrow="arrowLevel(i)" @click="selectCharacter(name)"
+                @mouseenter="hoveredIndex = i">
                 <span class="character-name">{{ name }}</span>
                 <span v-if="showChipCounts" class="character-count">({{ modCountsByCharacter[name] || 0 }})</span>
             </div>
@@ -155,15 +156,19 @@ const characterList = g_data_vue.characterList;
 const currentCharacter = g_temp_vue.currentCharacter;
 const showChipCounts = g_config_vue.showChipCounts;
 
-// Hình mũi tên (Đạt duyệt mockup 21/11): hàng nhân vật thu hẹp theo
-// khoảng cách từ hàng đang chọn — đang chọn dài nhất (full), 2 hàng kề
-// dài vừa (5/6), còn lại 2/3. Tính từ currentCharacter nên bấm sang
-// nhân vật khác thì mũi tên dời tâm theo. Chưa chọn nhân vật nào
-// (Tất cả/Đã chọn) thì mọi hàng đều 2/3.
+// Hình mũi tên (Đạt duyệt mockup 21/11, sửa theo ý Đạt 23/11): hàng
+// nhân vật thu hẹp theo khoảng cách từ MỐC — mốc dài nhất (full),
+// 2 hàng kề dài vừa (5/6), còn lại 3/4. Mốc là hàng đang RÊ CHUỘT
+// (hoveredIndex) nếu có, không thì hàng đang chọn — nên rê chuột tới
+// hàng nào thì CẢ MŨI TÊN dời theo hàng đó như khi bấm chọn; rê ra
+// khỏi danh sách thì mũi tên quay về hàng đang chọn thật. Chưa chọn
+// nhân vật nào (Tất cả/Đã chọn) VÀ không rê hàng nào thì mọi hàng đều 3/4.
+const hoveredIndex = ref(null);
 const arrowLevel = (i) => {
     const sel = characterList.value.indexOf(currentCharacter.value);
-    if (sel < 0) return 2;
-    const d = Math.abs(i - sel);
+    const anchor = hoveredIndex.value !== null ? hoveredIndex.value : sel;
+    if (anchor < 0) return 2;
+    const d = Math.abs(i - anchor);
     return d === 0 ? 0 : d === 1 ? 1 : 2;
 };
 
@@ -636,11 +641,13 @@ onMounted(() => {
     font-weight: bolder;
 }
 
-/* Hình mũi tên (Đạt duyệt mockup 21/11): hàng nhân vật thu hẹp theo
-   khoảng cách từ hàng đang chọn — data-arrow do template gán
-   (0 = đang chọn full, 1 = kề 5/6, 2 = còn lại 2/3). Rê chuột tới
-   hàng nào thì hàng đó phóng full (transition 180ms). Hàng Tất cả/
-   Đã chọn nằm ngoài .character-list-rows nên không bị ảnh hưởng. */
+/* Hình mũi tên (Đạt duyệt mockup 21/11, sửa theo ý Đạt 23/11): hàng
+   nhân vật thu hẹp theo khoảng cách từ mốc — data-arrow do template
+   gán (0 = mốc full, 1 = kề 5/6, 2 = còn lại 3/4). Mốc là hàng đang
+   rê chuột nếu có, không thì hàng đang chọn; rê chuột thì cả mũi tên
+   dời theo (transition 180ms làm mũi tên trượt mượt). Không dùng
+   :hover vì nó chỉ phóng được 1 hàng. Hàng Tất cả/Đã chọn nằm ngoài
+   .character-list-rows nên không bị ảnh hưởng. */
 .character-list-rows .character-row {
     flex: none;
     transition: width 180ms ease;
@@ -655,11 +662,7 @@ onMounted(() => {
 }
 
 .character-list-rows .character-row[data-arrow="2"] {
-    width: 67%;
-}
-
-.character-list-rows .character-row:hover {
-    width: 100%;
+    width: 75%;
 }
 
 .character-name {
