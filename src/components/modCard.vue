@@ -458,11 +458,19 @@ defineExpose({
 }
 
 /* Khung lồng cho ảnh bìa (Đạt chốt 22/11, kiểu card game): ảnh thụt
-   vào như ô ảnh trên lá bài — tấm lót tối 8px ĐỀU 4 phía nên ảnh căn
-   giữa trong lồng. Không viền vàng, không màu tag (gradient + vạch đáy
-   tạm gạt sang 1 bên). Bóng đổ trong KHÔNG hiện trên <img> (nội dung
-   ảnh đè lên) nên vẽ lên lớp ::after của div chứa ảnh. Bo góc trên
-   12px theo thẻ, dưới vuông theo mép ảnh. */
+   vào như ô ảnh trên lá bài — tấm lót 8px ĐỀU 3 phía trái/trên/phải,
+   KHÔNG đóng khung dưới ảnh (Đạt dặn 23/11) để ảnh chạm thẳng phần
+   thông tin. Không viền vàng, không màu tag (gradient + vạch đáy tạm
+   gạt sang 1 bên). Bóng đổ trong KHÔNG hiện trên <img> (nội dung ảnh
+   đè lên) nên vẽ lên lớp ::after của div chứa ảnh.
+   - Màu lồng = đúng màu mặt thẻ (biến --s-color-surface-container-low,
+     #222222): #262626 cũ lệch 4 tông, nhìn rõ 2 màu ở mép ảnh và phần
+     thông tin (Đạt bắt được 23/11).
+   - Góc VUÔNG (border-radius 0): góc bo 12px cũ để lại vệt ảnh hình
+     lưỡi liềm ở góc — cung bo của lồng nằm trong cung bo của thẻ nên
+     ảnh rò ra ở khe giữa 2 cung (Đạt bắt được 23/11). Góc vuông thì
+     lồng phủ kín góc div ảnh, không còn khe rò; mép ngoài thẻ vẫn bo
+     tròn nhờ thẻ tự cắt phần thừa. */
 .mod-item div[slot="image"] {
     position: relative;
 }
@@ -471,9 +479,10 @@ defineExpose({
     content: "";
     position: absolute;
     inset: 0;
-    border-radius: 12px 12px 0 0;
+    border-radius: 0;
     pointer-events: none;
-    box-shadow: inset 0 0 0 8px #262626;
+    border: 8px solid var(--s-color-surface-container-low);
+    border-bottom: none;
 }
 
 /* Chọn hàng loạt (Ctrl+bấm): viền xanh biển, riêng với chọn vàng. */
@@ -534,7 +543,7 @@ defineExpose({
            — rộng cứng làm div ảnh chòi 5px ra mép phải khi chọn, thẻ
            cắt mất làm lồng phải chỉ còn 1-3px so với 8px bên trái
            (Đạt bắt được 22/11). Rộng 100% thì div vừa đúng khung chứa
-           ở cả 2 trạng thái, lồng đều 8px 4 phía. */
+           ở cả 2 trạng thái, lồng đều 8px 3 phía. */
         width: 100%;
         height: calc(var(--card-width, 350px) * 0.5);
     }
