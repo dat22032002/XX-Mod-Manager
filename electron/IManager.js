@@ -1281,10 +1281,17 @@ class IManager {
             // TC28: giải nén từng file một rồi ghi ra đĩa ngay — RAM chỉ giữ
             // 1 file tại 1 thời điểm thay vì cả file nén như extractFiles.
             // File nào lỗi thì đánh dấu thất bại rồi giải nén tiếp file sau.
+            // getFilesArray chỉ trả THƯ MỤC CHỨA trong entry.path (file ở
+            // gốc thì path = ''), đường dẫn đầy đủ = thư mục + tên file.
+            // extractSingleFile cần đúng đường dẫn đầy đủ mới khớp — gọi
+            // với entry.path thì worker không khớp file nào, trả undefined
+            // rồi văng TypeError 'fileData', nhập zip hỏng hoàn toàn
+            // (phát hiện khi probe tính năng nhập mod mới 22/11).
             for (const entry of entries) {
                 try {
-                    const file = await archiveReader.extractSingleFile(entry.path);
-                    await writeEntry({ file, path: entry.path });
+                    const fullPath = entry.path + entry.file.name;
+                    const file = await archiveReader.extractSingleFile(fullPath);
+                    await writeEntry({ file, path: fullPath });
                 } catch (error) {
                     console.error(`Error extracting ${entry.path}: ${error}`);
                     snack(`Error: ${error}`, 'error');
