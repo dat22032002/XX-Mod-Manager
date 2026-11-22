@@ -17,10 +17,6 @@
               <h3 id="editDialog-mod-info-name" style="white-space:normal;word-break:keep-all;height: fit-content;">
                 {{ tempModInfo ? tempModInfo.name : "no name" }}</h3>
             </div>
-            <p id="editDialog-mod-info-character"
-              style="margin-top: 2px;font-size: small;color: gray;height: fit-content;width: fit-content;margin-bottom: 0;padding-bottom: 10px;">
-              {{ props.mod ? props.mod.character : "no character" }}</p>
-
             <!-- Bấm vào ảnh bìa thì mở Showcase y chang bấm ảnh ở khung
                  phải (Đạt dặn 22/11) — xem khối showcase ở cuối file.
                  Kéo-thả ảnh vào khung bìa thì đổi ảnh bìa (Đạt dặn
