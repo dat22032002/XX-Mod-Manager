@@ -28,6 +28,7 @@ import PresetHelper from '../core/PresetHelper';
 import { Language, TranslatedText, setCurrentLanguage } from '../helper/Language';
 // 导入 SnackHelper
 import { t_snack, SnackType, snack } from '../helper/SnackHelper';
+import { guessCharacterFromNames } from '../helper/CharacterGuess';
 // 导入 EventSystem
 import { EventType, EventSystem } from '../helper/EventSystem';
 import { writeFileAtomicSync } from '../helper/SafeWrite';
@@ -1367,6 +1368,47 @@ class IManager {
         }
     }
 
+    //-------- Thu thập tên file trong thư mục mod (đệ quy, tối đa 500
+    // file) để đoán nhân vật — chỉ lấy TÊN file, không đọc nội dung.
+    collectModFileNames(modPath, limit = 500) {
+        const names = [];
+        const walk = (dir) => {
+            let entries;
+            try {
+                entries = fs.readdirSync(dir, { withFileTypes: true });
+            } catch (_ignored) {
+                return;
+            }
+            for (const entry of entries) {
+                if (names.length >= limit) return;
+                if (entry.isDirectory()) {
+                    walk(path.join(dir, entry.name));
+                } else if (entry.isFile()) {
+                    names.push(entry.name);
+                }
+            }
+        };
+        walk(modPath);
+        return names;
+    }
+
+    //-------- Đoán nhân vật cho mod mới (Đạt dặn 22/11) — dùng chung
+    // cho cả 2 luồng nhập (zip + thư mục). Chỉ đoán khi nhân vật còn
+    // Unknown: mod.json đã ghi nhân vật thì giữ nguyên; đang đứng ở 1
+    // nhân vật cụ thể thì khối gán-nhân-vật-hiện-tại chạy trước đã gán
+    // rồi. Đoán ra thì ghi nhân vật + lưu + bắn fillSearch để ô tìm
+    // kiếm điền tên nhân vật đó.
+    async tryGuessCharacter(mod, modPath) {
+        if (mod.character !== 'Unknown') return;
+        const known = (this.data.characterList || []).filter((c) => c !== 'Unknown');
+        const guessed = guessCharacterFromNames(mod.name, this.collectModFileNames(modPath), known);
+        if (!guessed) return;
+        mod.character = guessed;
+        await mod.saveModInfo();
+        mod.triggerChanged();
+        EventSystem.trigger(EventType.fillSearch, guessed);
+    }
+
     async handleArchiveDrop(file) {
         //debug
         console.log(`handle zip drop: ${file.name}`);
@@ -1425,6 +1467,10 @@ class IManager {
                 await mod.saveModInfo();
                 mod.triggerChanged();
             }
+
+            // Đoán nhân vật từ tên thư mục/file (Đạt dặn 22/11) — chỉ
+            // khi nhân vật còn Unknown sau khối trên.
+            await this.tryGuessCharacter(mod, modPath);
 
             this.setCurrentCharacter(mod.character);
 
@@ -1509,6 +1555,10 @@ class IManager {
             await mod.saveModInfo();
             mod.triggerChanged();
         }
+
+        // Đoán nhân vật từ tên thư mục/file (Đạt dặn 22/11) — chỉ khi
+        // nhân vật còn Unknown sau khối trên.
+        await this.tryGuessCharacter(mod, copiedPath);
 
         this.setCurrentMod(mod);
         this.setCurrentCharacter(mod.character);

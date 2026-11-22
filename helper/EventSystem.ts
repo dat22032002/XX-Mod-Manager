@@ -30,6 +30,8 @@ enum EventType {
     lastClickedModChanged = 'lastClickedModChanged',
     modInfoChanged = 'modInfoChanged',
     currentCharacterChanged = 'currentCharacterChanged',
+    // Nhap mod moi doan duoc nhan vat: dien ten nhan vat vao o tim kiem (Dat dan 22/11)
+    fillSearch = 'fillSearch',
     currentPresetChanged = 'currentPresetChanged',
     currentModChanged = 'currentModChanged',
     modListChanged = 'modListChanged',

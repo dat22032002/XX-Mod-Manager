@@ -228,6 +228,15 @@ watch(currentCharacter, (val) => {
     if (val === 'all' || val === 'selected') searchInput.value = '';
 });
 
+// Tự đoán nhân vật lúc nhập mod mới (Đạt dặn 22/11): luồng nhập bắn
+// fillSearch kèm tên nhân vật đoán được — điền vào ô tìm kiếm + phát
+// tìm kiếm để lưới lọc sang nhân vật đó.
+EventSystem.on(EventType.fillSearch, (character) => {
+    if (!character) return;
+    searchInput.value = character;
+    emit('search', character);
+});
+
 // Bấm hàng: phát lên modCardSection để gọi vào lưới mod (giống hệt bấm
 // chip nhân vật cũ: bỏ tìm kiếm đang gõ rồi đổi nhân vật lọc). Bấm lại
 // hàng đang chọn thì không làm gì.
