@@ -75,6 +75,7 @@ const updateSlider = (index) => {
     // console.log(`updateSlider: `, selectedChip)
 
     if (!selectedChip) return;
+    sliderStyle.opacity = '1';
     sliderStyle.width = `${selectedChip.$el.offsetWidth}px`;
     sliderStyle.left = `${selectedChip.$el.offsetLeft}px`;
 };
@@ -95,6 +96,21 @@ const selectItemByName = (name) => {
     selectItem(name, index);
 };
 
+// Bỏ chọn hết (hộp sửa mod MỚI không chọn sẵn tag — Đạt dặn 22/11):
+// thanh trượt về rộng 0 + ẩn hẳn, không chip nào checked. KHÔNG phát
+// itemChange nên phía hộp biết là "chưa chọn", khác với selectItemByName
+// (chọn 1 mục + phát sự kiện). Bấm chip sau đó vẫn chọn bình thường vì
+// selectItem chỉ bỏ qua khi bấm đúng mục đang chọn (null thì khác hết).
+// Chỉ đặt width 0px thì KHÔNG đủ: .slider có đệm 16px×2 + viền 1px×2
+// (border-box) nên vẫn hiện vệt vàng 34px — phải ẩn bằng opacity.
+// updateSlider đặt lại opacity 1 mỗi lần chọn chip.
+const clearSelection = () => {
+    currentItem.value = null;
+    sliderStyle.width = '0px';
+    sliderStyle.left = '0px';
+    sliderStyle.opacity = '0';
+};
+
 // onMounted(() => {
 //     //debug
 //     // console.log('onMounted', props.translatedItems, props.items)
@@ -107,7 +123,8 @@ const selectItemByName = (name) => {
 defineExpose({
     currentItem,
     selectItem,
-    selectItemByName
+    selectItemByName,
+    clearSelection
 });
 
 </script>

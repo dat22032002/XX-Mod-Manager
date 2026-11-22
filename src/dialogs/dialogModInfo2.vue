@@ -185,8 +185,8 @@
         <p>{{ $t('buttons.cancel') }}</p>
       </s-button>
       <s-button slot="action" type="text" id="preset-add-confirm" class="OO-button font-hongmeng OO-color-gradient"
-        @click="handleSave" style="color: var(--s-color-surface);margin-left: 20px;
-    margin-right: 20px;">
+        @click="handleSave"
+        :style="{ color: 'var(--s-color-surface)', marginLeft: '20px', marginRight: '20px', opacity: tagChosen ? 1 : 0.35 }">
         <p>{{ $t('buttons.save') }}</p>
       </s-button>
     </template>
@@ -256,6 +256,12 @@ let savePending = false;
 let saveFailed = false;
 
 let saved = false;
+
+// Hộp đang mở cho mod MỚI (vừa nhập vào) hay mod đã có — cờ do luồng
+// nhập đặt trước khi mở hộp (iManager.temp.editingNewMod), hộp đọc lúc
+// mở + xóa lúc đóng hẳn. Tính năng nhảy tới mod mới + không chọn sẵn
+// tag cùng dùng cờ này.
+let isNewMod = false;
 
 // modInfo 为 mod 信息，用于储存临时修改的 mod 信息，最后保存时再将其赋值给 props.mod
 const tempModInfo = ref(ModData.fromJson({
@@ -356,9 +362,14 @@ const tagItems = MOD_TAGS;
 const translatedTags = computed(() => MOD_TAGS.map(tag => t(`modTag.${tag}`)));
 const tagBarRef = useTemplateRef('tagBarRef');
 
+// Mod MỚI thì chưa chọn tag nào (Đạt dặn 22/11) — nút Lưu mờ đi cho
+// tới khi chọn 1 tag. Mod đã có thì true ngay (giữ tag cũ của nó).
+const tagChosen = ref(true);
+
 const handleTagChange = (tag) => {
   if (!isValidTag(tag)) return;
   tempModInfo.value.tag = tag;
+  tagChosen.value = true;
 };
 
 //-==================== chọn nhân vật có sẵn ====================//
@@ -417,6 +428,16 @@ const handleSave = async () => {
   // chạy lưu 2 lần chồng nhau — lần sau tính toán trên dữ liệu lần trước
   // đã đổi dở. Đang lưu thì lần bấm sau bỏ qua (Đạt gặp 20/11).
   if (savePending) return;
+  // Mod MỚI chưa chọn tag thì chưa cho lưu (Đạt dặn 22/11): đặt
+  // saveFailed để bộ nghe dismiss chặn lần tự đóng của Sober (chỉ chặn
+  // nguồn ACTION) + báo rõ để chọn tag rồi bấm Lưu lại. Lần Lưu sau
+  // (đã chọn tag) chạy đủ bước nhờ đường retry có sẵn của saveFailed.
+  if (isNewMod && !tagChosen.value) {
+    saveFailed = true;
+    const tt = new TranslatedText(`Please choose a tag before saving`, `Hãy chọn 1 tag trước khi lưu`);
+    iManager.t_snack(tt, `error`);
+    return;
+  }
   //debug
   // Đặt cờ trước mọi await. Nút Lưu nằm trong vùng action của Sober nên
   // bấm là hộp tự đóng theo mặc định thư viện — bộ nghe dismiss (dưới)
@@ -562,18 +583,28 @@ onMounted(() => {
   // 监听 dialog 的 show 事件，再同步一次 tempModInfo
   editModInfoDialog.value.$el.addEventListener('show', async () => {
     tempModInfo.value = props.mod.copy();
+    // Mod MỚI (vừa nhập vào) hay mod đã có — cờ do luồng nhập đặt.
+    isNewMod = iManager.temp.editingNewMod === true;
     img.value = await props.mod.getPreviewBase64(true, true);
     // TC22: mở hộp mới thì quên ảnh đã dán lần trước + bắt đầu nghe dán.
     changdPreviewByPaste = false;
     saveFailed = false;
     window.addEventListener('paste', handlePaste);
+    // Mod MỚI thì chưa chọn tag nào — nút Lưu mờ cho tới khi chọn 1 tag.
+    tagChosen.value = !isNewMod;
     // Đặt thanh chip tag về đúng tag của mod: lúc hộp còn ẩn, chip đo
     // được 0 nên phải đợi hộp hiện xong (2 khung hình) mới đo lại được
     // (giống bảng lọc). selectItemByName có thể phát sự kiện đổi tag
     // nếu thanh đang ở tag khác — nhưng giá trị đó trùng với tag của
     // mod (tempModInfo vừa sao từ props.mod) nên không đổi gì.
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (tagBarRef.value) tagBarRef.value.selectItemByName(tempModInfo.value.tag);
+      if (!tagBarRef.value) return;
+      // Mod MỚI thì bỏ chọn hết (không chọn sẵn tag); mod đã có thì đặt
+      // thanh chip về đúng tag của mod như cũ. Dữ liệu tag trong
+      // tempModInfo vẫn giữ 'character' để đóng hộp không sửa gì thì
+      // equals() vẫn đúng, không hiện hộp "lưu thay đổi?".
+      if (isNewMod) tagBarRef.value.clearSelection();
+      else tagBarRef.value.selectItemByName(tempModInfo.value.tag);
     }));
   });
 
@@ -582,6 +613,11 @@ onMounted(() => {
     window.removeEventListener('paste', handlePaste);
     // Hộp đóng hẳn thì đóng showcase theo để lớp phủ không kẹt lại.
     closeShowcase();
+    // Xóa cờ mod mới để lần mở sau (sửa mod đã có) không bị nhận nhầm.
+    // Chỉ ghi khi cờ đang bật — ghi false cũng châm ngòi log debug
+    // 'WTF' của Proxy temp nên tránh ghi thừa.
+    if (iManager.temp.editingNewMod) iManager.temp.editingNewMod = false;
+    isNewMod = false;
   });
 });
 </script>
