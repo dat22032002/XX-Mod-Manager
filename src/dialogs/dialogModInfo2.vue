@@ -14,7 +14,12 @@
             id="edit-mod-info-left">
             <div class="OO-box OO-shade-box"
               style="width: calc(100% - 40px);padding: 10px 20px;margin:0;border-radius: 12px;">
-              <h3 id="editDialog-mod-info-name" style="white-space:normal;word-break:keep-all;height: fit-content;">
+              <!-- Tên mod dài thì cắt 1 hàng + dấu "..." (Đạt dặn 22/11):
+                   tên 1 token dài từng tràn 120px đâm qua viền ô, tên
+                   nhiều từ xuống 2 hàng làm ô tên cao thêm 30px kéo cả
+                   cột trái đi xuống. Rê chuột vào tên thì xem đủ tên. -->
+              <h3 id="editDialog-mod-info-name" :title="tempModInfo ? tempModInfo.name : ''"
+                style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height: fit-content;">
                 {{ tempModInfo ? tempModInfo.name : "no name" }}</h3>
             </div>
             <!-- Bấm vào ảnh bìa thì mở Showcase y chang bấm ảnh ở khung
@@ -24,7 +29,7 @@
             <div id="img-container" @click="openShowcase" @dragenter="handleCoverDragEnter"
               @dragleave="handleCoverDragLeave" @dragover="handleCoverDragOver" @drop="handleCoverDrop"
               :class="{ 'cover-drop-hover': coverDragOver }"
-              style="width: 280px;height: 224px;border-radius: 12px;overflow: hidden;cursor: pointer;">
+              style="width: 280px;height: 248px;border-radius: 12px;overflow: hidden;cursor: pointer;">
               <img id="editDialog-mod-info-image"
                 style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;" :src="img" />
             </div>
