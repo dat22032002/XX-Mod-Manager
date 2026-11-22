@@ -1,6 +1,6 @@
 <template>
     <s-card ref="modItemRef" class="mod-item" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id" inWindow="none"
-        :name="props.modRef.name" :character="props.modRef.character" @click="click" :compact="props.compactMode" :data-layout="props.cardLayout"
+        :name="props.modRef.name" :character="props.modRef.character" :data-tag="props.modRef.tag" @click="click" :compact="props.compactMode" :data-layout="props.cardLayout"
         @mouseenter="onCardHoverStart" @mouseleave="onCardHoverEnd"
         @contextmenu.prevent.stop="openEditModDialog">
 
@@ -455,6 +455,25 @@ defineExpose({
     border: "";
     transform: rotate3d(1, 1, 0, 0deg);
     border-radius: 12px;
+}
+
+/* Khung lồng cho ảnh bìa (Đạt chốt 22/11, kiểu card game): ảnh thụt
+   vào như ô ảnh trên lá bài — tấm lót tối 8px ĐỀU 4 phía nên ảnh căn
+   giữa trong lồng. Không viền vàng, không màu tag (gradient + vạch đáy
+   tạm gạt sang 1 bên). Bóng đổ trong KHÔNG hiện trên <img> (nội dung
+   ảnh đè lên) nên vẽ lên lớp ::after của div chứa ảnh. Bo góc trên
+   12px theo thẻ, dưới vuông theo mép ảnh. */
+.mod-item div[slot="image"] {
+    position: relative;
+}
+
+.mod-item div[slot="image"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px 12px 0 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 8px #262626;
 }
 
 /* Chọn hàng loạt (Ctrl+bấm): viền xanh biển, riêng với chọn vàng. */
