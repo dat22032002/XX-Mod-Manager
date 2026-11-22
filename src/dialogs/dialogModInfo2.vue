@@ -236,6 +236,7 @@ import chipRadioBar from '../components/chipRadioBar.vue';
 import { ModData } from '../../core/ModHelper';
 import { TranslatedText } from '../../helper/Language';
 import { MOD_TAGS, isValidTag } from '../../helper/ModTag';
+import { EventType, EventSystem } from '../../helper/EventSystem';
 const iManager = new IManager();
 
 // 参数为 字符串类型的 mod，之后通过 iManager.getModInfo(mod) 获取 mod 信息
@@ -485,6 +486,10 @@ const handleSave = async () => {
       // Không có gì để lưu: hạ cờ để hộp tự đóng như cũ.
       // editModInfoDialog.value.$el.dismiss();
       // 点击按钮自动会关闭dialog，这里如果手动关闭会导致再次触发dismiss事件，导致不必要的性能消耗
+      // Vẫn tính là đã Lưu (bấm Lưu, không đổi gì) để nhảy tới mod mới.
+      savedThisSession = true;
+      jumpModName = props.mod.name;
+      jumpCharacter = props.mod.character;
       savePending = false;
       return;
     }
@@ -542,6 +547,10 @@ const handleSave = async () => {
 
     tempModInfo.value = props.mod.copy();
     saved = true;
+    // Lưu thành công — lúc hộp đóng hẳn sẽ nhảy tới mod này (nếu là mod mới).
+    savedThisSession = true;
+    jumpModName = props.mod.name;
+    jumpCharacter = props.mod.character;
     saveFailed = false;
     // TC22: lưu xong thì quên ảnh đã dán.
     changdPreviewByPaste = false;
@@ -562,6 +571,23 @@ const handleSave = async () => {
     iManager.snack(t('editDialog.saveFailed', { error: error.message }), 'error');
   }
 }
+
+// Nhảy tới mod MỚI sau khi Lưu (Đạt dặn 22/11): hộp mở cho mod mới +
+// đã Lưu thành công thì lúc hộp đóng hẳn, bắn sự kiện jumpToMod để lưới
+// chuyển sang nhân vật của mod + lăn tới thẻ mod đó. Biến riêng của tính
+// năng này (không dùng chung cờ với tính năng không-chọn-sẵn-tag) để 2
+// nhánh gộp sạch vào nhau.
+// Tên + nhân vật chụp LẠI LÚC LƯU (handleSave), không đọc props.mod lúc
+// hộp đóng hẳn: lúc đóng, props.mod có thể đã đổi sang mod khác — rê
+// chuột lên thẻ nào 0,25 giây là khung phải đổi sang thẻ đó (hover-follow),
+// và 'dismissed' chạy SAU khi hiệu ứng đóng kết thúc nên hẹn giờ rê
+// chuột kịp chạy trước. Tên mod là khóa khớp (không dùng id: Lưu qua
+// hộp sửa sinh lại id mới = md5(đường dẫn) trong file, id trong bộ nhớ
+// không đồng bộ lại nên id lúc mở hộp lệch với id sau khi tải lại).
+let jumpIsNewMod = false;
+let savedThisSession = false;
+let jumpModName = '';
+let jumpCharacter = '';
 
 let changdPreviewByPaste = false;
 
@@ -592,6 +618,32 @@ const handlePaste = async (event) => {
 };
 
 onMounted(() => {
+  // Nhảy tới mod MỚI sau khi Lưu (Đạt dặn 22/11) — bộ nghe RIÊNG, không
+  // sửa bộ nghe show/dismissed có sẵn để gộp sạch với tính năng
+  // không-chọn-sẵn-tag (cùng dùng cờ editingNewMod).
+  // Lúc mở: đọc cờ mod mới do luồng nhập đặt + quên lần Lưu trước.
+  editModInfoDialog.value.$el.addEventListener('show', () => {
+    jumpIsNewMod = iManager.temp.editingNewMod === true;
+    savedThisSession = false;
+    jumpModName = '';
+    jumpCharacter = '';
+  });
+  // Lúc đóng hẳn: chỉ nhảy khi hộp mở cho mod MỚI + đã Lưu thành công
+  // (bấm Hủy thì không nhảy). Dùng tên + nhân vật ĐÃ CHỤP LÚC LƯU —
+  // không đọc props.mod ở đây (xem ghi chú ở chỗ khai báo biến).
+  // Xóa cờ mod mới ở đây luôn để nhánh này đứng một mình vẫn đúng
+  // (không có tính năng không-chọn-sẵn-tag thì cờ không ai xóa).
+  editModInfoDialog.value.$el.addEventListener('dismissed', () => {
+    if (jumpIsNewMod && savedThisSession) {
+      EventSystem.trigger(EventType.jumpToMod, { modName: jumpModName, character: jumpCharacter });
+    }
+    if (iManager.temp.editingNewMod) iManager.temp.editingNewMod = false;
+    jumpIsNewMod = false;
+    savedThisSession = false;
+    jumpModName = '';
+    jumpCharacter = '';
+  });
+
   // 监听 dialog 的 dismiss 事件，如果未保存则弹出保存更改的 dialog
   editModInfoDialog.value.$el.addEventListener('dismiss', (event) => {
     // TC23: chặn đóng khi đang lưu (savePending) hoặc lần lưu vừa rồi lỗi
