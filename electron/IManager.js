@@ -1370,6 +1370,45 @@ class IManager {
         }
     }
 
+    // Xóa mod MỚI vừa nhập khi người dùng đóng hộp sửa mà không lưu
+    // (Đạt báo 22/11: bấm Cancel mà mod vẫn vào kho). Hộp sửa gọi lúc
+    // 'dismissed' hoặc lúc bấm Bỏ qua ở hộp xác nhận lưu. Các bước y như
+    // deleteModPlugin.removeModFromList + xóa thư mục trực tiếp (không
+    // qua thùng rác — bản gốc zip/thư mục vẫn còn ngoài app nên không
+    // mất gì). Chỉ xóa khi đường dẫn nằm trong thư mục mod (chặn TC9
+    // như plugin) — sai đường dẫn thì không xóa gì cả.
+    discardNewMod(modName, modPath) {
+        if (!modName || !modPath) return false;
+        const folderName = path.basename(modPath);
+        if (!folderName || folderName === '.' || folderName === '..' ||
+            folderName.includes('/') || folderName.includes('\\') || folderName.includes('..')) {
+            console.error('discardNewMod: invalid folder name', folderName);
+            return false;
+        }
+        const modSourcePath = path.resolve(this.config.modSourcePath);
+        const relativePath = path.relative(modSourcePath, path.resolve(modPath));
+        if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+            console.error('discardNewMod: mod path outside mod source', modPath);
+            return false;
+        }
+        try {
+            if (fs.existsSync(modPath)) {
+                fs.rmSync(modPath, { recursive: true, force: true });
+            }
+        } catch (e) {
+            console.error('discardNewMod: failed to delete folder', modPath, e);
+            return false;
+        }
+        // Gỡ khỏi danh sách trong bộ nhớ (y như deleteModPlugin).
+        this.data.modList = this.data.modList.filter((mod) => mod.name !== modName);
+        if (this.temp.currentMod && this.temp.currentMod.name === modName) {
+            this.setCurrentMod(this.data.modList[0]);
+        }
+        this.refreshCharacterList();
+        this.trigger('addMod');
+        return true;
+    }
+
     async handleArchiveDrop(file) {
         //debug
         console.log(`handle zip drop: ${file.name}`);

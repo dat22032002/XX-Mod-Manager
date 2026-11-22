@@ -263,6 +263,18 @@ let saved = false;
 // tag cùng dùng cờ này.
 let isNewMod = false;
 
+// Mod MỚI đóng hộp mà không lưu thì xóa luôn mod vừa nhập (Đạt báo
+// 22/11: bấm Cancel mà mod vẫn vào kho). `saved` có sẵn KHÔNG dùng
+// được: đường Lưu không đổi gì thì hộp tự đóng mà không đặt saved.
+// saveClicked đặt riêng trong handleSave (qua được cổng chọn tag).
+// Tên + đường dẫn chụp LÚC MỞ HỘP — lúc hộp đóng hẳn thì props.mod có
+// thể đã đổi sang mod khác do rê chuột (bẫy vụ #113).
+let saveClicked = false;
+let confirmShown = false;
+let pendingDiscard = false;
+let newModName = null;
+let newModPath = null;
+
 // modInfo 为 mod 信息，用于储存临时修改的 mod 信息，最后保存时再将其赋值给 props.mod
 const tempModInfo = ref(ModData.fromJson({
   name: 'Unknown',
@@ -316,6 +328,15 @@ watch(() => props.mod, async (newVal) => {
     // 显式销毁之前的 tempModInfo
     tempModInfo?.value?.destroy();
     tempModInfo.value = newVal.copy();
+    // Mod MỚI: chụp tên + đường dẫn để xóa lúc đóng hộp mà không lưu.
+    // Chụp Ở ĐÂY (watch props.mod), không chụp ở bộ nghe 'show': 'show'
+    // chạy đồng bộ lúc mở hộp, Vue chưa kịp cập nhật props.mod nên lúc
+    // đó props.mod vẫn là mod cũ — chụp ở 'show' sẽ xóa NHẦM mod cũ
+    // (bắt được bằng probe 22/11: xóa nhầm Ellen Dress 05).
+    if (isNewMod) {
+      newModName = newVal.name;
+      newModPath = await newVal.getModPath();
+    }
     img.value = await newVal.getPreviewBase64(true, true);
   }
 });
@@ -421,6 +442,12 @@ const handleCancel = async () => {
   changdPreviewByPaste = false;
   // TC23: hủy thì thôi giữ hộp — lần lưu lỗi trước đó không chặn nút Hủy.
   saveFailed = false;
+  // Bỏ qua ở hộp xác nhận lưu (hộp sửa đã đóng hẳn, pendingDiscard đang
+  // bật) thì xóa mod mới vừa nhập.
+  if (pendingDiscard && newModName && newModPath) {
+    pendingDiscard = false;
+    iManager.discardNewMod(newModName, newModPath);
+  }
 }
 
 const handleSave = async () => {
@@ -438,6 +465,11 @@ const handleSave = async () => {
     iManager.t_snack(tt, `error`);
     return;
   }
+  // Đã bấm Lưu (qua được cổng chọn tag) — mod mới được giữ lại, không
+  // xóa lúc hộp đóng (xem 'dismissed'). Lưu lỗi thì đặt lại false ở
+  // catch để bấm Cancel sau đó vẫn xóa.
+  saveClicked = true;
+  pendingDiscard = false;
   //debug
   // Đặt cờ trước mọi await. Nút Lưu nằm trong vùng action của Sober nên
   // bấm là hộp tự đóng theo mặc định thư viện — bộ nghe dismiss (dưới)
@@ -525,6 +557,7 @@ const handleSave = async () => {
     // Lỗi: hộp vẫn mở (lần đóng tự động đã bị chặn), báo rõ lỗi để bấm Lưu lại.
     savePending = false;
     saveFailed = true;
+    saveClicked = false;
     console.error('dialogModInfo2: failed to save mod info', error);
     iManager.snack(t('editDialog.saveFailed', { error: error.message }), 'error');
   }
@@ -574,7 +607,8 @@ onMounted(() => {
       return;
     }
     console.log('dismiss', 'props.mod', props.mod, 'tempModInfo', tempModInfo.value, saved);
-    if (!saved && !props.mod.equals(tempModInfo.value)) {
+    confirmShown = !saved && !props.mod.equals(tempModInfo.value);
+    if (confirmShown) {
       iManager.showDialog('save-change-dialog');
     }
     saved = false;
@@ -585,6 +619,13 @@ onMounted(() => {
     tempModInfo.value = props.mod.copy();
     // Mod MỚI (vừa nhập vào) hay mod đã có — cờ do luồng nhập đặt.
     isNewMod = iManager.temp.editingNewMod === true;
+    // Trạng thái xóa-mod-mới cho lần mở này (tên + đường dẫn chụp ở
+    // watch props.mod, không chụp ở đây — xem chú thích ở đó).
+    saveClicked = false;
+    confirmShown = false;
+    pendingDiscard = false;
+    newModName = null;
+    newModPath = null;
     img.value = await props.mod.getPreviewBase64(true, true);
     // TC22: mở hộp mới thì quên ảnh đã dán lần trước + bắt đầu nghe dán.
     changdPreviewByPaste = false;
@@ -613,6 +654,16 @@ onMounted(() => {
     window.removeEventListener('paste', handlePaste);
     // Hộp đóng hẳn thì đóng showcase theo để lớp phủ không kẹt lại.
     closeShowcase();
+    // Mod MỚI đóng hộp mà không lưu (Cancel / bấm ra ngoài) thì xóa mod
+    // vừa nhập (Đạt báo 22/11). Nếu hộp xác nhận lưu đang hiện thì chưa
+    // xóa — đợi người dùng chọn Lưu (giữ) hay Bỏ qua (xóa ở handleCancel).
+    if (isNewMod && !saveClicked && newModName && newModPath) {
+      if (confirmShown) {
+        pendingDiscard = true;
+      } else {
+        iManager.discardNewMod(newModName, newModPath);
+      }
+    }
     // Xóa cờ mod mới để lần mở sau (sửa mod đã có) không bị nhận nhầm.
     // Chỉ ghi khi cờ đang bật — ghi false cũng châm ngòi log debug
     // 'WTF' của Proxy temp nên tránh ghi thừa.
