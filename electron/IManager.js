@@ -1396,8 +1396,9 @@ class IManager {
     // cho cả 2 luồng nhập (zip + thư mục). Chỉ đoán khi nhân vật còn
     // Unknown: mod.json đã ghi nhân vật thì giữ nguyên; đang đứng ở 1
     // nhân vật cụ thể thì khối gán-nhân-vật-hiện-tại chạy trước đã gán
-    // rồi. Đoán ra thì ghi nhân vật + lưu + bắn fillSearch để ô tìm
-    // kiếm điền tên nhân vật đó.
+    // rồi. Đoán ra thì ghi nhân vật + lưu. KHÔNG bắn fillSearch ở đây:
+    // caller bắn 1 lần sau khi nhân vật đã chốt (dù từ mod.json, hàng
+    // đang đứng, hay đoán được) để ô tìm kiếm luôn được điền.
     async tryGuessCharacter(mod, modPath) {
         if (mod.character !== 'Unknown') return;
         const known = (this.data.characterList || []).filter((c) => c !== 'Unknown');
@@ -1406,7 +1407,6 @@ class IManager {
         mod.character = guessed;
         await mod.saveModInfo();
         mod.triggerChanged();
-        EventSystem.trigger(EventType.fillSearch, guessed);
     }
 
     async handleArchiveDrop(file) {
@@ -1471,6 +1471,14 @@ class IManager {
             // Đoán nhân vật từ tên thư mục/file (Đạt dặn 22/11) — chỉ
             // khi nhân vật còn Unknown sau khối trên.
             await this.tryGuessCharacter(mod, modPath);
+
+            // Nhân vật đã chốt (mod.json / hàng đang đứng / đoán được):
+            // điền ô tìm kiếm 1 lần — sửa lỗi 1.5.23-test1 (Đạt báo
+            // 22/11: mod Corin không được điền ô tìm vì nhân vật đã
+            // biết sẵn trước khi đoán chạy).
+            if (mod.character !== 'Unknown') {
+                EventSystem.trigger(EventType.fillSearch, mod.character);
+            }
 
             this.setCurrentCharacter(mod.character);
 
@@ -1559,6 +1567,13 @@ class IManager {
         // Đoán nhân vật từ tên thư mục/file (Đạt dặn 22/11) — chỉ khi
         // nhân vật còn Unknown sau khối trên.
         await this.tryGuessCharacter(mod, copiedPath);
+
+        // Nhân vật đã chốt (mod.json / hàng đang đứng / đoán được):
+        // điền ô tìm kiếm 1 lần — sửa lỗi 1.5.23-test1 (xem
+        // handleArchiveDrop).
+        if (mod.character !== 'Unknown') {
+            EventSystem.trigger(EventType.fillSearch, mod.character);
+        }
 
         this.setCurrentMod(mod);
         this.setCurrentCharacter(mod.character);
