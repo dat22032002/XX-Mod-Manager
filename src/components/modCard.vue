@@ -1,6 +1,6 @@
 <template>
     <s-card ref="modItemRef" class="mod-item" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id" inWindow="none"
-        :name="props.modRef.name" :character="props.modRef.character" @click="click" :compact="props.compactMode" :data-layout="props.cardLayout"
+        :name="props.modRef.name" :character="props.modRef.character" :data-tag="props.modRef.tag" @click="click" :compact="props.compactMode" :data-layout="props.cardLayout"
         @mouseenter="onCardHoverStart" @mouseleave="onCardHoverEnd"
         @contextmenu.prevent.stop="openEditModDialog">
 
@@ -455,6 +455,33 @@ defineExpose({
     border: "";
     transform: rotate3d(1, 1, 0, 0deg);
     border-radius: 12px;
+}
+
+/* Vạch màu theo tag ở đáy thẻ (Đạt chọn kiểu 1, 22/11): bóng đổ trong
+   5px, màu theo tag — nằm trong viền vàng khi thẻ được chọn, sát mép
+   đáy khi chưa chọn. Màu lấy từ biến --tag-color-* trong style.css. */
+.mod-item[data-tag="character"] {
+    box-shadow: inset 0 -5px 0 var(--tag-color-character);
+}
+
+.mod-item[data-tag="skin"] {
+    box-shadow: inset 0 -5px 0 var(--tag-color-skin);
+}
+
+.mod-item[data-tag="weapon"] {
+    box-shadow: inset 0 -5px 0 var(--tag-color-weapon);
+}
+
+.mod-item[data-tag="effect"] {
+    box-shadow: inset 0 -5px 0 var(--tag-color-effect);
+}
+
+.mod-item[data-tag="accessory"] {
+    box-shadow: inset 0 -5px 0 var(--tag-color-accessory);
+}
+
+.mod-item[data-tag="other"] {
+    box-shadow: inset 0 -5px 0 var(--tag-color-other);
 }
 
 /* Chọn hàng loạt (Ctrl+bấm): viền xanh biển, riêng với chọn vàng. */

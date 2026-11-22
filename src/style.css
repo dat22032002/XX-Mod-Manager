@@ -12,6 +12,17 @@
   font-weight: bold
 }
 
+/* Màu theo tag (Đạt chọn kiểu 1, 22/11): vạch đáy thẻ + chấm ở chip lọc
+   dùng chung 6 màu này — nhạt để không phá vẻ gọn của app. */
+:root {
+  --tag-color-character: #f2d900;
+  --tag-color-skin: #e5a3b4;
+  --tag-color-weapon: #8fc3e8;
+  --tag-color-effect: #c2a6e8;
+  --tag-color-accessory: #96d1a0;
+  --tag-color-other: #a8a8a8;
+}
+
 .font-num {
   font-family: Impact, "Microsoft YaHei", 微软雅黑, "MicrosoftJhengHei", 华文细黑, STHeiti, MingLiu, sans-serif;
   font-weight: 100;
