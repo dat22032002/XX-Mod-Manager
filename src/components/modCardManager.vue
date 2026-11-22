@@ -263,12 +263,37 @@ const containerWidth = ref(0);
 const gridLayout = computed(() => computeFillLayout(containerWidth.value, nominalCardWidth.value, props.cardLayout));
 const effectiveCardWidth = computed(() => gridLayout.value.width);
 
+// Khe lề cân 4 phía (Đạt báo 22/11: khe trên/dưới lệch với khe trái/
+// phải). Khi lưới KHÔNG lấp đầy được hàng (không ứng viên nào trong
+// ±15%), CSS căn giữa lưới nên 2 bên thừa ra leftover/2 mỗi bên, trong
+// khi khe trên vẫn 0 — trông lệch (đo 22/11 ở cửa sổ 1400×900, thẻ
+// Ngang 100%: trên=0, trái=70, phải=76). Đẩy lưới xuống bằng đúng khe
+// ngang và chừa thêm đúng từng đó ở đáy (margin-top + margin-bottom =
+// leftover/2) thì 4 phía đều nhau. Dùng margin (ngoài border box) chứ
+// không dùng padding-top: toán vẽ từng phần đo scrollOffset từ border
+// box nên margin không làm lệch nó. Khi lấp đầy được thì leftover ≈ 0
+// nên không đổi gì. Lưới trống (0 mod) thì không áp — chữ "không tìm
+// thấy mod" cứ ở trên cùng. (Khe phải vẫn hơn khe trái đúng 6px khi có
+// thanh lăn dọc — đó là chỗ thanh lăn chiếm, mọi app đều vậy; đẩy lưới
+// sang phải để cân thì thẻ sẽ chui xuống dưới thanh lăn nên không làm.)
+const gridSideGap = computed(() => {
+    if (filteredMods.value.length === 0) return 0;
+    const w = containerWidth.value;
+    const { width, columns } = gridLayout.value;
+    if (!Number.isFinite(w) || w <= 0 || columns < 1) return 0;
+    const leftover = w - (columns * width + (columns - 1) * CARD_GAP);
+    // leftover <= 0,5px là sai số làm tròn của phép lấp đầy — coi như 0.
+    return leftover <= 0.5 ? 0 : leftover / 2;
+});
+
 // Kiểu của khung lưới: khoảng đệm vẽ từng phần + biến rộng thẻ. Thẻ lưới
 // đọc --card-width để tự co giãn theo mức phóng to.
 const containerStyle = computed(() => {
     return {
         paddingTop: windowPaddingTop.value + 'px',
         paddingBottom: windowPaddingBottom.value + 'px',
+        marginTop: gridSideGap.value + 'px',
+        marginBottom: gridSideGap.value + 'px',
         '--card-width': effectiveCardWidth.value + 'px',
     };
 });
