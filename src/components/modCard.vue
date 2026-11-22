@@ -496,6 +496,14 @@ defineExpose({
     width: var(--card-width, 350px);
     max-width: none;
     height: calc(var(--card-width, 350px) * 280 / 350);
+    /* Gỡ cả margin-top: rule toàn cục s-card trong style.css đặt
+       margin: 6px 0 cho mọi thẻ, chỗ này trước đây chỉ gỡ margin-bottom
+       nên thẻ nào cũng lún 6px dưới đỉnh hàng của nó — hàng cuối chòi
+       6px khỏi đáy lưới, làm khung lăn thừa 6px lăn được dù lưới vừa
+       gọn trong khung nhìn (Đạt thấy 22/11: mod 2-3 hàng lăn được 1
+       xíu). Gỡ nốt margin-top thì thẻ khớp đúng hàng, khe giữa các
+       hàng vẫn 12px như cũ (khe do gap của lưới, không do margin). */
+    margin-top: 0px;
     margin-bottom: 0px;
     will-change: transform;
 
