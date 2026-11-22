@@ -108,7 +108,8 @@
     "selected": "Đã chọn",
     "minimize": "Thu nhỏ",
     "fullscreen": "Toàn màn hình",
-    "close": "Đóng"
+    "close": "Đóng",
+    "applyDirty": "Còn {count} mod chưa áp: {names}"
   },
   "apply": {
     "progress": "Đang áp dụng mod {done} trên {total}...",

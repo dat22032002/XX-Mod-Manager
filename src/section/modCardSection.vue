@@ -203,7 +203,7 @@
                 <p>{{ $t('buttons.undo') }}</p>
             </s-button>
             <s-button @click="handleApplyButtonClicked" id="apply-button" :disabled="applying"
-                :class="{ 'has-unapplied': hasUnappliedChanges && !applying }"
+                :class="{ 'has-unapplied': hasUnappliedChanges && !applying }" :title="applyButtonTitle"
                 class="OO-color-gradient font-hongmeng OO-button" style="color: var(--s-color-surface);">
                 {{ $t('buttons.apply') }}
             </s-button>
@@ -747,14 +747,30 @@ const appliedModIds = ref(new Set());
 const refreshApplied = () => {
     appliedModIds.value = new Set(iManager.scanAppliedModIds());
 };
-const hasUnappliedChanges = computed(() => {
+// Mod lệch nhau giữa lựa chọn và tập đang áp (cả 2 chiều: chọn mà chưa
+// áp + áp mà không còn chọn). Cả 2 bên đều lọc id cũ không còn trong
+// danh sách (id của mod đã xóa) — không lọc thì Apply xong vẫn nháy oan.
+const unappliedModIds = computed(() => {
     const current = new Set((iManager.data.modList || []).map(m => m.id));
     const applied = new Set([...appliedModIds.value].filter(id => current.has(id)));
-    if (selectedModIdSet.size !== applied.size) return true;
-    for (const id of selectedModIdSet) {
-        if (!applied.has(id)) return true;
-    }
-    return false;
+    const selected = new Set([...selectedModIdSet].filter(id => current.has(id)));
+    const diff = [];
+    for (const id of selected) if (!applied.has(id)) diff.push(id);
+    for (const id of applied) if (!selected.has(id)) diff.push(id);
+    return diff;
+});
+const hasUnappliedChanges = computed(() => unappliedModIds.value.length > 0);
+// Rê chuột lên nút Apply thì thấy còn mod nào chưa áp (Đạt hỏi 22/11
+// "apply rồi vẫn nháy" — đọc tên là biết cái nào lệch). Tối đa 5 tên,
+// còn lại ghi số lượng.
+const applyButtonTitle = computed(() => {
+    const diff = unappliedModIds.value;
+    if (diff.length === 0) return '';
+    const names = new Map((iManager.data.modList || []).map(m => [m.id, m.name]));
+    const shown = diff.slice(0, 5).map(id => names.get(id) || id);
+    const extra = diff.length - shown.length;
+    const list = shown.join(', ') + (extra > 0 ? `, … (+${extra})` : '');
+    return t('buttons.applyDirty', { count: diff.length, names: list });
 });
 
 // Phần áp dụng thật (tách riêng để nút Apply và hộp cảnh báo cùng gọi).
@@ -991,14 +1007,18 @@ EventSystem.on('toggledMod', (mod) => {
 }
 
 /* Nút Apply nhấp nháy nhẹ khi còn thay đổi chưa áp (Đạt dặn 22/11):
-   sáng lên rồi dịu xuống trong 2 giây, lặp lại — đủ thấy mà không gắt. */
+   sáng lên + hào quang vàng rồi dịu xuống trong 2 giây, lặp lại. Bản
+   đầu chỉ sáng 1.22 Đạt chê không khác lúc thường mấy nên tăng lên 1.3
+   + thêm hào quang cho thấy rõ, vẫn giữ nhịp chậm 2 giây cho nhẹ. */
 @keyframes apply-pulse {
     0%, 100% {
         filter: brightness(1);
+        box-shadow: 0 0 0 rgba(242, 217, 0, 0);
     }
 
     50% {
-        filter: brightness(1.22);
+        filter: brightness(1.3);
+        box-shadow: 0 0 18px rgba(242, 217, 0, 0.75);
     }
 }
 

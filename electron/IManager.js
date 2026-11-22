@@ -2189,11 +2189,16 @@ class IManager {
         if (!dir) return [];
         let names;
         try {
-            names = new Set(fs.readdirSync(dir));
+            // Windows không phân biệt hoa/thường: liên kết tạo từ tên cũ
+            // (khác hoa/thường với tên hiện tại) vẫn là mod đang áp —
+            // Apply gặp liên kết đó thì bỏ qua (đã đúng đích), không tạo
+            // lại, nên so khớp phải không phân biệt hoa/thường thì Apply
+            // xong mới hết nháy.
+            names = new Set(fs.readdirSync(dir).map(n => n.toLowerCase()));
         } catch (e) {
             return [];
         }
-        return mods.filter(m => names.has(m.modName)).map(m => m.id);
+        return mods.filter(m => names.has((m.modName || '').toLowerCase())).map(m => m.id);
     }
 
     async addPreset(presetName) {
