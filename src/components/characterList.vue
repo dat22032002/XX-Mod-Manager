@@ -582,9 +582,11 @@ defineExpose({ clearSearchInput });
 
 /* Chip trong bảng: thẳng (không nghiêng như chip trượt cũ), cùng kiểu
    với hàng nhân vật — chip đang chọn nền vàng. Nền chip dùng
-   surface-container-lowest (#323232): theme tối của app đặt tên ngược
-   với Material — "lowest" mới là màu sáng nhất, "highest" (#191919) còn
-   tối hơn nền bảng (#222222).
+   surface-container-low (#222222) — phương án D Đạt chọn 22/11: chip
+   tối hơn nền bảng (#3d3d3d) thì tách rõ (chênh 27 mức); trước đây
+   dùng lowest (#323232) chỉ chênh nền 11 mức nên nút chìm vào nền
+   (Đạt chê mờ 22/11). Theme tối của app đặt tên ngược với Material —
+   "lowest" mới là màu sáng nhất.
    Chip chia đều hàng (flex: 1 1 0, min-width: 0): nhãn dài nhất
    "Newest first" (~73px) vừa ô ~100px khi cỡ chữ 0.8125rem + đệm
    ngang 6px (đo thật: 0.875rem thì chữ chạm đúng mép ô, máy Đạt vẽ
@@ -598,7 +600,7 @@ defineExpose({ clearSearchInput });
     min-width: 0;
     padding: 5px 6px;
     border-radius: 8px;
-    background-color: var(--s-color-surface-container-lowest);
+    background-color: var(--s-color-surface-container-low);
     color: var(--s-color-on-surface);
     font-size: 0.8125rem;
     cursor: pointer;
