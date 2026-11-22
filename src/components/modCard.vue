@@ -529,7 +529,13 @@ defineExpose({
     transition: x, y 0.5s cubic-bezier(.36, -0.64, .34, 1.76);
 
     >div[slot="image"] {
-        width: var(--card-width, 350px);
+        /* Rộng 100% khung chứa, KHÔNG ghi cứng --card-width: thẻ dùng
+           border-box nên viền (1px thường, 5px khi chọn) ăn vào trong
+           — rộng cứng làm div ảnh chòi 5px ra mép phải khi chọn, thẻ
+           cắt mất làm lồng phải chỉ còn 1-3px so với 8px bên trái
+           (Đạt bắt được 22/11). Rộng 100% thì div vừa đúng khung chứa
+           ở cả 2 trạng thái, lồng đều 8px 4 phía. */
+        width: 100%;
         height: calc(var(--card-width, 350px) * 0.5);
     }
 }
@@ -540,7 +546,7 @@ defineExpose({
     height: calc(var(--card-width, 250px) * 1.4);
 }
 .mod-item[data-layout="vertical"] > div[slot="image"] {
-    width: var(--card-width, 250px);
+    width: 100%;
     height: calc(var(--card-width, 250px) * 0.8);
 }
 
