@@ -32,10 +32,28 @@
                    cùng dòng giải thích. -->
               <h3> {{ $t('editDialog.mod-info-image') }} </h3>
 
-              <s-icon-button icon="image" @click="handleSelectImage" class="OO-icon-button"
-                style="position: relative; left: 15px; border: 5px solid var(--s-color-surface-container-high); transform: scale(1);">
-                <s-icon type="add"></s-icon>
-              </s-icon-button>
+              <!-- 2 nút kề nhau ở mép phải hàng: + chọn ảnh bìa (cũ) +
+                   mở thư mục mod (Đạt dặn 22/11). Bọc chung 1 div flex
+                   để 2 nút dính nhau — để rời thì space-between của hàng
+                   đẩy nút + ra giữa hàng. left: 15px dời từ nút + sang
+                   div bọc để mép phải của cặp nút vẫn đúng chỗ cũ của
+                   nút + (hàng có padding 20px nên mép phải cặp nút cách
+                   mép phải cột 18px, như nút + trước đây). -->
+              <div style="display: flex; gap: 8px; position: relative; left: 15px;">
+                <s-icon-button icon="image" @click="handleSelectImage" class="OO-icon-button"
+                  style="position: relative; border: 5px solid var(--s-color-surface-container-high); transform: scale(1);">
+                  <s-icon type="add"></s-icon>
+                </s-icon-button>
+                <s-icon-button id="open-folder-button" @click="handleOpenFolder" class="OO-icon-button"
+                  style="position: relative; border: 5px solid var(--s-color-surface-container-high); transform: scale(1);">
+                  <!-- Sober không có icon thư mục (icon.js chỉ có home/
+                       add/search/menu/mũi tên/chevron/...) nên nhét SVG
+                       Material folder_open trực tiếp, cùng kiểu nút Hoàn
+                       tác ở thanh dưới (SVG inline trong s-icon). -->
+                  <s-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path
+                        d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" /></svg></s-icon>
+                </s-icon-button>
+              </div>
             </div>
           </div>
 
@@ -195,6 +213,8 @@ import { defineProps, defineEmits, onMounted, computed, watch, useTemplateRef } 
 import { useI18n } from 'vue-i18n';
 import IManager from '../../electron/IManager';
 import { g_data_vue } from '../../electron/IManager';
+import fsProxy from '../../electron/fsProxy';
+import { snack } from '../../helper/SnackHelper';
 import DialogTemplate from './dialogTemplate.vue';
 import horizontalScrollBar from '../components/horizontalScrollBar.vue';
 import chipRadioBar from '../components/chipRadioBar.vue';
@@ -328,6 +348,16 @@ const handleSelectImage = async () => {
     img.value = "data:image/png;base64," + imgBase64;
     tempModInfo.value.preview = imgPath;
   }
+}
+
+// Mở thư mục của mod đang sửa (Đạt dặn 22/11) — dùng Y HỆT cơ chế
+// nút Open Folder ở khung phải (modInfo.vue: openModFolder).
+const handleOpenFolder = async () => {
+  if (props.mod == null) {
+    snack(t('no-mod-selected'), 'error');
+    return;
+  }
+  fsProxy.openDir(await props.mod.getModPath());
 }
 
 const handleCancel = async () => {
