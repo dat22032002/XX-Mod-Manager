@@ -537,6 +537,11 @@ EventSystem.on(EventType.addMod, (mod) => {
 // tới thẻ mod đó, căn giữa khung nhìn.
 EventSystem.on(EventType.jumpToMod, async ({ modName, character }) => {
     if (!modName || !character) return;
+    // Cập nhật ô tìm kiếm thành nhân vật ĐÃ LƯU trước khi đổi bộ lọc:
+    // lúc nhập, ô tìm đã điền nhân vật lúc nhập (sửa lỗi 1 #114); nếu
+    // Đạt đổi nhân vật trong hộp sửa thì ô tìm cũ vẫn thắng bộ lọc hàng,
+    // lưới hiện nhân vật cũ nên poll không bao giờ tìm thấy mod mới.
+    EventSystem.trigger(EventType.fillSearch, character);
     iManager.setCurrentCharacter(character);
     // Đợi mod xuất hiện trong danh sách đã lọc: triggerChanged() dồn
     // tải lại 100ms nên dữ liệu có thể chưa về kịp lúc hộp đóng.
