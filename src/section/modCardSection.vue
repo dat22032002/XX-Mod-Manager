@@ -492,11 +492,28 @@ const cardWidth = g_config_vue.cardWidth;
 // modCardManager nhưng cùng 1 trang nên đo được từ đây) + theo dõi
 // bằng ResizeObserver để đổi cỡ cửa sổ là số cột/% cập nhật theo.
 const gridContainerWidth = ref(0);
+// Rộng thanh lăn dọc của khung lưới (Sober: 6px khi danh sách dài tới
+// mức phải lăn, 0 khi mod ít không cần lăn). Đo trực tiếp từ khung lăn,
+// không ghi cứng số.
+const gridScrollbarWidth = ref(0);
 let gridResizeObserver = null;
 function measureGridWidth() {
     const el = document.querySelector('#mod-container');
     if (el) gridContainerWidth.value = el.clientWidth;
+    const sv = el ? el.closest('s-scroll-view') : null;
+    gridScrollbarWidth.value = sv ? sv.offsetWidth - sv.clientWidth : 0;
 }
+// Rộng dùng để KIỂM GIỚI HẠN zoom (+/− được hay không): rộng khung
+// CỘNG lại phần thanh lăn đã chiếm — tức rộng khung như khi không có
+// thanh lăn. Vì sao: thanh lăn chỉ hiện khi mod nhiều, làm khung hẹp
+// đi 6px; kiểm giới hạn bằng rộng thật thì mức zoom tối đa lại phụ
+// thuộc số mod (đo 22/11 ở 1920×1080, thẻ Ngang: 6 mod thì khung
+// 1378px, nút + mờ ở 96% vì (1378−24)/3 = 451,33 > 450; 48 mod thì
+// khung còn 1372px, nút + mở, zoom lên được 128%). Dùng rộng này thì
+// mức zoom tối đa chỉ còn phụ thuộc cỡ cửa sổ, không phụ thuộc số mod.
+// Lưu ý: chỉ phép KIỂM dùng rộng này; lưới lấp đầy + nhãn % vẫn dùng
+// rộng thật (thẻ phải lấp đúng khoảng trống thật trên màn hình).
+const zoomLimitWidth = computed(() => gridContainerWidth.value + gridScrollbarWidth.value);
 const nominalCardWidth = computed(() => rangeCheckedWidth(cardWidth.value, cardLayout.value));
 const fillLayout = computed(() => computeFillLayout(gridContainerWidth.value, nominalCardWidth.value, cardLayout.value));
 const zoomPercent = computed(() => Math.round(fillLayout.value.width / LAYOUT_BASE[cardLayout.value] * 100));
@@ -507,11 +524,11 @@ const zoomColumns = computed(() => fillLayout.value.columns);
 const canZoomIn = computed(() => {
     const n = zoomColumns.value;
     if (n <= 1) return false;
-    return fillWidthForColumns(gridContainerWidth.value, n - 1) <= ZOOM_RANGE[cardLayout.value][1];
+    return fillWidthForColumns(zoomLimitWidth.value, n - 1) <= ZOOM_RANGE[cardLayout.value][1];
 });
 const canZoomOut = computed(() => {
     const n = zoomColumns.value;
-    return fillWidthForColumns(gridContainerWidth.value, n + 1) >= ZOOM_RANGE[cardLayout.value][0];
+    return fillWidthForColumns(zoomLimitWidth.value, n + 1) >= ZOOM_RANGE[cardLayout.value][0];
 });
 
 // Ghi config dồn: bấm +/− lia lịa thì chờ 300ms sau lần bấm cuối mới ghi
