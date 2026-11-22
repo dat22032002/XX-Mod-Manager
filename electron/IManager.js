@@ -57,7 +57,6 @@ let g_temp = {
     ifDontSaveOnClose: false,
     applyResult: null,
     pendingConflicts: null,
-    editingNewMod: false,
 };
 let g_config = {
     firstLoad: true,
@@ -104,7 +103,6 @@ const g_temp_vue = {
     ifDontSaveOnClose: ref(false),
     applyResult: ref(null),
     pendingConflicts: ref(null),
-    editingNewMod: ref(false),
 };
 
 const g_config_vue = {
@@ -255,7 +253,6 @@ class IManager {
         ifDontSaveOnClose: false, // 是否在关闭时不保存配置
         applyResult: null, // 最后一次应用的结果，用于显示结果汇总对话框
         pendingConflicts: null, // Mod đụng nhau chờ xác nhận, hộp dialogConfirmConflict đọc lúc mở
-        editingNewMod: false, // Hộp sửa đang mở cho mod MỚI (vừa nhập vào) — hộp đọc lúc mở để không chọn sẵn tag (Đạt dặn 22/11)
     };
 
     //-==================== 设置数据 ====================
@@ -1370,45 +1367,6 @@ class IManager {
         }
     }
 
-    // Xóa mod MỚI vừa nhập khi người dùng đóng hộp sửa mà không lưu
-    // (Đạt báo 22/11: bấm Cancel mà mod vẫn vào kho). Hộp sửa gọi lúc
-    // 'dismissed' hoặc lúc bấm Bỏ qua ở hộp xác nhận lưu. Các bước y như
-    // deleteModPlugin.removeModFromList + xóa thư mục trực tiếp (không
-    // qua thùng rác — bản gốc zip/thư mục vẫn còn ngoài app nên không
-    // mất gì). Chỉ xóa khi đường dẫn nằm trong thư mục mod (chặn TC9
-    // như plugin) — sai đường dẫn thì không xóa gì cả.
-    discardNewMod(modName, modPath) {
-        if (!modName || !modPath) return false;
-        const folderName = path.basename(modPath);
-        if (!folderName || folderName === '.' || folderName === '..' ||
-            folderName.includes('/') || folderName.includes('\\') || folderName.includes('..')) {
-            console.error('discardNewMod: invalid folder name', folderName);
-            return false;
-        }
-        const modSourcePath = path.resolve(this.config.modSourcePath);
-        const relativePath = path.relative(modSourcePath, path.resolve(modPath));
-        if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-            console.error('discardNewMod: mod path outside mod source', modPath);
-            return false;
-        }
-        try {
-            if (fs.existsSync(modPath)) {
-                fs.rmSync(modPath, { recursive: true, force: true });
-            }
-        } catch (e) {
-            console.error('discardNewMod: failed to delete folder', modPath, e);
-            return false;
-        }
-        // Gỡ khỏi danh sách trong bộ nhớ (y như deleteModPlugin).
-        this.data.modList = this.data.modList.filter((mod) => mod.name !== modName);
-        if (this.temp.currentMod && this.temp.currentMod.name === modName) {
-            this.setCurrentMod(this.data.modList[0]);
-        }
-        this.refreshCharacterList();
-        this.trigger('addMod');
-        return true;
-    }
-
     async handleArchiveDrop(file) {
         //debug
         console.log(`handle zip drop: ${file.name}`);
@@ -1472,9 +1430,6 @@ class IManager {
 
 
             this.setCurrentMod(mod);
-            // Mod MỚI vừa nhập: đánh dấu để hộp sửa không chọn sẵn tag
-            // (Đạt dặn 22/11) — hộp đọc + xóa cờ lúc mở/đóng.
-            this.temp.editingNewMod = true;
             this.showDialog('edit-mod-dialog');
         }
         else {
@@ -1558,9 +1513,6 @@ class IManager {
         this.setCurrentMod(mod);
         this.setCurrentCharacter(mod.character);
 
-        // Mod MỚI vừa nhập: đánh dấu để hộp sửa không chọn sẵn tag
-        // (Đạt dặn 22/11) — hộp đọc + xóa cờ lúc mở/đóng.
-        this.temp.editingNewMod = true;
         this.showDialog('edit-mod-dialog');
 
         // getModInfo 遇到新的 mod 会触发 addMod 事件，所以这里不需要再次触发
