@@ -549,14 +549,18 @@ defineExpose({
     }
 }
 
-/* Kiểu dọc: y hệt thông số cũ (thẻ 250×350, ảnh × 0.8). */
+/* Kiểu dọc (thẻ 250×350). Ảnh × 1.0 thay vì × 0.8: Đạt dặn 23/11
+   kéo ảnh xuống vì phần thông tin trống nhiều — đo thật: ô chữ 100px
+   mà nội dung (dung lượng 20 + mô tả 20) chỉ cần ~40px, thừa ~53px
+   trống. Ảnh cao thêm 50px, ô chữ thu còn 50px (mô tả vẫn hiện đủ
+   1 dòng + lăn được khi dài). */
 .mod-item[data-layout="vertical"] {
     width: var(--card-width, 250px);
     height: calc(var(--card-width, 250px) * 1.4);
 }
 .mod-item[data-layout="vertical"] > div[slot="image"] {
     width: 100%;
-    height: calc(var(--card-width, 250px) * 0.8);
+    height: calc(var(--card-width, 250px) * 1.0);
 }
 
 .mod-item img {
@@ -621,8 +625,9 @@ defineExpose({
 
 
 .mod-item #mod-item-text {
-    /* Ngang: ~60px ở rộng 350 (280 − ảnh 175 − tên ~45); dọc 100px như
-       cũ (xem rule .mod-item[data-layout="vertical"] bên dưới). */
+    /* Ngang: ~60px ở rộng 350 (280 − ảnh 175 − tên ~45); dọc 50px
+       (xem rule .mod-item[data-layout="vertical"] bên dưới) — ngang
+       đã chật sẵn, kéo ảnh nữa là mất dòng mô tả nên giữ nguyên. */
     height: calc(var(--card-width, 350px) * 0.171);
     /* margin-top âm cũ (-10px) dùng để kéo sát vào dòng tên nhân vật
        phía trên; bỏ dòng đó rồi thì kéo âm làm mô tả chồng lên tên. */
@@ -633,7 +638,9 @@ defineExpose({
 }
 
 .mod-item[data-layout="vertical"] #mod-item-text {
-    height: 100px;
+    /* 50px = dung lượng 20 + ô lăn mô tả 30 (đủ 1 dòng mô tả); 50px
+       tiết kiệm được nhường cho ảnh (× 1.0 ở trên). */
+    height: 50px;
 }
 
 .mod-item s-scroll-view {
