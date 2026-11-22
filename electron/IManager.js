@@ -2172,6 +2172,30 @@ class IManager {
         return result;
     }
 
+    // Quét xem mod nào đang thật sự bật trong game (Đạt dặn 22/11 — nút
+    // Apply nhấp nháy khi còn thay đổi chưa áp): chế độ liên kết thì đọc
+    // thư mục đích (mục nào trùng tên mod là đang bật); chế độ truyền
+    // thống thì đọc thư mục nguồn (thư mục tên mod, không có tiền tố
+    // disabled_, là đang bật). Trả về id các mod đang bật. Lỗi đọc thư
+    // mục (chưa đặt đường dẫn, thư mục không có) thì trả về rỗng, không
+    // chặn app.
+    scanAppliedModIds() {
+        // modsRaw (ModInfo) mới có modName chuẩn — tên mục trong thư mục
+        // đích do Apply đặt theo modName. data.modList là ModData, chỉ có
+        // name (tên hiển thị, có thể khác modName) nên không khớp được.
+        const mods = ModLoader.modsRaw || [];
+        if (mods.length === 0) return [];
+        const dir = this.config.ifUseTraditionalApply ? this.config.modSourcePath : this.config.modTargetPath;
+        if (!dir) return [];
+        let names;
+        try {
+            names = new Set(fs.readdirSync(dir));
+        } catch (e) {
+            return [];
+        }
+        return mods.filter(m => names.has(m.modName)).map(m => m.id);
+    }
+
     async addPreset(presetName) {
         const newPresetPath = path.join(this.config.presetPath, presetName + '.json');
         // TC5: ghi qua file tạm rồi đổi tên.

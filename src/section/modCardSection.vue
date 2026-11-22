@@ -203,6 +203,7 @@
                 <p>{{ $t('buttons.undo') }}</p>
             </s-button>
             <s-button @click="handleApplyButtonClicked" id="apply-button" :disabled="applying"
+                :class="{ 'has-unapplied': hasUnappliedChanges && !applying }"
                 class="OO-color-gradient font-hongmeng OO-button" style="color: var(--s-color-surface);">
                 {{ $t('buttons.apply') }}
             </s-button>
@@ -610,7 +611,9 @@ const refreshStats = () => {
 
 onMounted(() => {
     refreshStats();
+    refreshApplied();
     EventSystem.on(EventType.modListChanged, refreshStats);
+    EventSystem.on(EventType.modListChanged, refreshApplied);
     EventSystem.on(EventType.modInfoChanged, refreshStats);
     // Đo rộng khung lưới ngay + theo dõi khi đổi cỡ (để tính số cột,
     // nhãn % thật và nút +/− theo cột).
@@ -735,6 +738,25 @@ const applyDone = ref(0);
 const applyTotal = ref(0);
 const applyPercent = computed(() => applyTotal.value > 0 ? Math.round(applyDone.value / applyTotal.value * 100) : 0);
 
+// Tập mod đang thật sự bật trong game (quét thư mục đích — xem
+// IManager.scanAppliedModIds). Khác với lựa chọn hiện tại thì nút Apply
+// nhấp nháy nhẹ nhắc bấm (Đạt dặn 22/11). Quét lại khi danh sách mod
+// đổi (mở app, quét lại, thêm/xóa mod) và sau mỗi lần Apply. Id đã áp
+// mà mod không còn trong danh sách thì bỏ qua lúc so (mod vừa xóa).
+const appliedModIds = ref(new Set());
+const refreshApplied = () => {
+    appliedModIds.value = new Set(iManager.scanAppliedModIds());
+};
+const hasUnappliedChanges = computed(() => {
+    const current = new Set((iManager.data.modList || []).map(m => m.id));
+    const applied = new Set([...appliedModIds.value].filter(id => current.has(id)));
+    if (selectedModIdSet.size !== applied.size) return true;
+    for (const id of selectedModIdSet) {
+        if (!applied.has(id)) return true;
+    }
+    return false;
+});
+
 // Phần áp dụng thật (tách riêng để nút Apply và hộp cảnh báo cùng gọi).
 async function runApply() {
     applying.value = true;
@@ -749,6 +771,9 @@ async function runApply() {
     } finally {
         applying.value = false;
     }
+    // Áp xong thì quét lại tập đã áp (kể cả khi có mod áp lỗi — quét
+    // đĩa mới biết chắc mod nào thật sự bật).
+    refreshApplied();
 }
 
 // Nút hoàn tác lựa chọn kiểu Ctrl+Z (Đạt dặn 21/11): chỉ hoàn tác
@@ -963,6 +988,22 @@ EventSystem.on('toggledMod', (mod) => {
     font-size: 20px;
 
     color: var(--s-color-dark-surface);
+}
+
+/* Nút Apply nhấp nháy nhẹ khi còn thay đổi chưa áp (Đạt dặn 22/11):
+   sáng lên rồi dịu xuống trong 2 giây, lặp lại — đủ thấy mà không gắt. */
+@keyframes apply-pulse {
+    0%, 100% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(1.22);
+    }
+}
+
+#apply-button.has-unapplied {
+    animation: apply-pulse 2s ease-in-out infinite;
 }
 
 .apply-progress {
