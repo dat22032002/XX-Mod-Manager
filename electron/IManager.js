@@ -37,6 +37,7 @@ import PresetHelper from '../core/PresetHelper';
 import { Language, TranslatedText, setCurrentLanguage } from '../helper/Language';
 // 导入 SnackHelper
 import { t_snack, SnackType, snack } from '../helper/SnackHelper';
+import { guessCharacterFromNames } from '../helper/CharacterGuess';
 // 导入 EventSystem
 import { EventType, EventSystem } from '../helper/EventSystem';
 import { writeFileAtomicSync } from '../helper/SafeWrite';
@@ -1660,6 +1661,49 @@ class IManager {
         return true;
     }
 
+    //-------- Thu thập tên file trong thư mục mod (đệ quy, tối đa 500
+    // file) để đoán nhân vật — chỉ lấy TÊN file, không đọc nội dung.
+    collectModFileNames(modPath, limit = 500) {
+        const names = [];
+        const walk = (dir) => {
+            let entries;
+            try {
+                entries = fs.readdirSync(dir, { withFileTypes: true });
+            } catch (_ignored) {
+                return;
+            }
+            for (const entry of entries) {
+                if (names.length >= limit) return;
+                if (entry.isDirectory()) {
+                    walk(path.join(dir, entry.name));
+                } else if (entry.isFile()) {
+                    names.push(entry.name);
+                }
+            }
+        };
+        walk(modPath);
+        return names;
+    }
+
+    //-------- Đoán nhân vật cho mod mới (Đạt dặn 22/11) — dùng chung
+    // cho cả 2 luồng nhập (zip + thư mục). Chỉ đoán khi nhân vật còn
+    // Unknown: mod.json đã ghi nhân vật thì giữ nguyên. Đoán chạy
+    // TRƯỚC khối gán-nhân-vật-hiện-tại (Đạt báo 22/11: đang đứng tab
+    // Ellen thì luật cũ gán Ellen trước, đoán không còn cơ hội chạy) —
+    // đoán không ra thì khối gán mới gắn theo tab đang đứng. Đoán ra
+    // thì ghi nhân vật + lưu. KHÔNG bắn fillSearch ở đây: caller bắn
+    // 1 lần sau khi nhân vật đã chốt (dù từ mod.json, đoán được, hay
+    // hàng đang đứng) để ô tìm kiếm luôn được điền.
+    async tryGuessCharacter(mod, modPath) {
+        if (mod.character !== 'Unknown') return;
+        const known = (this.data.characterList || []).filter((c) => c !== 'Unknown');
+        const guessed = guessCharacterFromNames(mod.name, this.collectModFileNames(modPath), known);
+        if (!guessed) return;
+        mod.character = guessed;
+        await mod.saveModInfo();
+        mod.triggerChanged();
+    }
+
     async handleArchiveDrop(file) {
         //debug
         console.log(`handle zip drop: ${file.name}`);
@@ -1710,6 +1754,14 @@ class IManager {
             const mod = await this.getModInfo(modName);
             console.log(`getModInfo:`, mod);
 
+            // Đoán nhân vật từ tên thư mục/file (Đạt dặn 22/11) — chạy
+            // TRƯỚC khối gán-nhân-vật-hiện-tại: đoán ra thì dùng nhân
+            // vật đoán được (Đạt báo 22/11: đang đứng tab Ellen mà
+            // nhập mod Norma thì phải tự đổi sang Norma).
+            await this.tryGuessCharacter(mod, modPath);
+
+            // Đoán không ra (vẫn Unknown) thì mới gắn theo tab đang
+            // đứng như luật cũ.
             // 如果 currentCharacter 不为空，且 mod 的 character 为 unknown，则将 mod 的 character 设置为 currentCharacter
             //debug
             console.log(`currentCharacter: ${this.temp.currentCharacter}`, mod.character);
@@ -1717,6 +1769,14 @@ class IManager {
                 mod.character = this.temp.currentCharacter;
                 await mod.saveModInfo();
                 mod.triggerChanged();
+            }
+
+            // Nhân vật đã chốt (mod.json / hàng đang đứng / đoán được):
+            // điền ô tìm kiếm 1 lần — sửa lỗi 1.5.23-test1 (Đạt báo
+            // 22/11: mod Corin không được điền ô tìm vì nhân vật đã
+            // biết sẵn trước khi đoán chạy).
+            if (mod.character !== 'Unknown') {
+                EventSystem.trigger(EventType.fillSearch, mod.character);
             }
 
             this.setCurrentCharacter(mod.character);
@@ -1797,6 +1857,12 @@ class IManager {
         const mod = await this.getModInfo(modName);
         console.log(`getModInfo:`, mod);
 
+        // Đoán nhân vật từ tên thư mục/file (Đạt dặn 22/11) — chạy
+        // TRƯỚC khối gán-nhân-vật-hiện-tại (xem handleArchiveDrop).
+        await this.tryGuessCharacter(mod, copiedPath);
+
+        // Đoán không ra (vẫn Unknown) thì mới gắn theo tab đang đứng
+        // như luật cũ.
         // 如果 currentCharacter 不为空，且 mod 的 character 为 unknown，则将 mod 的 character 设置为 currentCharacter
         //debug
         console.log(`currentCharacter: ${this.temp.currentCharacter}`, mod.character);
@@ -1804,6 +1870,13 @@ class IManager {
             mod.character = this.temp.currentCharacter;
             await mod.saveModInfo();
             mod.triggerChanged();
+        }
+
+        // Nhân vật đã chốt (mod.json / hàng đang đứng / đoán được):
+        // điền ô tìm kiếm 1 lần — sửa lỗi 1.5.23-test1 (xem
+        // handleArchiveDrop).
+        if (mod.character !== 'Unknown') {
+            EventSystem.trigger(EventType.fillSearch, mod.character);
         }
 
         this.setCurrentMod(mod);
