@@ -57,6 +57,7 @@ let g_temp = {
     ifDontSaveOnClose: false,
     applyResult: null,
     pendingConflicts: null,
+    editingNewMod: false,
 };
 let g_config = {
     firstLoad: true,
@@ -103,6 +104,7 @@ const g_temp_vue = {
     ifDontSaveOnClose: ref(false),
     applyResult: ref(null),
     pendingConflicts: ref(null),
+    editingNewMod: ref(false),
 };
 
 const g_config_vue = {
@@ -253,6 +255,7 @@ class IManager {
         ifDontSaveOnClose: false, // 是否在关闭时不保存配置
         applyResult: null, // 最后一次应用的结果，用于显示结果汇总对话框
         pendingConflicts: null, // Mod đụng nhau chờ xác nhận, hộp dialogConfirmConflict đọc lúc mở
+        editingNewMod: false, // Hộp sửa đang mở cho mod MỚI (vừa nhập vào) — hộp đọc lúc mở để không chọn sẵn tag (Đạt dặn 22/11)
     };
 
     //-==================== 设置数据 ====================
@@ -1430,6 +1433,9 @@ class IManager {
 
 
             this.setCurrentMod(mod);
+            // Mod MỚI vừa nhập: đánh dấu để hộp sửa không chọn sẵn tag
+            // (Đạt dặn 22/11) — hộp đọc + xóa cờ lúc mở/đóng.
+            this.temp.editingNewMod = true;
             this.showDialog('edit-mod-dialog');
         }
         else {
@@ -1513,6 +1519,9 @@ class IManager {
         this.setCurrentMod(mod);
         this.setCurrentCharacter(mod.character);
 
+        // Mod MỚI vừa nhập: đánh dấu để hộp sửa không chọn sẵn tag
+        // (Đạt dặn 22/11) — hộp đọc + xóa cờ lúc mở/đóng.
+        this.temp.editingNewMod = true;
         this.showDialog('edit-mod-dialog');
 
         // getModInfo 遇到新的 mod 会触发 addMod 事件，所以这里不需要再次触发

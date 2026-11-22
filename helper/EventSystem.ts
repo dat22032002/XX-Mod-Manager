@@ -42,6 +42,8 @@ enum EventType {
     addMod = 'addMod',
     addPreset = 'addPreset',
     toggledMod = 'toggledMod',
+    // Hop sua mod MOI vua Luu xong: luoi nhay sang nhan vat cua mod + lan toi the mod do (Dat dan 22/11)
+    jumpToMod = 'jumpToMod',
     //----------插件相关----------
     pluginEnabled = 'pluginEnabled',
     pluginDisabled = 'pluginDisabled',

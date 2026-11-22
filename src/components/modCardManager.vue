@@ -531,6 +531,40 @@ EventSystem.on(EventType.addMod, (mod) => {
     scheduleReload();
 });
 
+// Nhảy tới mod MỚI vừa Lưu xong (Đạt dặn 22/11): chuyển bộ lọc sang
+// nhân vật của mod (nhân vật ĐÃ LƯU — kể cả khi Đạt đổi khác lúc nhập,
+// vì setCurrentCharacter lúc nhập chạy TRƯỚC khi hộp mở) rồi lăn lưới
+// tới thẻ mod đó, căn giữa khung nhìn.
+EventSystem.on(EventType.jumpToMod, async ({ modName, character }) => {
+    if (!modName || !character) return;
+    iManager.setCurrentCharacter(character);
+    // Đợi mod xuất hiện trong danh sách đã lọc: triggerChanged() dồn
+    // tải lại 100ms nên dữ liệu có thể chưa về kịp lúc hộp đóng.
+    // Khớp theo TÊN mod (tên thư mục, duy nhất trong kho): id thay đổi
+    // mỗi lần Lưu qua hộp sửa (sinh lại = md5 đường dẫn) nên không
+    // dùng được làm khóa qua ranh giới lưu/tải lại.
+    let index = -1;
+    for (let i = 0; i < 20; i++) {
+        index = filteredMods.value.findIndex((m) => m.name === modName);
+        if (index !== -1) break;
+        await new Promise((r) => setTimeout(r, 100));
+    }
+    if (index === -1) return;
+    const scrollView = scrollViewRef.value;
+    if (!scrollView) return;
+    // Đồng bộ cửa sổ vẽ từng phần trước khi đo (bộ lọc vừa đổi, chiều
+    // cao lăn có thể còn cũ) rồi mới tính vị trí lăn.
+    await nextTick();
+    updateWindow();
+    const columns = gridLayout.value.columns;
+    if (columns < 1) return;
+    const row = Math.floor(index / columns);
+    const rowHeight = readRowHeight();
+    const rowTop = gridSideGap.value + row * (rowHeight + CARD_GAP);
+    const maxScroll = Math.max(0, scrollView.scrollHeight - scrollView.clientHeight);
+    scrollView.scrollTop = Math.min(maxScroll, Math.max(0, rowTop + rowHeight / 2 - scrollView.clientHeight / 2));
+});
+
 // Dung lượng về dần khi quét nền chạy: mỗi lần có size mới thì xếp
 // lại danh sách (chỉ khi đang xếp theo dung lượng). Dồn 200ms để đợt
 // quét đầu (hàng trăm mod về liên tiếp) không xếp lại từng cái.
