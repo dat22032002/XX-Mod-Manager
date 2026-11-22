@@ -13,11 +13,20 @@ const path = require(pathOsName);
 // 导入fs
 const fs = require('fs');
 
+// fileURLToPath (đổi file:// URL thành đường dẫn đĩa để đọc file wasm) —
+// require qua biến trung gian như 'path' để Vite không phân tích tĩnh.
+const urlModuleName = 'url';
+const { fileURLToPath } = require(urlModuleName);
+
 // 导入 libarchivejs
 let Archive = window.Archive;
 //! 下面两个变量是为了解决 vite 打包时，无法正确导入 wasm 文件的问题
 import ArchiveWASM from './lib/libarchive.wasm?url';
 import workerBound from './lib/worker-bundle.js?url';
+// node-unrar-js: giải nén .rar (libarchive không mở được rar mã hóa).
+// Import wasm bằng ?url để Vite copy file vào dist/assets/unrar.wasm.
+import { createExtractorFromData } from 'node-unrar-js';
+import unrarWasmUrl from 'node-unrar-js/dist/js/unrar.wasm?url';
 import { ModInfo, ModMetaData, ModMetaDataItem, ModMetaDataType } from '../core/ModInfo';
 import XXMMCore from '../core/XXMMCore';
 import LogHandler from '../core/LogHandler';
@@ -1161,6 +1170,15 @@ class IManager {
 
     // 解压文件到指定目录的函数
     async extractArchive(archivePath, destinationPath) {
+        // File .rar đi đường node-unrar-js riêng (libarchive không mở được
+        // rar mã hóa — xem extractRarArchive); zip/7z/tar giữ nguyên đường
+        // libarchive bên dưới. archivePath thực chất là File được thả vào
+        // (xem handleArchiveDrop), không phải chuỗi đường dẫn.
+        const archiveName = archivePath && archivePath.name ? archivePath.name : String(archivePath);
+        if (archiveName.toLowerCase().endsWith('.rar')) {
+            return this.extractRarArchive(archivePath, destinationPath);
+        }
+
         // TC28: giới hạn tổng dung lượng sau giải nén — file nén vài GB hoặc
         // "bom nén" sẽ bị từ chối trước khi giải nén thay vì ngốn hết RAM.
         // Mod game thường dưới 1-2 GB; ngưỡng 4 GB đủ rộng cho mod lớn thật.
@@ -1345,10 +1363,15 @@ class IManager {
             }
             t_snack(t_message, 'error');
 
-            // 删除解压的文件
+            // 删除解压的文件 — kiểm tra tồn tại trước vì handleArchiveDrop
+            // cũng xóa ngay khi extractArchive trả false (không kiểm thì
+            // lần xóa thứ 2 văng ENOENT không bắt được — thấy ở log probe
+            // rar mã hóa 22/11).
             setTimeout(() => {
-                fs.rmdirSync(destinationPath, { recursive: true });
-                console.log(`Deleted folder: ${destinationPath}`);
+                if (fs.existsSync(destinationPath)) {
+                    fs.rmdirSync(destinationPath, { recursive: true });
+                    console.log(`Deleted folder: ${destinationPath}`);
+                }
             }, 1000);
             return false;
         }
@@ -1372,6 +1395,227 @@ class IManager {
 
             return true;
         }
+    }
+
+    // Nạp file wasm của node-unrar-js (Vite copy vào dist/assets/unrar.wasm
+    // nhờ import ?url ở đầu file). App chạy từ file:// (kể cả trong asar)
+    // nên đọc bằng fs — fetch bị Chromium chặn với file://. Chạy qua vite
+    // dev server (http://) thì fetch. Chỉ nạp 1 lần rồi nhớ lại.
+    async loadUnrarWasmBinary() {
+        if (this._unrarWasmBinary) {
+            return this._unrarWasmBinary;
+        }
+        const wasmUrl = new URL(unrarWasmUrl, window.location.href);
+        let bytes;
+        if (wasmUrl.protocol === 'file:') {
+            bytes = fs.readFileSync(fileURLToPath(wasmUrl));
+        } else {
+            const res = await fetch(wasmUrl.href);
+            if (!res.ok) {
+                throw new Error(`Failed to load unrar wasm: HTTP ${res.status}`);
+            }
+            bytes = new Uint8Array(await res.arrayBuffer());
+        }
+        this._unrarWasmBinary = bytes;
+        return bytes;
+    }
+
+    // Giải nén file .rar bằng node-unrar-js (WASM unrar đầy đủ).
+    // libarchive đi kèm app KHÔNG mở được rar mã hóa (chuỗi trong wasm:
+    // "RAR encryption support unavailable") — rar có mật khẩu văng lỗi
+    // checksum rồi báo nhầm là "file nén hỏng" (Đạt báo 22/11; probe xác
+    // nhận: rar thường + rar solid vẫn mở được bằng libarchive, chỉ rar
+    // mã hóa là hỏng). Đường này mở được rar thường, solid, RAR5 lẫn rar
+    // có mật khẩu (hỏi mật khẩu bằng đúng hộp thoại của đường zip). Chỉ
+    // dùng cho .rar; zip/7z/tar giữ nguyên đường libarchive.
+    async extractRarArchive(file, destinationPath) {
+        // Ngưỡng dung lượng sau giải nén giống đường zip (TC28).
+        const MAX_ARCHIVE_EXTRACT_BYTES = 4 * 1024 * 1024 * 1024;
+        const isPasswordError = (err) => err && (err.reason === 'ERAR_MISSING_PASSWORD' || err.reason === 'ERAR_BAD_PASSWORD');
+
+        let data;
+        try {
+            data = new Uint8Array(await file.arrayBuffer());
+        } catch (error) {
+            console.error(`Failed to read rar file: ${error}`);
+            t_snack({
+                vi: `Không đọc được file .rar`,
+                en: `Could not read the RAR file`,
+            }, 'error');
+            return false;
+        }
+
+        // Chữ ký RAR ở đầu file (RAR5: 52 61 72 21 1A 07 01 00, RAR4:
+        // ...07 00) — chỉ dùng để CHỌN thông báo lỗi sau khi unrar văng
+        // lỗi (có chữ ký mà mở không được = file hỏng thật; không có chữ
+        // ký = không phải file rar). Không dùng để chặn trước vì rar tự
+        // giải nén (SFX) không có chữ ký ở đầu file nhưng unrar vẫn mở được.
+        const looksLikeRar = data.length >= 8 && data[0] === 0x52 && data[1] === 0x61
+            && data[2] === 0x72 && data[3] === 0x21 && data[4] === 0x1A && data[5] === 0x07
+            && (data[6] === 0x00 || data[6] === 0x01) && data[7] === 0x00;
+
+        let extractor;
+        try {
+            const wasmBinary = await this.loadUnrarWasmBinary();
+            extractor = await createExtractorFromData({ wasmBinary, data });
+        } catch (error) {
+            console.error(`Failed to init unrar: ${error}`);
+            t_snack({
+                vi: `Không mở được file .rar, hãy giải nén tay`,
+                en: `Could not open the RAR file, please extract it manually`,
+            }, 'error');
+            return false;
+        }
+
+        // Liệt kê trước (chỉ đọc tiêu đề): kiểm dung lượng + phát hiện mã hóa.
+        // Rar mã hóa cả tiêu đề (-hp) thì liệt kê đã văng lỗi mật khẩu.
+        let password = '';
+        let headers;
+        try {
+            headers = [...extractor.getFileList().fileHeaders];
+        } catch (error) {
+            if (!isPasswordError(error)) {
+                return this.reportRarError(error, looksLikeRar);
+            }
+            password = await this.waitForPassword();
+            if (password === null || password === '') {
+                return false;
+            }
+            try {
+                const wasmBinary = await this.loadUnrarWasmBinary();
+                extractor = await createExtractorFromData({ wasmBinary, data, password });
+                headers = [...extractor.getFileList().fileHeaders];
+            } catch (retryError) {
+                return this.reportRarError(retryError, looksLikeRar);
+            }
+        }
+
+        if (headers.length === 0) {
+            console.error(`Error: RAR archive is empty`);
+            t_snack({
+                vi: `File .rar rỗng, không có gì để giải nén`,
+                en: `The RAR file is empty, nothing to extract`,
+            }, 'error');
+            return false;
+        }
+
+        // Rar chỉ mã hóa dữ liệu (-p): tiêu đề đọc được, từng file gắn cờ
+        // encrypted — hỏi mật khẩu trước khi giải nén (chưa hỏi ở trên).
+        if (!password && headers.some((h) => h.flags.encrypted)) {
+            password = await this.waitForPassword();
+            if (password === null || password === '') {
+                return false;
+            }
+        }
+
+        const totalSize = headers.reduce((sum, h) => sum + (typeof h.unpSize === 'number' ? h.unpSize : 0), 0);
+        if (totalSize > MAX_ARCHIVE_EXTRACT_BYTES) {
+            console.error(`RAR too large to extract: ${totalSize} bytes (limit ${MAX_ARCHIVE_EXTRACT_BYTES})`);
+            t_snack({
+                vi: `File nén quá lớn sau khi giải nén (${(totalSize / 1024 / 1024 / 1024).toFixed(1)} GB, giới hạn 4 GB) nên không giải nén`,
+                en: `Archive is too large when extracted (${(totalSize / 1024 / 1024 / 1024).toFixed(1)} GB, limit 4 GB), extraction refused`,
+            }, 'error');
+            return false;
+        }
+
+        if (!fs.existsSync(destinationPath)) {
+            fs.mkdirSync(destinationPath);
+        }
+
+        let ifContainChinese = false;
+        let skippedEntries = [];
+        try {
+            const { files } = extractor.extract(password ? { password } : {});
+            for (const entry of files) {
+                const header = entry.fileHeader;
+                if (header.flags.directory) {
+                    continue;
+                }
+                // Ghi ra đĩa: chặn zip-slip + thay * thành _ như đường zip.
+                const filePath = path.join(destinationPath, header.name);
+                const newFilePath = filePath.replace(/\*/g, '_');
+                if (filePath !== newFilePath) {
+                    ifContainChinese = true;
+                }
+                if (!PathHelper.isPathInside(destinationPath, newFilePath)) {
+                    skippedEntries.push(header.name);
+                    console.error(`Skipped entry escaping the mod folder: ${header.name}`);
+                    continue;
+                }
+                const dir = path.dirname(newFilePath);
+                if (!fs.existsSync(dir) && dir !== '') {
+                    fs.mkdirSync(dir, { recursive: true });
+                }
+                fs.writeFileSync(newFilePath, Buffer.from(entry.extraction));
+            }
+        } catch (error) {
+            // Giải nén lỗi giữa chừng: xóa thư mục dở dang rồi báo đúng lỗi.
+            if (fs.existsSync(destinationPath)) {
+                fs.rmdirSync(destinationPath, { recursive: true });
+            }
+            return this.reportRarError(error, looksLikeRar);
+        }
+
+        if (ifContainChinese) {
+            t_snack({
+                vi: `Tên thư mục sau khi giải nén có ký tự đặc biệt, đã thay bằng _`,
+                en: `Folder name cannot contain special characters, and has been replaced with _`,
+            }, 'error');
+        }
+        if (skippedEntries.length > 0) {
+            t_snack({
+                vi: `Đã bỏ qua ${skippedEntries.length} file cố ghi ra ngoài thư mục mod: ${skippedEntries.join(', ')}`,
+                en: `Skipped ${skippedEntries.length} file(s) trying to write outside the mod folder: ${skippedEntries.join(', ')}`,
+            }, 'error');
+        }
+        // Gỡ thư mục bọc thừa (PR #115): hàm này chưa có trên nhánh này,
+        // ?. để sau khi gộp #115 thì đường rar cũng được gỡ như đường zip.
+        this.flattenSingleTopFolder?.(destinationPath);
+        t_snack({
+            vi: `Mod ${path.basename(destinationPath)} đã giải nén xong`,
+            en: `Mod ${path.basename(destinationPath)} extracted successfully`,
+        });
+        return true;
+    }
+
+    // Báo lỗi giải nén .rar theo đúng nguyên nhân (UnrarError có reason):
+    // sai định dạng / hỏng thật / sai mật khẩu — thay cho thông báo chung
+    // "file nén hỏng" gây hiểu lầm trước đây. Luôn trả false.
+    // looksLikeRar = file có chữ ký RAR ở đầu (xem extractRarArchive):
+    // ERAR_EREAD (đọc không được cấu trúc file nén) + có chữ ký = file rar
+    // hỏng thật (vd tải về thiếu nửa); không có chữ ký = không phải rar
+    // (vd byte ngẫu nhiên, file .zip đổi tên thành .rar).
+    reportRarError(error, looksLikeRar) {
+        const reason = error && error.reason;
+        console.error(`RAR extraction failed: ${reason || error}`);
+        if (reason === 'ERAR_BAD_ARCHIVE' || reason === 'ERAR_UNKNOWN_FORMAT'
+            || (reason === 'ERAR_EREAD' && !looksLikeRar)) {
+            t_snack({
+                vi: `File này không phải file .rar hợp lệ`,
+                en: `This file is not a valid RAR archive`,
+            }, 'error');
+        } else if (reason === 'ERAR_BAD_DATA' || reason === 'ERAR_EREAD') {
+            t_snack({
+                vi: `File .rar đã hỏng, không giải nén được`,
+                en: `The RAR file is damaged and could not be extracted`,
+            }, 'error');
+        } else if (reason === 'ERAR_BAD_PASSWORD' || reason === 'ERAR_MISSING_PASSWORD') {
+            t_snack({
+                vi: `Sai mật khẩu`,
+                en: `Incorrect password`,
+            }, 'error');
+        } else if (reason === 'ERAR_NO_MEMORY') {
+            t_snack({
+                vi: `File .rar quá lớn, không đủ bộ nhớ để giải nén`,
+                en: `The RAR file is too large to extract in memory`,
+            }, 'error');
+        } else {
+            t_snack({
+                vi: `Giải nén thất bại, hãy giải nén tay`,
+                en: `Extraction failed, please extract manually`,
+            }, 'error');
+        }
+        return false;
     }
 
     async handleArchiveDrop(file) {
