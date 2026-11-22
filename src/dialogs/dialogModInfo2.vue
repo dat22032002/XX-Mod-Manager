@@ -21,7 +21,10 @@
               style="margin-top: 2px;font-size: small;color: gray;height: fit-content;width: fit-content;margin-bottom: 0;padding-bottom: 10px;">
               {{ props.mod ? props.mod.character : "no character" }}</p>
 
-            <div id="img-container" style="width: 280px;height: 224px;border-radius: 0 30px;overflow: hidden;">
+            <!-- Bấm vào ảnh bìa thì mở Showcase y chang bấm ảnh ở khung
+                 phải (Đạt dặn 22/11) — xem khối showcase ở cuối file. -->
+            <div id="img-container" @click="openShowcase"
+              style="width: 280px;height: 224px;border-radius: 0 30px;overflow: hidden;cursor: pointer;">
               <img id="editDialog-mod-info-image"
                 style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;" :src="img" />
             </div>
@@ -187,11 +190,23 @@
           $t('editDialog.save') }}</s-button>
     </template>
   </DialogTemplate>
+
+  <!-- Xem ảnh gốc (Showcase): Y HỆT cơ chế ở khung phải (modInfo.vue) —
+       bấm ảnh thì ảnh hiện to giữa màn hình, bấm thêm 1 lần bất kỳ đâu
+       hoặc phím Esc thì đóng. Teleport ra body + z-index 9999 nên lớp
+       phủ nổi lên TRÊN cả hộp thoại này (hộp Sober chỉ z-index 2);
+       lớp phủ che hết màn hình nên lúc đang mở thì không bấm lọt được
+       nút Lưu/Hủy hay nền hộp phía sau. -->
+  <Teleport to="body">
+    <div v-if="showcaseOpen" class="showcase-overlay" @click="closeShowcase">
+      <img :src="img" alt="" />
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import { defineProps, defineEmits, onMounted, computed, watch, useTemplateRef } from 'vue';
+import { defineProps, defineEmits, onMounted, onUnmounted, computed, watch, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import IManager from '../../electron/IManager';
 import { g_data_vue } from '../../electron/IManager';
@@ -235,6 +250,32 @@ const tempModInfo = ref(ModData.fromJson({
 const editModInfoDialog = useTemplateRef('edit-mod-dialog');
 const img = ref(null);
 
+//===================== xem ảnh gốc (showcase) =====================//
+// Y HỆT cơ chế ở khung phải (modInfo.vue): bấm ảnh bìa trong hộp sửa
+// thì ảnh hiện to giữa màn hình (dùng đúng ảnh hộp đang hiện, kể cả ảnh
+// vừa dán/chọn chưa lưu). Bấm thêm 1 lần bất kỳ đâu (lớp phủ che hết
+// màn hình) hoặc phím Esc thì đóng. Hộp Sober không tự bắt phím Esc
+// nên Esc chỉ đóng showcase, không đóng hộp sửa. Đổi mod / hộp đóng
+// hẳn thì showcase cũng đóng theo (xem watch props.mod + bộ nghe
+// 'dismissed' bên dưới) để lớp phủ không kẹt lại.
+const showcaseOpen = ref(false);
+const onShowcaseKeydown = (e) => {
+  if (e.key === 'Escape') closeShowcase();
+};
+const openShowcase = () => {
+  if (props.mod == null || !img.value) return;
+  showcaseOpen.value = true;
+  window.addEventListener('keydown', onShowcaseKeydown);
+};
+const closeShowcase = () => {
+  if (!showcaseOpen.value) return;
+  showcaseOpen.value = false;
+  window.removeEventListener('keydown', onShowcaseKeydown);
+};
+onUnmounted(() => {
+  window.removeEventListener('keydown', onShowcaseKeydown);
+});
+
 // 需要显示的mod发生变化时，更新 临时mod信息
 watch(() => props.mod, async (newVal) => {
   console.log('[dialogModInfo2] watch props.mod changed', newVal.name);
@@ -244,6 +285,8 @@ watch(() => props.mod, async (newVal) => {
     return;
   }
   if (newVal) {
+    // Đổi mod thì đóng showcase (giống khung phải).
+    closeShowcase();
     // 显式销毁之前的 tempModInfo
     tempModInfo?.value?.destroy();
     tempModInfo.value = newVal.copy();
@@ -507,6 +550,8 @@ onMounted(() => {
   // TC22: hộp đóng hẳn thì thôi nghe dán.
   editModInfoDialog.value.$el.addEventListener('dismissed', () => {
     window.removeEventListener('paste', handlePaste);
+    // Hộp đóng hẳn thì đóng showcase theo để lớp phủ không kẹt lại.
+    closeShowcase();
   });
 });
 </script>
@@ -553,6 +598,27 @@ onMounted(() => {
   background-color: var(--s-color-primary);
   color: var(--s-color-on-primary);
   font-weight: 700;
+}
+
+/* Lớp phủ xem ảnh gốc (Showcase): Y HỆT khung phải (modInfo.vue) —
+   giữa màn hình, bấm bất kỳ đâu để đóng. Ảnh giữ kích thước thật,
+   chỉ thu lại khi vượt qua cửa sổ (không phóng to). z-index 9999 để
+   nổi lên trên hộp thoại Sober (z-index 2). */
+.showcase-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  z-index: 9999;
+}
+.showcase-overlay img {
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 /* Nhãn hàng trong hộp (MOD Name, MOD Cover...) đặt thẳng 16px (bậc M):
