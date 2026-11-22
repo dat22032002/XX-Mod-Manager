@@ -5,9 +5,13 @@
          cuối không bao giờ tới được handler nếu gắn ở container (Đạt
          thấy 21/11: ít mod thì bôi đen không bắt đầu được). Gắn ở khung
          ngoài thì toàn bộ khung lưới — kể cả khoảng trống — đều bắt
-         đầu được bôi đen. Tọa độ vẫn tính theo container (xem
-         marqueeContainerPoint), y vượt quá chiều cao container vẫn
-         đúng vì giao nhau tính theo tọa độ màn hình. -->
+         đầu được bôi đen. Khung bôi đen (#marquee-box) cũng là con của
+         khung ngoài, tọa độ tính theo khung ngoài (xem
+         marqueeFramePoint): trước đây nó là con của #mod-container
+         (nằm trong s-scroll-view) nên phần vươn xuống dưới đáy scroll
+         view bị cắt mất — scroll view chỉ cao bằng nội dung, phần khung
+         ngoài hộp của nó nằm trong vùng lăn chưa cuộn tới nên không
+         thấy được (Đạt thấy 22/11: khung mất viền dưới). -->
     <div id="mod-card-manager" class="OO-box" ref="modCardManagerRef" @mousedown="handleMarqueeMouseDown">
         <!-- <chipRadioBar class="characterFilter" :items="characters" @itemChange="handleFilterChange"
             :translatedItems="translateCharacters" ref="characterFilterRef" /> -->
@@ -32,12 +36,15 @@
                         {{ $t('filter.clearFilters') }}
                     </s-button>
                 </div>
-                <!-- Khung bôi đen chọn mod (kéo như Windows): vàng = chọn
-                     Áp Dụng, giữ Ctrl thì xanh = chọn hàng loạt. -->
-                <div v-if="marquee.active" id="marquee-box" :class="marquee.batch ? 'batch' : 'apply'"
-                    :style="marqueeBoxStyle"></div>
             </div>
         </s-scroll-view>
+        <!-- Khung bôi đen chọn mod (kéo như Windows): vàng = chọn Áp
+             Dụng, giữ Ctrl thì xanh = chọn hàng loạt. Là con TRỰC TIẾP
+             của khung ngoài (#mod-card-manager), KHÔNG nằm trong
+             s-scroll-view — để không bị scroll view cắt khi kéo xuống
+             khoảng trống dưới đáy vùng chứa mod (xem chú thích đầu file). -->
+        <div v-if="marquee.active" id="marquee-box" :class="marquee.batch ? 'batch' : 'apply'"
+            :style="marqueeBoxStyle"></div>
     </div>
 </template>
 
@@ -705,8 +712,8 @@ const MARQUEE_START_PX = 5;
 const marquee = reactive({
     active: false,          // đã kéo quá ngưỡng, khung đang hiện
     batch: false,           // true = giữ Ctrl = chọn xanh
-    startX: 0, startY: 0,   // điểm nhấn chuột (tọa độ trong lưới)
-    x: 0, y: 0, w: 0, h: 0, // khung hiện tại (tọa độ trong lưới)
+    startX: 0, startY: 0,   // điểm nhấn chuột (tọa độ trong khung lưới)
+    x: 0, y: 0, w: 0, h: 0, // khung hiện tại (tọa độ trong khung lưới)
 });
 const marqueeBoxStyle = computed(() => ({
     left: marquee.x + 'px',
@@ -717,29 +724,44 @@ const marqueeBoxStyle = computed(() => ({
 let marqueePending = null; // { x, y } điểm nhấn chuột, chờ kéo quá ngưỡng
 let marqueeHighlighted = []; // thẻ đang tô viền xem trước
 let marqueeSuppressClick = false;
+// Độ dày viền khung ngoài (.OO-box: 3px) — đọc lúc nhấn chuột, dùng
+// cho mọi tọa độ trong lần kéo đó (xem marqueeFramePoint).
+let marqueeBorderL = 0, marqueeBorderT = 0;
 
-function marqueeContainerPoint(event) {
-    const rect = modContainerRef.value.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+// Đổi tọa độ chuột sang tọa độ trong khung lưới: gốc là MÉP TRONG của
+// viền khung ngoài (padding box — nơi phần tử absolute như #marquee-box
+// neo vào), tức rect.left/top cộng độ dày viền. Không cộng viền thì
+// khung lệch khỏi chuột đúng độ dày viền (3px). Điểm kẹp trong khung:
+// chuột kéo ra ngoài khung thì điểm dính ở mép trong khung.
+function marqueeFramePoint(event) {
+    const frameEl = modCardManagerRef.value;
+    const rect = frameEl.getBoundingClientRect();
+    return {
+        x: Math.max(0, Math.min(event.clientX - rect.left - marqueeBorderL, frameEl.clientWidth)),
+        y: Math.max(0, Math.min(event.clientY - rect.top - marqueeBorderT, frameEl.clientHeight)),
+    };
 }
 
 function handleMarqueeMouseDown(event) {
     // Chỉ chuột trái, không bắt đầu từ nút bấm (ghim...) hay ô nhập.
     if (event.button !== 0) return;
     if (event.target.closest('button, input, s-button, s-switch, s-icon-button, a')) return;
-    marqueePending = marqueeContainerPoint(event);
+    const cs = getComputedStyle(modCardManagerRef.value);
+    marqueeBorderL = parseFloat(cs.borderLeftWidth) || 0;
+    marqueeBorderT = parseFloat(cs.borderTopWidth) || 0;
+    marqueePending = marqueeFramePoint(event);
     marquee.batch = !!(event.ctrlKey || event.metaKey);
     window.addEventListener('mousemove', handleMarqueeMouseMove);
     window.addEventListener('mouseup', handleMarqueeMouseUp, { once: true });
 }
 
 function marqueeRectInClient() {
-    const rect = modContainerRef.value.getBoundingClientRect();
+    const rect = modCardManagerRef.value.getBoundingClientRect();
     return {
-        left: rect.left + marquee.x,
-        top: rect.top + marquee.y,
-        right: rect.left + marquee.x + marquee.w,
-        bottom: rect.top + marquee.y + marquee.h,
+        left: rect.left + marqueeBorderL + marquee.x,
+        top: rect.top + marqueeBorderT + marquee.y,
+        right: rect.left + marqueeBorderL + marquee.x + marquee.w,
+        bottom: rect.top + marqueeBorderT + marquee.y + marquee.h,
     };
 }
 
@@ -766,7 +788,7 @@ function handleMarqueeMouseMove(event) {
     if (!marqueePending) return;
     // Giữ/thả Ctrl giữa chừng thì đổi màu khung + loại chọn ngay.
     marquee.batch = !!(event.ctrlKey || event.metaKey);
-    const p = marqueeContainerPoint(event);
+    const p = marqueeFramePoint(event);
     const dx = p.x - marqueePending.x;
     const dy = p.y - marqueePending.y;
     if (!marquee.active) {
@@ -844,7 +866,6 @@ defineExpose({
     width: 100%;
     height: fit-content;
     position: relative;
-    /* Khung bôi đen là con tuyệt đối của lưới (không chiếm ô lưới). */
     display: grid;
     /* grid-column: span 4;
     grid-column-start: span 4; */
@@ -920,6 +941,9 @@ defineExpose({
     flex: 2;
     height: 100%;
     flex-wrap: nowrap;
+    /* Khung bôi đen (#marquee-box) neo tuyệt đối vào khung này nên
+       khung phải có position (xem chú thích đầu file). */
+    position: relative;
 }
 
 /* (Đã bỏ khối .placeholder 300px dưới lưới — khối trống này làm cuối
