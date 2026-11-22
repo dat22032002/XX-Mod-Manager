@@ -74,7 +74,7 @@
                         <div class="filter-chips">
                             <div v-for="row in CHIP_ROWS" :key="'t' + row[0]" class="filter-chip-row">
                                 <div v-for="i in row" :key="typeItems[i]" class="filter-chip"
-                                    :class="{ active: currentType === typeItems[i] }" @click="handleTypeChange(typeItems[i])"><span v-if="typeItems[i] !== 'all'" class="filter-chip-dot" :style="{ background: 'var(--tag-color-' + typeItems[i] + ')' }"></span>{{ translatedTypes[i] }}</div>
+                                    :class="{ active: currentType === typeItems[i] }" @click="handleTypeChange(typeItems[i])">{{ translatedTypes[i] }}</div>
                             </div>
                         </div>
                     </div>
@@ -627,18 +627,6 @@ defineExpose({ clearSearchInput });
 .filter-chip.active {
     background-color: var(--s-color-primary);
     color: var(--s-color-on-primary);
-}
-
-/* Chấm màu trước nhãn chip loại — bảng chú thích cho vạch màu đáy thẻ
-   (Đạt dặn cần chú thích 22/11): chấm cùng màu với vạch của tag đó. */
-.filter-chip-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    margin-right: 6px;
-    vertical-align: middle;
-    flex: none;
 }
 
 /* Hàng công tắc ẩn/hiện số lượng trong bảng lọc: nhãn trái, công tắc
