@@ -12,15 +12,17 @@
   font-weight: bold
 }
 
-/* Màu theo tag (Đạt chọn kiểu 1, 22/11): vạch đáy thẻ + chấm ở chip lọc
-   dùng chung 6 màu này — nhạt để không phá vẻ gọn của app. */
+/* Màu theo tag (Đạt chọn gradient, 22/11 — thay vạch đáy thẻ vì rối mắt
+   khi nhiều mod): gradient đáy thẻ dùng chung 6 màu này, nhạt để không
+   phá vẻ gọn của app. Lưu dạng bộ ba RGB để dùng được với rgba(..., độ
+   mờ) trong gradient. */
 :root {
-  --tag-color-character: #f2d900;
-  --tag-color-skin: #e5a3b4;
-  --tag-color-weapon: #8fc3e8;
-  --tag-color-effect: #c2a6e8;
-  --tag-color-accessory: #96d1a0;
-  --tag-color-other: #a8a8a8;
+  --tag-color-character: 242, 217, 0;
+  --tag-color-skin: 229, 163, 180;
+  --tag-color-weapon: 143, 195, 232;
+  --tag-color-effect: 194, 166, 232;
+  --tag-color-accessory: 150, 209, 160;
+  --tag-color-other: 168, 168, 168;
 }
 
 .font-num {

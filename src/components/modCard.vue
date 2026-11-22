@@ -457,31 +457,67 @@ defineExpose({
     border-radius: 12px;
 }
 
-/* Vạch màu theo tag ở đáy thẻ (Đạt chọn kiểu 1, 22/11): bóng đổ trong
-   5px, màu theo tag — nằm trong viền vàng khi thẻ được chọn, sát mép
-   đáy khi chưa chọn. Màu lấy từ biến --tag-color-* trong style.css. */
-.mod-item[data-tag="character"] {
-    box-shadow: inset 0 -5px 0 var(--tag-color-character);
+/* Gradient màu theo tag ở đáy thẻ (Đạt chọn gradient thay vạch đáy,
+   22/11 — vạch 5px rối mắt khi nhiều mod): lớp phủ mờ dần từ dưới lên,
+   đậm nhất 0.30 ở đáy, hết màu ở 55% chiều cao thẻ. Màu lấy từ biến
+   --tag-color-* trong style.css. Lớp phủ nằm trên ảnh bìa và chữ (mờ
+   nên chữ vẫn đọc rõ), trong viền vàng khi thẻ được chọn. */
+.mod-item {
+    position: relative;
 }
 
-.mod-item[data-tag="skin"] {
-    box-shadow: inset 0 -5px 0 var(--tag-color-skin);
+.mod-item[data-tag="character"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    pointer-events: none;
+    background: linear-gradient(to top, rgba(var(--tag-color-character), 0.30) 0%, rgba(var(--tag-color-character), 0) 55%);
 }
 
-.mod-item[data-tag="weapon"] {
-    box-shadow: inset 0 -5px 0 var(--tag-color-weapon);
+.mod-item[data-tag="skin"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    pointer-events: none;
+    background: linear-gradient(to top, rgba(var(--tag-color-skin), 0.30) 0%, rgba(var(--tag-color-skin), 0) 55%);
 }
 
-.mod-item[data-tag="effect"] {
-    box-shadow: inset 0 -5px 0 var(--tag-color-effect);
+.mod-item[data-tag="weapon"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    pointer-events: none;
+    background: linear-gradient(to top, rgba(var(--tag-color-weapon), 0.30) 0%, rgba(var(--tag-color-weapon), 0) 55%);
 }
 
-.mod-item[data-tag="accessory"] {
-    box-shadow: inset 0 -5px 0 var(--tag-color-accessory);
+.mod-item[data-tag="effect"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    pointer-events: none;
+    background: linear-gradient(to top, rgba(var(--tag-color-effect), 0.30) 0%, rgba(var(--tag-color-effect), 0) 55%);
 }
 
-.mod-item[data-tag="other"] {
-    box-shadow: inset 0 -5px 0 var(--tag-color-other);
+.mod-item[data-tag="accessory"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    pointer-events: none;
+    background: linear-gradient(to top, rgba(var(--tag-color-accessory), 0.30) 0%, rgba(var(--tag-color-accessory), 0) 55%);
+}
+
+.mod-item[data-tag="other"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    pointer-events: none;
+    background: linear-gradient(to top, rgba(var(--tag-color-other), 0.30) 0%, rgba(var(--tag-color-other), 0) 55%);
 }
 
 /* Chọn hàng loạt (Ctrl+bấm): viền xanh biển, riêng với chọn vàng. */
