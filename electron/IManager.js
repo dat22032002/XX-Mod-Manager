@@ -1172,7 +1172,112 @@ class IManager {
         });
     }
 
+    // Gộp nội dung thư mục nguồn vào thư mục đích theo từng mục (dùng
+    // khi dời cả thư mục sẽ đụng tên — vd thư mục con trùng tên với
+    // thư mục đích). Thư mục trùng tên thì gộp đệ quy; file trùng tên
+    // thì bản trong thư mục nguồn đè lên (trường hợp này chỉ xảy ra
+    // khi file nén gói trùng 1 bản mod — giữ lại 2 bản sẽ làm game
+    // nạp trùng file .ini). Mục nào lỗi thì bỏ qua, dời tiếp mục khác.
+    mergeDirInto(sourceDir, targetDir) {
+        let items;
+        try {
+            items = fs.readdirSync(sourceDir, { withFileTypes: true });
+        } catch (error) {
+            console.error(`flattenSingleTopFolder: không đọc được thư mục ${sourceDir}: ${error}`);
+            return;
+        }
+        for (const item of items) {
+            const src = path.join(sourceDir, item.name);
+            const dest = path.join(targetDir, item.name);
+            try {
+                if (item.isDirectory() && fs.existsSync(dest) && fs.statSync(dest).isDirectory()) {
+                    this.mergeDirInto(src, dest);
+                } else {
+                    fs.renameSync(src, dest);
+                }
+            } catch (error) {
+                console.error(`flattenSingleTopFolder: không dời được ${item.name}: ${error}`);
+            }
+        }
+        try {
+            fs.rmdirSync(sourceDir);
+        } catch (error) {
+            // Thư mục nguồn còn mục dời lỗi thì để nguyên, không phải lỗi chết.
+        }
+    }
+
     // 解压文件到指定目录的函数
+    // Gỡ 1 thư mục bọc ngoài duy nhất sau khi giải nén zip thành công:
+    // nhiều file zip gói mod trong 1 thư mục (vd "Mod/mod.ini") nên
+    // giải nén ra thành "Mod/Mod/..." dư 1 cấp — app không tìm thấy
+    // ảnh bìa (chỉ đọc mặt ngoài thư mục mod) và thư mục trông rối.
+    // Chỉ gỡ khi thư mục đích có ĐÚNG 1 mục duy nhất và mục đó là thư
+    // mục; có file nào khác ở mặt ngoài, hoặc 2+ thư mục, thì giữ
+    // nguyên. Mục nào dời lỗi thì bỏ qua mục đó, dời tiếp mục khác —
+    // không bỏ cả lần gỡ như trước. Thư mục con trùng tên với thư mục
+    // đích (vd NormaSailorSukumizu trong NormaSailorSukumizu — dời cả
+    // thư mục sẽ đụng đích là thư mục cha còn đồ nên văng ENOTEMPTY)
+    // thì gộp nội dung vào thay vì dời cả thư mục.
+    flattenSingleTopFolder(destinationPath) {
+        let entries;
+        try {
+            entries = fs.readdirSync(destinationPath, { withFileTypes: true });
+        } catch (error) {
+            console.error(`flattenSingleTopFolder: không đọc được thư mục ${destinationPath}: ${error}`);
+            return;
+        }
+        if (entries.length !== 1 || !entries[0].isDirectory()) return;
+        const innerDir = path.join(destinationPath, entries[0].name);
+        let innerEntries;
+        try {
+            innerEntries = fs.readdirSync(innerDir);
+        } catch (error) {
+            console.error(`flattenSingleTopFolder: không đọc được thư mục con ${innerDir}: ${error}`);
+            return;
+        }
+        // Lượt 1: gộp các thư mục trùng tên TRƯỚC. Gộp trước thì nội
+        // dung đã gộp còn nằm trong thư mục bọc để lượt 2 dời lên mặt
+        // ngoài; gộp sau thì nội dung kẹt lại trong thư mục bọc, thư
+        // mục bọc không xóa được.
+        for (const name of innerEntries) {
+            const src = path.join(innerDir, name);
+            const dest = path.join(destinationPath, name);
+            try {
+                if (fs.existsSync(dest) && fs.statSync(src).isDirectory() && fs.statSync(dest).isDirectory()) {
+                    this.mergeDirInto(src, dest);
+                }
+            } catch (error) {
+                console.error(`flattenSingleTopFolder: không gộp được thư mục ${name}: ${error}`);
+            }
+        }
+        // Lượt 2: đọc LẠI thư mục bọc (lượt 1 có thể đã gộp thêm mục
+        // mới vào đây — vd file riêng chỉ có trong thư mục con trùng
+        // tên) rồi dời tất cả lên mặt ngoài; mục nào lỗi thì bỏ qua
+        // mục đó, dời tiếp mục khác.
+        let remaining;
+        try {
+            remaining = fs.readdirSync(innerDir);
+        } catch (error) {
+            console.error(`flattenSingleTopFolder: không đọc được thư mục con ${innerDir}: ${error}`);
+            return;
+        }
+        for (const name of remaining) {
+            const src = path.join(innerDir, name);
+            try {
+                fs.renameSync(src, path.join(destinationPath, name));
+            } catch (error) {
+                console.error(`flattenSingleTopFolder: không dời được ${name}: ${error}`);
+            }
+        }
+        try {
+            fs.rmdirSync(innerDir);
+        } catch (error) {
+            console.error(`flattenSingleTopFolder: không xóa được thư mục rỗng ${innerDir}: ${error}`);
+            return;
+        }
+        console.log(`flattenSingleTopFolder: đã gỡ thư mục bọc ngoài ${entries[0].name} trong ${destinationPath}`);
+    }
+
     async extractArchive(archivePath, destinationPath) {
         // File .rar đi đường node-unrar-js riêng (libarchive không mở được
         // rar mã hóa — xem extractRarArchive); zip/7z/tar giữ nguyên đường
@@ -1396,6 +1501,10 @@ class IManager {
                 }
                 t_snack(t_skipped, 'error');
             }
+
+            // Gỡ thư mục bọc ngoài duy nhất nếu có (zip gói 1 thư
+            // mục thì giải nén ra dư 1 cấp — xem flattenSingleTopFolder).
+            this.flattenSingleTopFolder(destinationPath);
 
             return true;
         }
