@@ -2435,26 +2435,21 @@ let isSleeping = false;
 // 失去焦点10s后进入睡眠模式
 const sleepTimeOutTime = 10000;
 
+// Mất/chọn lại tiêu điểm cửa sổ thì chỉ báo cho các bộ phận khác
+// (dừng/chạy lại hiệu ứng màu, vào/thoát chế độ nghỉ, ghi bộ nhớ đệm)
+// — KHÔNG hiện thông báo gì. Đạt dặn 22/11: mấy bong bóng ☁️ mất tiêu
+// điểm / 💤 nghỉ / 👀 được chọn chỉ làm phiền, bỏ hết.
 ipcRenderer.on('windowBlur', () => {
-    const tt = new TranslatedText("☁️windowBlur", "☁️Cửa sổ mất tiêu điểm");
-    console.log(tt.get());
-    t_snack(tt);
     EventSystem.trigger('windowBlur');
 
     sleepTimer = setTimeout(() => {
         EventSystem.trigger('windowSleep');
         isSleeping = true;
-        const tt2 = new TranslatedText("💤windowSleep", "💤Cửa sổ nghỉ");
-        console.log(tt2.get());
-        t_snack(tt2);
     }, sleepTimeOutTime);
 });
 
 ipcRenderer.on('windowFocus', () => {
-    const tt = new TranslatedText("👀windowFocus", "👀Cửa sổ được chọn");
-    console.log(tt.get());
     if (isSleeping) {
-        t_snack(tt);
         isSleeping = false;
         EventSystem.trigger('windowWake');
     }
