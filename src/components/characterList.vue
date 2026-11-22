@@ -54,7 +54,7 @@
                  hàng Tất cả/Đã chọn). Rộng 226px = đúng rộng cột danh
                  sách, mép trái/phải thẳng khung cột. Hàng đầu mỗi nhóm
                  1 chip full hàng (All types / Default — dài nhất), 3
-                 hàng dưới 2 chip 1 hàng (2 nút dưới cùng ETC /
+                 hàng dưới 2 chip 1 hàng (2 nút dưới cùng Other /
                  Smallest first dài như mấy nút kia). Bấm chip thì bảng
                  ở lại mở để chọn tiếp nhóm còn lại; bấm nút, bấm ra
                  ngoài, hoặc rê chuột ra khỏi bảng thì đóng (Đạt dặn
@@ -258,7 +258,7 @@ const panelOpen = ref(false);
 const hasActiveFilter = computed(() =>
     g_config_vue.modTypeFilter.value !== 'all' || g_config_vue.modSortBy.value !== 'default');
 
-// Tag mod (ModTag): Character, Skin, Weapon, Effect, Accessory, ETC —
+// Tag mod (ModTag): Character, Skin, Weapon, Effect, Accessory, Other —
 // chuẩn phân loại duy nhất từ 1.5.18, thay tiền tố tên thư mục. Thêm
 // tag mới thì thêm vào MOD_TAGS + 1 khóa locale modTag.* + 1 dòng vào
 // TYPE_LABEL_KEYS dưới đây. Lựa chọn lưu trong config (modCardManager
@@ -271,7 +271,7 @@ const TYPE_LABEL_KEYS = {
     weapon: 'modTag.weapon',
     effect: 'modTag.effect',
     accessory: 'modTag.accessory',
-    etc: 'modTag.etc',
+    other: 'modTag.other',
 };
 const SORT_OPTIONS = [
     { value: 'default', labelKey: 'filter.sortDefault' },
@@ -286,7 +286,7 @@ const SORT_VALUES = SORT_OPTIONS.map(o => o.value);
 
 // Hàng chip trong bảng lọc dọc: hàng đầu mỗi nhóm 1 chip full hàng
 // (All types / Default — lựa chọn mặc định, dài nhất), 3 hàng dưới
-// 2 chip 1 hàng (Đạt dặn 21/11: 2 nút dưới cùng ETC / Smallest first
+// 2 chip 1 hàng (Đạt dặn 21/11: 2 nút dưới cùng Other / Smallest first
 // để dài như mấy nút kia, không giãn full hàng).
 const CHIP_ROWS = [[0], [1, 2], [3, 4], [5, 6]];
 
