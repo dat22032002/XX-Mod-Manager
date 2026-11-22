@@ -126,7 +126,13 @@
             <div v-for="(name, i) in characterList" :key="name" class="character-row"
                 :class="{ active: currentCharacter === name }" :data-arrow="arrowLevel(i)" @click="selectCharacter(name)"
                 @mouseenter="hoveredIndex = i">
-                <span class="character-name">{{ name }}</span>
+                <!-- Tên dùng font nút Apply (font-hongmeng, phương án A
+                     Đạt chọn 22/11): chữ đậm/to bản lấp đầy hàng, hàng
+                     không còn trông trống. Đánh đổi Đạt đã chấp nhận:
+                     tên dài nhất Alexandrina cắt thành "Alexandr…" ở
+                     hàng xa (3/4), rê chuột vào hàng thì phóng full
+                     nên tên hiện đủ. Số đếm giữ font mặc định. -->
+                <span class="character-name font-hongmeng">{{ name }}</span>
                 <span v-if="showChipCounts" class="character-count">({{ modCountsByCharacter[name] || 0 }})</span>
             </div>
         </div>
