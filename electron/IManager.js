@@ -1160,6 +1160,48 @@ class IManager {
     }
 
     // 解压文件到指定目录的函数
+    // Gỡ 1 thư mục bọc ngoài duy nhất sau khi giải nén zip thành công:
+    // nhiều file zip gói mod trong 1 thư mục (vd "Mod/mod.ini") nên
+    // giải nén ra thành "Mod/Mod/..." dư 1 cấp — app không tìm thấy
+    // ảnh bìa (chỉ đọc mặt ngoài thư mục mod) và thư mục trông rối.
+    // Chỉ gỡ khi thư mục đích có ĐÚNG 1 mục duy nhất và mục đó là thư
+    // mục; có file nào khác ở mặt ngoài, hoặc 2+ thư mục, thì giữ
+    // nguyên. Lỗi lúc gỡ thì bỏ qua — mod vẫn nhập được, chỉ còn
+    // thư mục lồng như trước.
+    flattenSingleTopFolder(destinationPath) {
+        let entries;
+        try {
+            entries = fs.readdirSync(destinationPath, { withFileTypes: true });
+        } catch (error) {
+            console.error(`flattenSingleTopFolder: không đọc được thư mục ${destinationPath}: ${error}`);
+            return;
+        }
+        if (entries.length !== 1 || !entries[0].isDirectory()) return;
+        const innerDir = path.join(destinationPath, entries[0].name);
+        let innerEntries;
+        try {
+            innerEntries = fs.readdirSync(innerDir);
+        } catch (error) {
+            console.error(`flattenSingleTopFolder: không đọc được thư mục con ${innerDir}: ${error}`);
+            return;
+        }
+        for (const name of innerEntries) {
+            try {
+                fs.renameSync(path.join(innerDir, name), path.join(destinationPath, name));
+            } catch (error) {
+                console.error(`flattenSingleTopFolder: không dời được ${name}: ${error}`);
+                return;
+            }
+        }
+        try {
+            fs.rmdirSync(innerDir);
+        } catch (error) {
+            console.error(`flattenSingleTopFolder: không xóa được thư mục rỗng ${innerDir}: ${error}`);
+            return;
+        }
+        console.log(`flattenSingleTopFolder: đã gỡ thư mục bọc ngoài ${entries[0].name} trong ${destinationPath}`);
+    }
+
     async extractArchive(archivePath, destinationPath) {
         // TC28: giới hạn tổng dung lượng sau giải nén — file nén vài GB hoặc
         // "bom nén" sẽ bị từ chối trước khi giải nén thay vì ngốn hết RAM.
@@ -1362,6 +1404,10 @@ class IManager {
                 }
                 t_snack(t_skipped, 'error');
             }
+
+            // Gỡ thư mục bọc ngoài duy nhất nếu có (zip gói 1 thư
+            // mục thì giải nén ra dư 1 cấp — xem flattenSingleTopFolder).
+            this.flattenSingleTopFolder(destinationPath);
 
             return true;
         }
