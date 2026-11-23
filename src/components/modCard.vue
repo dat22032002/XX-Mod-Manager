@@ -618,10 +618,9 @@ defineExpose({
 
 /* THỬ NGHIỆM chấm bi (Đạt 23/11): họa tiết lưới chấm bi của nút Apply
    (.OO-button::before trong src/style.css — ô 10px, chấm 15%, 2 lớp
-   lệch nhau 5px) áp lên phần nền tối của thẻ, DƯỚI ảnh bìa. Chấm đen
-   trên nền vàng thì thấy, trên nền tối thì không — nên đổi sang chấm
-   TRẮNG, giữ nguyên đúng kích cỡ/khoảng cách ô gốc; độ mờ 0.18 để
-   thấy rõ mà vẫn nhẹ. ::before chỉ phủ từ dưới ảnh bìa trở xuống
+   lệch nhau 5px) áp lên phần nền tối của thẻ, DƯỚI ảnh bìa. Giữ đúng
+   chấm ĐEN như nút Apply gốc (Đạt chốt 23/11: chấm đen, không phải
+   trắng); độ mờ 0.18. ::before chỉ phủ từ dưới ảnh bìa trở xuống
    (top = cao ảnh), KHÔNG phủ lên ảnh bìa. Thẻ gọn (compact) thấp hơn
    cao ảnh nên ::before nằm ngoài khung, không thấy chấm — chấp nhận
    cho bản thử. */
@@ -635,8 +634,8 @@ defineExpose({
     opacity: 0.18;
     pointer-events: none;
     border-radius: 0 0 12px 12px;
-    background-image: radial-gradient(white 15%, transparent 16%),
-        radial-gradient(white 15%, transparent 16%);
+    background-image: radial-gradient(black 15%, transparent 16%),
+        radial-gradient(black 15%, transparent 16%);
     background-size: 10px 10px;
     background-position: 0 0, 5px 5px;
 }
