@@ -825,6 +825,13 @@ async function handleApplyButtonClicked() {
     if (applying.value) {
         return;
     }
+    // Công tắc cảnh báo mod trùng nhau (Đạt dặn 23/11, mặc định TẮT):
+    // tắt thì áp dụng thẳng, không quét trùng; bật thì giữ hành vi cũ
+    // (có trùng thì hiện hộp hỏi trước).
+    if (!iManager.config.showConflictWarning) {
+        await runApply();
+        return;
+    }
     // Cảnh báo mod đụng nhau: quét các mod đang bật, nếu 2 mod cùng thay
     // 1 thứ của game thì hỏi trước khi áp dụng. Kiểm tra lỗi thì bỏ qua
     // lặng, không chặn Apply.

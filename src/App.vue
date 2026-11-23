@@ -240,7 +240,7 @@ waitInitIManager().then((iManager) => {
     /* Giữ visible: thử overflow:hidden ở test9 thì khung web Banana
        KHÔNG bị cắt (khung web vẽ ở lớp riêng, không nghe overflow của
        tổ tiên) nên dải tràn vẫn còn. Dải tràn được xử lý bằng cách ẩn
-       khung web khi rời trang Banana (bananaSection.vue). */
+       toàn bộ trang Banana khi rời trang (bananaSection.vue). */
     overflow: visible;
     position: relative;
     height: calc(100%);

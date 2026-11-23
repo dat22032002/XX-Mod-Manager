@@ -79,6 +79,11 @@ class IPluginLoader {
         }   // 全局插件
     ];
 
+    // Plugin đã bỏ khỏi app (Đạt dặn 23/11, test10): không tải dù file
+    // còn nằm trong thư mục plugins của app hay trong thư mục plugins
+    // của người dùng (bản cũ có thể còn sót trong userdata).
+    public static blockedPluginFiles: string[] = ['testPlugin.js'];
+
     //-============= 自身初始化 =============-//
     public static clearAllPlugins() {
         IPluginLoader.plugins = {};
@@ -228,6 +233,11 @@ class IPluginLoader {
         // before plugins finished registering; a for...of loop awaits each one.
         for (const file of files) {
             if (file.endsWith('.js')) {
+                if (IPluginLoader.blockedPluginFiles.includes(file)) {
+                    const tt = new TranslatedText(`⏭️plugin ${file} skipped (removed from the app)`, `⏭️Plugin ${file} đã bỏ, không tải`);
+                    console.log(tt.get());
+                    continue;
+                }
                 try {
                     const plugin: IPlugin = require(path.join(folder, file)) as unknown as IPlugin;
                     await IPluginLoader.RegisterPlugin(plugin, enviroment);

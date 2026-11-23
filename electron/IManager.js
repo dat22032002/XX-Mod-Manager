@@ -143,6 +143,7 @@ let g_config = {
     fixerFileName: null, // Tên file .exe Fixer đã tải về
     fixerSuspectIds: null, // id các mod nghi hỏng từ lần quét Fixer gần nhất (null = chưa quét bao giờ)
     showOnlySuspected: false, // Lưới Mod chỉ hiện mod nghi hỏng (công tắc trong bảng lọc — Đạt dặn 23/11)
+    showConflictWarning: false, // Hiện hộp cảnh báo mod trùng nhau khi bấm Apply — mặc định TẮT, Đạt bật khi cần (23/11)
 };
 let g_data = {
     modList: [],
@@ -195,6 +196,7 @@ const g_config_vue = {
     fixerFileName: ref(null),
     fixerSuspectIds: ref(null),
     showOnlySuspected: ref(false),
+    showConflictWarning: ref(false),
 };
 
 const g_data_vue = {
@@ -301,6 +303,7 @@ class IManager {
         fixerFileName: null, // Tên file .exe Fixer đã tải về
         fixerSuspectIds: null, // id các mod nghi hỏng từ lần quét Fixer gần nhất (null = chưa quét bao giờ)
         showOnlySuspected: false, // Lưới Mod chỉ hiện mod nghi hỏng (công tắc trong bảng lọc — Đạt dặn 23/11)
+        showConflictWarning: false, // Hiện hộp cảnh báo mod trùng nhau khi bấm Apply — mặc định TẮT, Đạt bật khi cần (23/11)
     };
 
     // 程序运行时的数据

@@ -27,6 +27,7 @@
                 <s-divider></s-divider>
                 <settingBar :data="presetPathData"></settingBar>
                 <settingBar :data="ifUseTraditionalApply"></settingBar>
+                <settingBar :data="showConflictWarning"></settingBar>
 
                 <s-divider></s-divider>
                 <s-button class="OO-color-gradient" @click="console.log(iManager.config)">
@@ -119,80 +120,9 @@
                 </div>
                 <div class="placeholder" style="flex: 1;min-height: 150px;"></div>
             </div>
-            <!-- -切换配置 -->
-            <!-- -在这里你可以选择开启在开始的时候选择配置文件的功能，并且设置配置文件保存位置 -->
-            <div v-if="currentTab === 'switch-config'">
-                <settingBar :data="openSwitchConfigPage"></settingBar>
-                <settingBar :data="openConfigFolder"></settingBar>
-                <s-divider></s-divider>
-                <Markdown :content="$t('firstLoad.switchConfigTitle1')"></Markdown>
-                <Markdown :content="$t('firstLoad.switchConfigInfo1')"></Markdown>
-                <settingBar :data="newConfigName"></settingBar>
-                <settingBar :data="addConfig"></settingBar>
-                <s-divider></s-divider>
-                <Markdown :content="$t('firstLoad.switchConfigInfo2')"></Markdown>
-                <settingBar :data="changeConfig"></settingBar>
-                <settingBar :data="createShortOfCurrentConfig"></settingBar>
-                <div class="placeholder" style="flex: 1;min-height: 150px;"></div>
-            </div>
-
-
-
-            <!-- -about page -->
-            <div v-if="currentTab === 'about'">
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('firstLoad.aboutProgram') }} </h3>
-                </div>
-
-                <div class="OO-box OO-shade-box">
-                    <p> {{ $t('firstLoad.aboutProgramInfo') }} </p>
-                </div>
-                <div class="OO-setting-bar">
-                    <p> {{ $t('firstLoad.aboutProgramInfo-1') }} </p>
-                </div>
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('author') }} </h3>
-                    <p> XLXZ </p>
-                </div>
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('firstLoad.thanks') }} </h3>
-                    <s-button class="OO-button-box" @click="iManager.openUrl('https://github.com/soliddanii')">
-                        soliddanii
-                    </s-button>
-                </div>
-                <s-divider></s-divider>
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('github') }} </h3>
-                    <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                        style="border: 5px solid  var(--s-color-surface-container-high);transform: scale(1);left: 15px;"
-                        @click="iManager.openUrl('https://github.com/XiaoLinXiaoZhu/XX-Mod-Manager')">
-                        <s-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                                <path d="m256-240-56-56 384-384H240v-80h480v480h-80v-344L256-240Z"></path>
-                            </svg></s-icon>
-                    </s-icon-button>
-                </div>
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('gamebanana') }} </h3>
-                    <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                        style="border: 5px solid  var(--s-color-surface-container-high);transform: scale(1);left: 15px;"
-                        @click="iManager.openUrl('https://gamebanana.com/tools/17889')">
-                        <s-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                                <path d="m256-240-56-56 384-384H240v-80h480v480h-80v-344L256-240Z"></path>
-                            </svg></s-icon>
-                    </s-icon-button>
-                </div>
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('caimogu') }} </h3>
-                    <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                        style="border: 5px solid  var(--s-color-surface-container-high);transform: scale(1);left: 15px;"
-                        @click="iManager.openUrl('https://www.caimogu.cc/post/1408504.html')">
-                        <s-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                                <path d="m256-240-56-56 384-384H240v-80h480v480h-80v-344L256-240Z"></path>
-                            </svg></s-icon>
-                    </s-icon-button>
-                </div>
-                <div class="placeholder" style="flex: 1;min-height: 150px;"></div>
-            </div>
+            <!-- Tab Chuyển đổi cấu hình + Giới thiệu đã bỏ theo lệnh Đạt
+                 23/11 (test10): đổi cấu hình vẫn làm được bằng tham số
+                 dòng lệnh --customConfig / --switchConfig, xem Help. -->
 
             <!-- -插件管理面板，控制插件的开关 -->
             <div v-if="currentTab === 'plugin'">
@@ -259,7 +189,6 @@ import { computed, onMounted, ref, watch } from 'vue';
 import IManager from '../../electron/IManager';
 const iManager = new IManager();
 import fsProxy from '../../electron/fsProxy';
-import TapeConfig from '../../switchConfig/src/js/configManager.ts';
 import getData from './settingSectionData.js';
 const {
     languageData,
@@ -274,7 +203,6 @@ const {
 } = getData();
 
 import { useI18n } from 'vue-i18n'
-import Markdown from '../components/markdown.vue';
 const { t, locale } = useI18n()
 
 import { IPluginLoader } from '../../helper/PluginLoader.ts';
@@ -283,7 +211,7 @@ import { SnackType, t_snack, snack } from '../../helper/SnackHelper.ts';
 import { updateState, fetchAppVersion, checkForUpdates } from '../../helper/UpdateHelper';
 import { fixerState } from '../../helper/FixerHelper';
 
-const tabs = ref(['normal', 'advanced', 'fixer', 'switch-config', 'about', 'plugin']);
+const tabs = ref(['normal', 'advanced', 'fixer', 'plugin']);
 const translatedTabs = computed(() => {
     const tTab = tabs.value.map((tab) => {
         // 如果 是 插件的 tab ，则尝试获取 plugin.t_displayName
@@ -586,137 +514,6 @@ const refreshDuleToPlugin = {
     }
 }
 
-const newConfigName = {
-    name: 'newConfigName',
-    data: '',
-    type: 'string',
-    displayName: 'New Config Name',
-    t_displayName: {
-        vi: 'Tên cấu hình mới',
-        en: 'New Config Name'
-    },
-    onChange: (value) => {
-        console.log('newConfigName changed:', value);
-        newConfigName.data = value;
-    }
-}
-
-const addConfig = {
-    name: 'addConfig',
-    data: null,
-    type: 'iconbutton',
-    displayName: 'Add Config',
-    buttonName: 'Add',
-    t_displayName: {
-        vi: 'Thêm cấu hình',
-        en: 'Add Config'
-    },
-    t_buttonName: {
-        vi: 'Thêm',
-        en: 'Add'
-    },
-    onChange: (value) => {
-        console.log('addConfig changed:', value);
-        TapeConfig.createConfig(newConfigName.data).then(() => {
-            console.log('addConfig success');
-            // 打开配置页面
-            iManager.changeUrl('/switchConfig');
-        }).catch((err) => {
-            console.log('addConfig failed:', err);
-        });
-    }
-}
-
-const openConfigFolder = {
-    name: 'openConfigFolder',
-    data: null,
-    type: 'iconbutton',
-    displayName: 'Open Config Folder',
-    buttonName: 'Open',
-    t_displayName: {
-        vi: 'Mở thư mục cấu hình',
-        en: 'Open Config Folder'
-    },
-    t_buttonName: {
-        vi: 'Mở',
-        en: 'Open'
-    },
-    onChange: (value) => {
-        console.log('openConfigFolder changed:', value);
-        TapeConfig.getConfigRootPath().then((path) => {
-            fsProxy.openDir(path);
-        }).catch((err) => {
-            console.log('openConfigFolder failed:', err);
-        });
-    }
-}
-
-const openSwitchConfigPage = {
-    name: 'openSwitchConfigPage',
-    data: null,
-    type: 'iconbutton',
-    displayName: 'Open Switch Config Page',
-    buttonName: 'Open',
-    t_displayName: {
-        vi: 'Mở trang đổi cấu hình',
-        en: 'Open Switch Config Page'
-    },
-    t_buttonName: {
-        vi: 'Mở',
-        en: 'Open'
-    },
-    onChange: (value) => {
-        console.log('openSwitchConfigPage,herf:', window.location.href, '/switchConfig');
-        iManager.changeUrl('/switchConfig');
-    }
-}
-
-const changeConfig = {
-    name: 'changeConfig',
-    data: null,
-    type: 'dir',
-    displayName: 'Change Config',
-    t_displayName: {
-        vi: 'Lưu cấu hình thành',
-        en: 'Save Config To'
-    },
-    onChange: (value) => {
-        console.log('changeConfig changed:', value);
-        changeConfig.data = value;
-    }
-}
-
-const createShortOfCurrentConfig = {
-    name: 'createShortOfCurrentConfig',
-    data: null,
-    type: 'iconbutton',
-    displayName: 'Create Short Of Custom Config',
-    description: 'Create Short Of Custom Config',
-    buttonName: 'Create',
-    t_displayName: {
-        vi: 'Tạo shortcut dùng cấu hình hiện tại',
-        en: 'Create Short Of Current Config'
-    },
-    t_description: {
-        vi: 'Tạo shortcut dùng cấu hình hiện tại',
-        en: 'Create Short Of Current Config'
-    },
-    t_buttonName: {
-        vi: 'Tạo shortcut',
-        en: 'Create Short Cut'
-    },
-    onChange: (value) => {
-        console.log('createShortOfCurrentConfig changed:', changeConfig.data);
-
-
-        iManager.createAppShortCut(changeConfig.data).then(() => {
-            console.log('createShortOfCurrentConfig success');
-        }).catch((err) => {
-            console.log('createShortOfCurrentConfig failed:', err);
-        });
-    }
-}
-
 const ifUseTraditionalApply = {
     name: 'ifUseTraditionalApply',
     data: iManager.config.ifUseTraditionalApply,
@@ -767,6 +564,32 @@ const ifUseTraditionalApply = {
         
     }
 }
+
+// Công tắc cảnh báo mod trùng nhau (Đạt dặn 23/11, test10): mặc định
+// TẮT — anh bật khi cần. Tắt thì bấm Apply áp dụng thẳng, không quét
+// trùng; bật thì có trùng sẽ hiện hộp cảnh báo trước như cũ.
+const showConflictWarning = {
+    name: 'showConflictWarning',
+    data: iManager.config.showConflictWarning,
+    type: 'boolean',
+    displayName: 'Show Mod Conflict Warning',
+    t_displayName: {
+        vi: 'Hiện cảnh báo mod trùng nhau',
+        en: 'Show Mod Conflict Warning'
+    },
+    description: 'If true, applying mods that change the same game asset will show a warning dialog first',
+    t_description: {
+        vi: 'Khi bật, bấm Áp dụng mà có 2 mod cùng thay 1 thứ trong game thì app hiện hộp cảnh báo trước; khi tắt thì áp dụng thẳng, không hỏi.',
+        en: 'When enabled, applying mods that change the same game asset will show a warning dialog first; when disabled, mods are applied directly without asking.'
+    },
+    onChange: (value) => {
+        console.log('showConflictWarning changed:', value);
+        showConflictWarning.data = value;
+        iManager.config.showConflictWarning = value;
+        iManager.saveConfig();
+    }
+}
+
 
 
 onMounted(async () => {
