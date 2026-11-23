@@ -82,7 +82,7 @@ class IPluginLoader {
     // Plugin đã bỏ khỏi app (Đạt dặn 23/11, test10): không tải dù file
     // còn nằm trong thư mục plugins của app hay trong thư mục plugins
     // của người dùng (bản cũ có thể còn sót trong userdata).
-    public static blockedPluginFiles: string[] = ['testPlugin.js'];
+    public static blockedPluginFiles: string[] = ['testPlugin.js', 'modCardEffectPlugin.js'];
 
     //-============= 自身初始化 =============-//
     public static clearAllPlugins() {
