@@ -12,7 +12,7 @@
         </div>
 
         <div slot="headline" id="mod-item-headline">
-            <span class="mod-item-name">{{ props.modRef.name }}</span>
+            <span class="mod-item-name" :style="nameColorStyle" :data-name-tag="displayTag || ''">{{ props.modRef.name }}</span>
             <!-- Dấu bản mới Banana: bấm để cập nhật thẳng từ thẻ (1.5.25).
                  Nằm ở hàng tiêu đề nên hiện được cả thẻ thường lẫn thẻ gọn. -->
             <button v-if="gbHasUpdateRef" class="gb-update-btn" :class="{ updating: gbUpdatingRef }"
@@ -49,6 +49,7 @@ const iManager = new IManager();
 import { EventSystem, EventType } from '../../helper/EventSystem';
 import { TranslatedText } from '../../helper/Language';
 import { ModData } from '../../core/ModHelper';
+import { tagFromPrefix, guessTagFromName, TAG_NAME_COLORS } from '../../helper/ModTag';
 import { formatModSize } from '../../helper/ModSizeScanner';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
 import { selectedModIdSet, toggleModSelection, toggleModPin, batchSelectedModIdSet, toggleBatchSelection } from '../../helper/SelectedMods';
@@ -167,6 +168,26 @@ watch(() => props.fullImage, async () => {
 const clicked = computed(() => selectedModIdSet.has(props.modRef.id));
 // Chọn hàng loạt (Ctrl+bấm): viền xanh biển, riêng với chọn vàng.
 const batchClicked = computed(() => batchSelectedModIdSet.has(props.modRef.id));
+
+// Màu tên mod theo tag (Đạt dặn 23/11): tên hiện bằng màu của tag.
+// Tag đã đặt rõ thì dùng tag đó; tag chưa đặt thì đoán từ tên file,
+// đoán không ra thì tên giữ màu mặc định (không đoán bừa). "Đã đặt
+// rõ" nhận biết bằng 2 dấu hiệu: cờ tagExplicit (đặt qua hộp sửa mod
+// hoặc đặt hàng loạt trong phiên này), hoặc tag hiện tại khác hẳn tag
+// tiền tố đoán từ tên (tag đó không thể do app tự ghi — app chỉ ghi
+// đúng tag tiền tố). Không dựa vào "mod.json có trường tag hay không":
+// lần tải đầu app đã ghi tag tiền tố vào mod.json nên trường đó lúc
+// nào cũng có. Màu chỉ để hiển thị — tag thật của mod (lọc, luật
+// bật/tắt) không đổi.
+const displayTag = computed(() => {
+    const mod = props.modRef;
+    if (mod.tagExplicit || mod.tag !== tagFromPrefix(mod.name)) return mod.tag;
+    return guessTagFromName(mod.name);
+});
+const nameColorStyle = computed(() => {
+    const tag = displayTag.value;
+    return tag ? { color: TAG_NAME_COLORS[tag] } : null;
+});
 const modItemRef = useTemplateRef('modItemRef');
 const emit = defineEmits(['click'])
 
