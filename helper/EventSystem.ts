@@ -35,6 +35,10 @@ enum EventType {
     currentPresetChanged = 'currentPresetChanged',
     currentModChanged = 'currentModChanged',
     modListChanged = 'modListChanged',
+    // Tien do tai mod luc mo app / lam moi (1.5.26): ModLoader ban sau
+    // moi khoi 10 mod - giao dien hien "Dang tai mod X/Y..." ngay cho
+    // thanh tien do luc Apply.
+    loadModsProgress = 'loadModsProgress',
     // Quét nền vừa tính xong dung lượng 1 mod (thẻ đó tự cập nhật dòng dung lượng)
     modSizeReady = 'modSizeReady',
     // Kiểm tra bản mới GameBanana vừa xong cho 1 mod (thẻ đó tự hiện/tắt dấu "Bản mới")

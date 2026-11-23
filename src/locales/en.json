@@ -112,7 +112,8 @@
     "minimize": "Minimize",
     "fullscreen": "Fullscreen",
     "close": "Close",
-    "applyDirty": "Unapplied changes ({count}): {names}"
+    "applyDirty": "Unapplied changes ({count}): {names}",
+    "viewOptions": "View options"
   },
   "apply": {
     "progress": "Applying mod {done} of {total}...",
@@ -124,6 +125,9 @@
     "failed": "Failed",
     "failedMods": "Failed mods",
     "close": "Close"
+  },
+  "load": {
+    "progress": "Loading mod {done} of {total}..."
   },
   "stats": {
     "line": "{total} mods · {enabled} enabled · {characters} characters"

@@ -68,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref} from 'vue';
+import { ref } from 'vue';
 
 import modCardSection from './section/modCardSection.vue';
 import bananaSection from './section/bananaSection.vue';
@@ -90,7 +90,6 @@ import dialogUpdateAvailable from './dialogs/dialogUpdateAvailable.vue';
 import dialogUpdateDownloaded from './dialogs/dialogUpdateDownloaded.vue';
 
 import DialogNeedRefresh from './dialogs/dialogNeedRefresh.vue';
-import { EventSystem } from '../helper/EventSystem';
 
 // Nghe sự kiện cập nhật từ tiến trình chính (có bản mới -> mở hộp hỏi).
 import { initUpdateListener } from '../helper/UpdateHelper';

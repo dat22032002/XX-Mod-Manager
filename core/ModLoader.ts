@@ -14,9 +14,12 @@ const path = require('path');
 // and chunk size as ApplyMods.ts.
 const LOAD_CHUNK_SIZE = 10;
 
-// Let the UI thread breathe between chunks.
+// Let the UI thread breathe between chunks — 16ms (1 frame) so the
+// browser actually PAINTS between chunks: with 0ms the load-progress
+// text only sits in the DOM and the eye never sees it (same lesson as
+// the Fixer progress, 1.5.25-test8). Cost: ~16ms per 10 mods.
 async function yieldToUI() {
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise(resolve => setTimeout(resolve, 16));
 }
 
 class ModLoader {
@@ -91,6 +94,15 @@ class ModLoader {
         let cachedCount = 0;
         let freshCount = 0;
 
+        // Tiến độ tải (1.5.26): báo ra ngoài sau mỗi lần đọc xong 1 thư
+        // mục mod + sau mỗi khối 10 mod để giao diện hiện "Đang tải mod
+        // X/Y..." ngay chỗ thanh tiến độ lúc Apply. Tổng số tăng dần
+        // theo từng thư mục đọc xong (thường chỉ có 1 thư mục mod).
+        const loadProgress = { done: 0, total: 0 };
+        const reportLoadProgress = () => {
+            EventSystem.trigger(EventType.loadModsProgress, { done: loadProgress.done, total: loadProgress.total });
+        };
+
         // 读取所有的 mod 文件夹
         // HP1: build mods in small chunks that yield to the UI thread.
         // The old code ran every mod's synchronous build (new ModInfo reads
@@ -110,6 +122,10 @@ class ModLoader {
             // giữa chừng) cũng không phải mod — loại luôn để không hiện
             // thành mod ma trong lưới (dọn đĩa do gbCleanStaleTempDirs lo).
             const modDirs = mods.filter(mod => mod.isDirectory() && mod.name.toLowerCase() !== 'recyclebin' && !mod.name.startsWith('.gb-tmp-'));
+            // Đọc xong 1 thư mục thì biết thêm tổng số mod — báo ngay để
+            // giao diện hiện tiến độ từ mod 0 (không đợi hết khối đầu).
+            loadProgress.total += modDirs.length;
+            reportLoadProgress();
             for (let i = 0; i < modDirs.length; i += LOAD_CHUNK_SIZE) {
                 const chunk = modDirs.slice(i, i + LOAD_CHUNK_SIZE);
                 // Validity checks are async disk stats: run them together.
@@ -152,6 +168,10 @@ class ModLoader {
                         cacheDirty = true;
                     }
                 }
+                // Hết 1 khối thì báo tiến độ TRƯỚC khi nhường luồng —
+                // giao diện cập nhật chữ rồi khung hình 16ms sau mới vẽ.
+                loadProgress.done += chunk.length;
+                reportLoadProgress();
                 await yieldToUI();
             }
             // 缓存里有、盘上没了的文件夹：从缓存里删掉。
@@ -166,6 +186,13 @@ class ModLoader {
             }
         })).then(() => {
             console.log(`ModLoader.loadMods: loaded ${this.modsRaw.length} mods (${cachedCount} from cache, ${freshCount} fresh) in ${Date.now() - startTime}ms`);
+        }).finally(() => {
+            // Tải xong (kể cả khi lỗi giữa chừng — vd ổ đĩa lỗi lúc quét):
+            // báo trạng thái cuối để giao diện tắt dòng tiến độ, không
+            // kẹt lại dòng "Đang tải mod X/Y..." trên thanh dưới. Lỗi
+            // (nếu có) vẫn lan ra như cũ — finally không nuốt lỗi.
+            loadProgress.done = loadProgress.total;
+            reportLoadProgress();
         });
 
         if (cacheDirty) {
