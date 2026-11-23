@@ -1,6 +1,7 @@
 // main.js
-const { app, BrowserWindow, ipcMain, screen, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, dialog, session, nativeImage } = require('electron');
 const path = require('node:path')
+const { isGbAdUrl } = require('./gbAdBlock');
 require('./fileSystem.js')
 const setMainWindow = require('./fileSystem.js').setMainWindow;
 const setCustomConfigFolder = require('./fileSystem.js').setCustomConfigFolder;
@@ -82,13 +83,15 @@ ipcMain.on("set-custom-config-folder", (event, folder) => {
 
 // Tuỳ chọn chung cho mọi cửa sổ của app: không khung, chạy Node trực tiếp
 // trong renderer (nodeIntegration, không cách ly) nên không cần preload.
+// webviewTag: trang Banana nhúng web GameBanana bằng <webview> (1.5.25).
 function baseWindowOptions() {
   return {
     frame: false,
     webPreferences: {
       sandbox: false,
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      webviewTag: true
     }
   };
 }
@@ -219,6 +222,14 @@ const createWindow = () => {
 // 和创建浏览器窗口的时候调用
 // 部分 API 在 ready 事件触发后才能使用。
 app.whenReady().then(() => {
+  // Chặn quảng cáo trong khung web Banana (1.5.25): chỉ session của
+  // khung Banana (partition persist:gamebanana) — phần khác của app
+  // không bị ảnh hưởng. Đăng ký trước khi tạo cửa sổ để khung web
+  // chưa tải gì đã bị chặn.
+  session.fromPartition('persist:gamebanana').webRequest.onBeforeRequest((details, callback) => {
+    callback({ cancel: isGbAdUrl(details.url) });
+  });
+
   createWindow()
 
   app.on('activate', () => {
@@ -442,6 +453,57 @@ ipcMain.handle('set-bounds', async (event, boundsStr) => {
 ipcMain.on('snack', (event, message, type = 'info') => {
   currentMainWindow.webContents.send('snack', message, type)
 })
+
+//-==================== 拖拽图片 ====================
+// Icon dự phòng cho cú kéo ảnh Banana (1.5.25 test5): nativeImage của
+// Electron chỉ đọc được PNG/JPEG — ảnh webp (định dạng của gần hết ảnh
+// GameBanana) đọc ra rỗng, mà startDrag không có icon thì có thể không
+// bắt đầu cú kéo mà không báo lỗi (đúng lỗi Đạt gặp 23/11: kéo ảnh không
+// được, không thấy gì). Tạo 1 lần (ô vàng 64x64) rồi giữ lại dùng dần.
+let gbDragFallbackIcon = null;
+function getGbDragFallbackIcon() {
+  if (!gbDragFallbackIcon || gbDragFallbackIcon.isEmpty()) {
+    gbDragFallbackIcon = nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAYUlEQVR4nO3PMQ0AIADAMMC/P+SACI6GZFWwzbPH15YOeNWA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaAdgHY7wJWiQoVpQAAAABJRU5ErkJggg==');
+  }
+  return gbDragFallbackIcon;
+}
+
+// Kéo ảnh từ khung Banana ra (1.5.25 test3): renderer tải ảnh về file
+// tạm rồi gửi đường dẫn sang đây, tiến trình chính bắt đầu cú kéo ở
+// mức hệ điều hành để ảnh kéo được ra khỏi khung web (kéo-thả HTML
+// thường không xuyên qua được ranh giới webview). Icon kéo là chính
+// tấm ảnh, thu nhỏ nếu rộng quá 256px, phóng lên 64px nếu nhỏ quá;
+// ảnh đọc không được (webp/gif/bmp) thì dùng ô vàng dự phòng — cú kéo
+// LUÔN có icon (không icon thì có thể không bắt đầu, xem trên).
+// startDrag chạy lệch 1 nhịp (setImmediate) để bộ nghe IPC trả về ngay:
+// trên Linux, startDrag mở vòng lặp kéo lồng nhau, gọi thẳng trong bộ
+// nghe sẽ kẹt việc gửi tin IPC sau đó; lệch 1 nhịp thì không ảnh hưởng
+// cú kéo thật (chuột vẫn đang giữ).
+ipcMain.on('gb-start-drag', (event, filePath) => {
+  try {
+    if (!filePath || typeof filePath !== 'string') return;
+    const sender = event.sender;
+    setImmediate(() => {
+      try {
+        if (sender.isDestroyed()) return;
+        let icon;
+        try {
+          const img = nativeImage.createFromPath(filePath);
+          if (!img.isEmpty()) {
+            const w = img.getSize().width;
+            icon = w > 256 ? img.resize({ width: 256 }) : (w < 64 ? img.resize({ width: 64 }) : img);
+          }
+        } catch (_e) { /* đọc icon lỗi thì dùng icon dự phòng dưới */ }
+        if (!icon || icon.isEmpty()) icon = getGbDragFallbackIcon();
+        sender.startDrag({ file: filePath, icon });
+      } catch (e) {
+        console.error('gb-start-drag failed', e);
+      }
+    });
+  } catch (e) {
+    console.error('gb-start-drag failed', e);
+  }
+});
 
 
 

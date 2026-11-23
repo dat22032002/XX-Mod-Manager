@@ -18,6 +18,39 @@ const fs = require('fs');
 const urlModuleName = 'url';
 const { fileURLToPath } = require(urlModuleName);
 
+// Gọi mạng tới GameBanana bằng module Node (renderer fetch bị CORS chặn
+// với gamebanana.com) — require qua biến trung gian như 'path'.
+const httpsModuleName = 'https';
+const https = require(httpsModuleName);
+const httpModuleName = 'http';
+const http = require(httpModuleName);
+
+// Thư mục tạm của hệ điều hành (để file ảnh kéo từ khung Banana) —
+// require qua biến trung gian như 'path'.
+const osModuleName = 'os';
+const os = require(osModuleName);
+
+// Cờ chống chạy chồng cho kiểm tra/cập nhật Banana — ĐẶT Ở CẤP MODULE
+// (không phải trường của instance): mỗi component tạo riêng 1 new
+// IManager() nên cờ instance không chặn được nhau — kiểm tra tự động
+// lúc mở app và kiểm tra bấm tay có thể chạy chồng, hỏi Banana trùng
+// nhau. Module chỉ đóng gói 1 lần nên biến cấp module dùng chung cho
+// mọi instance.
+let gbChecking = false;
+const gbUpdatingIds = new Set();
+
+// File tạm của lần kéo ảnh gần nhất từ khung Banana — xóa khi bắt đầu
+// lần kéo sau (xem gbStartDragImage). Cấp module như gbChecking vì mỗi
+// component tạo riêng 1 IManager.
+let gbDragTmpPath = null;
+
+// Cờ chống chạy chồng cho Mod Fixer — CẤP MODULE như gbChecking (mỗi
+// component tạo riêng 1 IManager nên cờ instance không chặn được nhau).
+let fixerChecking = false;
+let fixerDownloading = false;
+let fixerScanning = false;
+let fixerFixing = false;
+
 // 导入 libarchivejs
 let Archive = window.Archive;
 //! 下面两个变量是为了解决 vite 打包时，无法正确导入 wasm 文件的问题
@@ -49,6 +82,18 @@ import { PathHelper } from '../helper/PathHelper';
 import { ModData } from '../core/ModHelper';
 // 导入 DialogHelper
 import { DialogID, DialogHelper } from '../helper/DialogHelper';
+// GameBanana: hàm thuần (đọc mã mod từ link, chọn file mới nhất) +
+// quét dung lượng + bộ nhớ đệm ảnh (cập nhật bản mới xong thì đuổi ảnh
+// bìa cũ, quét lại dung lượng).
+import { parseGameBananaModId, pickLatestGbFile, GB_API_BASE, GB_USER_AGENT } from '../helper/GameBanana';
+// Mod Fixer: hàm thuần (đọc release GitHub, tách bảng mã cũ từ file .py)
+// + bảng mã cũ đóng gói kèm app (dự phòng khi không tải được từ GitHub)
+// + đọc mã hash trong file .ini của mod (để quét mod nghi hỏng).
+import { FIXER_API_LATEST, FIXER_PYDATA_API, FIXER_PYDATA_RAW_BASE, FIXER_STATE_FILE, normalizeFixerRelease, parseFixerOldHashes } from '../helper/ModFixer';
+import fixerOldHashesBundled from '../helper/fixer-old-hashes.json';
+import { extractModHashes } from '../helper/ConflictCheck';
+import ModSizeScanner from '../helper/ModSizeScanner';
+import { ImageHelper } from '../helper/ImageHelper';
 
 // // 导入 hmc-win32
 // require qua biến trung gian như 'path' ở trên: hmc-win32 là module native,
@@ -94,6 +139,11 @@ let g_config = {
     showChipCounts: false,
     modTypeFilter: 'all',
     modSortBy: 'default',
+    fixerVersion: null, // Bản Fixer đã tải về (tag release, vd zzz-mod-fixer-v2.3.0)
+    fixerFileName: null, // Tên file .exe Fixer đã tải về
+    fixerSuspectIds: null, // id các mod nghi hỏng từ lần quét Fixer gần nhất (null = chưa quét bao giờ)
+    showOnlySuspected: false, // Lưới Mod chỉ hiện mod nghi hỏng (công tắc trong bảng lọc — Đạt dặn 23/11)
+    showConflictWarning: false, // Hiện hộp cảnh báo mod trùng nhau khi bấm Apply — mặc định TẮT, Đạt bật khi cần (23/11)
 };
 let g_data = {
     modList: [],
@@ -142,6 +192,11 @@ const g_config_vue = {
     showChipCounts: ref(false),
     modTypeFilter: ref('all'),
     modSortBy: ref('default'),
+    fixerVersion: ref(null),
+    fixerFileName: ref(null),
+    fixerSuspectIds: ref(null),
+    showOnlySuspected: ref(false),
+    showConflictWarning: ref(false),
 };
 
 const g_data_vue = {
@@ -244,6 +299,11 @@ class IManager {
         showChipCounts: false, // Chip nhân vật hiện số lượng mod trong ngoặc, vd Ellen (24) (công tắc trong bảng lọc — Đạt dặn 20/11)
         modTypeFilter: 'all', // Lọc theo loại mod: all/outfit/weapon/effect
         modSortBy: 'default', // Sắp xếp mod: default/name-asc/name-desc/time-desc/time-asc
+        fixerVersion: null, // Bản Fixer đã tải về (tag release, vd zzz-mod-fixer-v2.3.0)
+        fixerFileName: null, // Tên file .exe Fixer đã tải về
+        fixerSuspectIds: null, // id các mod nghi hỏng từ lần quét Fixer gần nhất (null = chưa quét bao giờ)
+        showOnlySuspected: false, // Lưới Mod chỉ hiện mod nghi hỏng (công tắc trong bảng lọc — Đạt dặn 23/11)
+        showConflictWarning: false, // Hiện hộp cảnh báo mod trùng nhau khi bấm Apply — mặc định TẮT, Đạt bật khi cần (23/11)
     };
 
     // 程序运行时的数据
@@ -487,6 +547,18 @@ class IManager {
 
         //debug
         console.log(`Đã tải ${loadModData.length} mod, tổng cộng ${this.data.characterList.length} nhân vật, có ${this.newMods.length} mod mới`);
+
+        // Dọn thư mục tạm của lần cập nhật Banana dở dang (sập giữa chừng).
+        this.gbCleanStaleTempDirs();
+
+        // Kiểm tra bản mới Banana chạy nền sau khi mod đã tải xong
+        // (không chặn app mở): đợi 2 giây để nhường lần vẽ đầu tiên.
+        setTimeout(() => {
+            this.checkGameBananaUpdates(false).catch((e) => {
+                console.error('checkGameBananaUpdates failed', e);
+            });
+        }, 2000);
+
         return loadRawMods;
     }
 
@@ -649,6 +721,10 @@ class IManager {
         await this.loadConfig();
         let endTime = new Date().getTime();
         console.log('✅>> loadConfig done, cost', endTime - startTime, 'ms');
+
+        // Dọn thư mục tạm Fixer còn sót từ lần chạy trước (tắt ngang
+        // giữa chừng) để không rác lại ổ đĩa.
+        try { this.fixerCleanupStaleTempDirs(); } catch (_e) { /* kệ */ }
 
         //-=============== 优先进行页面初始化 ===============-//
         //------ 设置窗口大小 -----
@@ -858,6 +934,505 @@ class IManager {
             console.error(`stderr: ${stderr}`);
         }
         );
+    }
+
+    //-==================== Mod Fixer (1.5.25) ====================//
+    // Tích hợp ZZZ Mod Fixer (Vonksdesu): kiểm tra/tải/mở đồ sửa mod
+    // skin + quét mod nghi hỏng (đối chiếu mã trong .ini với bảng mã cũ
+    // của Fixer) + sửa mod đã chọn trên bản chép tạm rồi chép về.
+    // Mọi lần gọi mạng tái dùng gbFetchBuffer/gbFetchJson của Banana
+    // (chịu chuyển hướng + thử lại 1 lần + ngắt khi 15s không có dữ liệu).
+    //
+    // CHÉP GỌN (1.5.25-test8, Đạt báo sửa 139 mod chờ rất lâu): Fixer
+    // chỉ đọc/sửa file .ini + .buf nên ra thư mục tạm CHỈ chép 2 loại
+    // đó (giữ đúng cấu trúc thư mục con), file hình KHÔNG chép — vừa
+    // nhanh vừa nhẹ ổ đĩa. Bản dự phòng cũng chỉ 2 loại này (vì chỉ
+    // chúng bị đổi). Lúc chép về chỉ chép file mới/đổi, file .ini/.buf
+    // nào Fixer xóa khỏi bản tạm thì xóa khỏi bản gốc (CHỈ 2 loại này,
+    // không bao giờ xóa file khác).
+
+    // Liệt kê file .ini/.buf trong 1 thư mục mod (đệ quy) — trả Map
+    // đường dẫn tương đối -> đường dẫn tuyệt đối. Fixer chỉ cần 2 loại
+    // này; file hình/mod.json/khác không liệt kê.
+    fixerListIniBufFiles(dir) {
+        const out = new Map();
+        const walk = (d) => {
+            let entries;
+            try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (_e) { return; }
+            for (const e of entries) {
+                const p = path.join(d, e.name);
+                if (e.isDirectory()) walk(p);
+                else if (e.isFile()) {
+                    const ext = path.extname(e.name).toLowerCase();
+                    if (ext === '.ini' || ext === '.buf') out.set(path.relative(dir, p), p);
+                }
+            }
+        };
+        walk(dir);
+        return out;
+    }
+
+    // Liệt kê TẤT CẢ file trong 1 thư mục (đệ quy) — dùng lúc chép về
+    // để thấy cả file Fixer tạo ra (vd sổ theo dõi .zzz-fixer-state.json).
+    fixerListAllFiles(dir) {
+        const out = new Map();
+        const walk = (d) => {
+            let entries;
+            try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (_e) { return; }
+            for (const e of entries) {
+                const p = path.join(d, e.name);
+                if (e.isDirectory()) walk(p);
+                else if (e.isFile()) out.set(path.relative(dir, p), p);
+            }
+        };
+        walk(dir);
+        return out;
+    }
+
+    // Chép các file trong Map (đường dẫn tương đối -> tuyệt đối) sang
+    // thư mục đích, giữ đúng cấu trúc thư mục con.
+    fixerCopyFileMap(fileMap, destDir) {
+        for (const [rel, src] of fileMap) {
+            const dest = path.join(destDir, rel);
+            fs.mkdirSync(path.dirname(dest), { recursive: true });
+            fs.copyFileSync(src, dest);
+        }
+    }
+
+    // Thư mục cha của thư mục Mods — thư mục tạm đặt ở đây (cùng ổ với
+    // Mods, Đạt báo 23/11 ổ C không đủ chỗ). TUYỆT ĐỐI KHÔNG đặt trong
+    // thư mục Mods (app quét thư mục đó tìm mod, để trong sẽ bị nhận
+    // nhầm thành mod). Không lấy được thì dùng thư mục tạm hệ thống.
+    fixerTempParent() {
+        const modsPath = this.config && this.config.modSourcePath;
+        if (modsPath) {
+            try {
+                const parent = path.dirname(path.resolve(modsPath));
+                if (parent && fs.existsSync(parent)) return parent;
+            } catch (_e) { /* dùng tạm hệ thống */ }
+        }
+        return os.tmpdir();
+    }
+
+    // Dọn thư mục tạm Fixer còn sót (lần trước tắt ngang giữa chừng):
+    // mọi thư mục tên bắt đầu xxmm-fixer- nằm cạnh thư mục Mods + trong
+    // thư mục tạm hệ thống (bản cũ để ở đó). Chỉ xóa đúng tiền tố này,
+    // không đụng thư mục khác. Chạy lúc app khởi động.
+    fixerCleanupStaleTempDirs() {
+        const parents = new Set();
+        try { parents.add(this.fixerTempParent()); } catch (_e) { /* kệ */ }
+        parents.add(os.tmpdir());
+        for (const parent of parents) {
+            let entries;
+            try { entries = fs.readdirSync(parent, { withFileTypes: true }); } catch (_e) { continue; }
+            for (const e of entries) {
+                if (!e.isDirectory() || !e.name.startsWith('xxmm-fixer-')) continue;
+                try { fs.rmSync(path.join(parent, e.name), { recursive: true, force: true }); } catch (_e) { /* kệ */ }
+            }
+        }
+    }
+
+    // Thư mục chứa file Fixer đã tải về (+ bảng mã cũ lưu đệm + bản dự
+    // phòng của mod đã sửa): <userData>/tools/ZZZ-Mod-Fixer/.
+    fixerToolsDir() {
+        const dir = path.join(XXMMCore.getDataPathSync(), 'tools', 'ZZZ-Mod-Fixer');
+        try { fs.mkdirSync(dir, { recursive: true }); } catch (_e) { /* lần sau thử lại */ }
+        return dir;
+    }
+
+    // Đường dẫn file .exe Fixer đã tải về — chưa tải (hoặc file bị xóa
+    // tay) thì null.
+    fixerExePath() {
+        const fileName = this.config.fixerFileName;
+        if (!fileName) return null;
+        const exePath = path.join(this.fixerToolsDir(), fileName);
+        return fs.existsSync(exePath) ? exePath : null;
+    }
+
+    // Trạng thái Fixer cho giao diện.
+    fixerStatus() {
+        const exePath = this.fixerExePath();
+        return {
+            installed: !!exePath,
+            version: this.config.fixerVersion || null,
+            exePath: exePath,
+            modsPath: this.config.modSourcePath || '',
+        };
+    }
+
+    // Bản mới nhất của Fixer trên GitHub (kèm file .exe) — lỗi mạng hay
+    // không có file .exe thì văng lỗi, nơi gọi tự bắt và báo.
+    async fetchFixerRelease() {
+        const release = normalizeFixerRelease(await this.gbFetchJson(FIXER_API_LATEST));
+        if (!release || !release.asset) throw new Error('No Fixer release found');
+        return release;
+    }
+
+    // Có bản Fixer mới không. Trả { latest, asset, updateAvailable } —
+    // đang kiểm tra dở thì null (chống bấm trùng).
+    async checkFixerUpdate() {
+        if (fixerChecking) return null;
+        fixerChecking = true;
+        try {
+            const release = await this.fetchFixerRelease();
+            return {
+                latest: release.tag,
+                asset: release.asset,
+                updateAvailable: release.tag !== this.config.fixerVersion,
+            };
+        } finally {
+            fixerChecking = false;
+        }
+    }
+
+    // Tải file .exe của bản mới nhất về thư mục tools (ghi file tạm rồi
+    // đổi tên để file đang tải dở không bị tưởng là xong). onProgress
+    // nhận (đã tải, tổng) để hiện %. Trả đường dẫn file — lỗi thì văng lỗi.
+    async downloadFixer(onProgress = null) {
+        if (fixerDownloading) return null;
+        fixerDownloading = true;
+        try {
+            const release = await this.fetchFixerRelease();
+            const buf = await this.gbFetchBuffer(release.asset.downloadUrl, onProgress);
+            if (!buf || buf.length === 0) throw new Error('Empty download');
+            const dir = this.fixerToolsDir();
+            const tmpPath = path.join(dir, release.asset.name + '.download');
+            const finalPath = path.join(dir, release.asset.name);
+            fs.writeFileSync(tmpPath, buf);
+            fs.renameSync(tmpPath, finalPath);
+            // Xóa file .exe cũ (tên khác bản mới) để không còn 2 bản.
+            if (this.config.fixerFileName && this.config.fixerFileName !== release.asset.name) {
+                try { fs.unlinkSync(path.join(dir, this.config.fixerFileName)); } catch (_e) { /* kệ */ }
+            }
+            this.config.fixerVersion = release.tag;
+            this.config.fixerFileName = release.asset.name;
+            this.saveConfig();
+            return finalPath;
+        } finally {
+            fixerDownloading = false;
+        }
+    }
+
+    // Mở Fixer lên (không đợi đóng) — dùng cho nút "Mở Fixer". Trả false
+    // khi chưa tải Fixer về hoặc mở lỗi.
+    openFixer() {
+        const exePath = this.fixerExePath();
+        if (!exePath) return false;
+        try {
+            const { spawn } = require('child_process');
+            const child = spawn(exePath, [], { detached: true, stdio: 'ignore' });
+            child.unref();
+            return true;
+        } catch (e) {
+            console.error('openFixer failed', e);
+            return false;
+        }
+    }
+
+    // Bảng mã cũ (mã cũ -> mã mới) để quét mod nghi hỏng. Thứ tự:
+    // (1) bảng lưu đệm theo bản Fixer trong thư mục tools (đã tải từ
+    // GitHub lần trước); (2) tải mới từ repo Fixer rồi lưu đệm;
+    // (3) mạng lỗi thì dùng bảng đóng gói kèm app (749 mã, trích từ
+    // bản v2.3.0). Trả Map.
+    async fixerOldHashMap() {
+        const version = this.config.fixerVersion || 'bundled';
+        const cachePath = path.join(this.fixerToolsDir(), `old-hashes-${version}.json`);
+        try {
+            const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+            if (cached && typeof cached === 'object' && Object.keys(cached).length > 0) {
+                return new Map(Object.entries(cached));
+            }
+        } catch (_e) { /* chưa có đệm: tải mới */ }
+        try {
+            const fresh = await this.fetchFixerOldHashMap();
+            if (fresh.size > 0) {
+                try { fs.writeFileSync(cachePath, JSON.stringify(Object.fromEntries(fresh))); } catch (_e) { /* kệ */ }
+                return fresh;
+            }
+        } catch (e) {
+            console.warn('fixerOldHashMap: fetch failed, using bundled table', e);
+        }
+        return new Map(Object.entries(fixerOldHashesBundled));
+    }
+
+    // Tải + tách bảng mã cũ từ repo Fixer (nhánh gui-version): hỏi API
+    // lấy danh sách file .py, tải song song 10 file/lượt rồi tách entry
+    // update_hash trong từng file.
+    async fetchFixerOldHashMap() {
+        const listing = await this.gbFetchJson(FIXER_PYDATA_API);
+        const files = (Array.isArray(listing) ? listing : [])
+            .filter((f) => f && typeof f.name === 'string' && f.name.endsWith('.py'))
+            .map((f) => ({ name: f.name, url: `${FIXER_PYDATA_RAW_BASE}/${encodeURIComponent(f.name)}` }));
+        if (files.length === 0) throw new Error('No fixer data files listed');
+        const merged = new Map();
+        const BATCH = 10;
+        for (let i = 0; i < files.length; i += BATCH) {
+            const batch = files.slice(i, i + BATCH);
+            const texts = await Promise.all(batch.map((f) =>
+                this.gbFetchBuffer(f.url).then((b) => b.toString('utf8')).catch((e) => {
+                    console.warn(`fetchFixerOldHashMap: ${f.name} failed`, e);
+                    return '';
+                })
+            ));
+            for (const text of texts) {
+                const entries = parseFixerOldHashes(text);
+                for (const [oldHash, newHash] of Object.entries(entries)) {
+                    if (!merged.has(oldHash)) merged.set(oldHash, newHash);
+                }
+            }
+        }
+        return merged;
+    }
+
+    // Quét mod nghi hỏng: mod nào còn mã cũ trong file .ini thì liệt kê.
+    // CHỈ ĐỌC, không sửa gì. Trả mảng { modId, modName, location,
+    // matchedHashes } — đang quét dở thì null.
+    async fixerScanBrokenMods() {
+        if (fixerScanning) return null;
+        fixerScanning = true;
+        try {
+            const oldHashes = await this.fixerOldHashMap();
+            const suspects = [];
+            for (const modInfo of ModLoader.modsRaw) {
+                const location = modInfo && modInfo.location;
+                if (!location || !fs.existsSync(location)) continue;
+                let hashes;
+                try { hashes = extractModHashes(location); } catch (_e) { continue; }
+                const matched = [...new Set(
+                    hashes.map((h) => h.hash).filter((h) => oldHashes.has(h))
+                )];
+                if (matched.length > 0) {
+                    suspects.push({
+                        modId: modInfo.id,
+                        modName: modInfo.modName,
+                        location: location,
+                        matchedHashes: matched,
+                    });
+                }
+            }
+            return suspects;
+        } finally {
+            fixerScanning = false;
+        }
+    }
+
+    // Bước 1 — CHÉP (không cắt) các mod đã chọn ra thư mục tạm để Fixer
+    // sửa trên bản chép. CHỈ chép file .ini/.buf (Fixer chỉ cần 2 loại
+    // này), giữ đúng cấu trúc thư mục con — file hình không chép nên
+    // nhanh hơn nhiều với mod nặng. Thư mục tạm đặt CẠNH thư mục Mods
+    // (cùng ổ đĩa, Đạt báo ổ C không đủ chỗ; TUYỆT ĐỐI KHÔNG nằm trong
+    // thư mục Mods vì app quét thư mục đó tìm mod). Trả { tempDir,
+    // mods: [{ modId, modName, srcPath, tmpPath, origFiles: [đường dẫn
+    // tương đối các file .ini/.buf lúc chép] }] } — đang sửa dở thì
+    // văng lỗi (chống bấm trùng). onProgress(done, total) báo tiến độ
+    // từng mod; nhường vòng lặp giữa 2 mod để giao diện kịp hiện tiến độ.
+    async fixerPrepareFix(modIds, onProgress) {
+        if (fixerFixing) throw new Error('Fix already in progress');
+        fixerFixing = true;
+        let tempDir = null;
+        try {
+            const selected = ModLoader.modsRaw.filter((m) =>
+                modIds.includes(m.id) && m.location && fs.existsSync(m.location));
+            if (selected.length === 0) throw new Error('No mods selected');
+            try {
+                tempDir = path.join(this.fixerTempParent(), `xxmm-fixer-temp-${Date.now()}`);
+                fs.mkdirSync(tempDir, { recursive: true });
+            } catch (_e) {
+                // Không tạo được cạnh thư mục Mods (vd không có quyền
+                // ghi): dùng thư mục tạm hệ thống làm dự phòng.
+                tempDir = path.join(os.tmpdir(), `xxmm-fixer-temp-${Date.now()}`);
+                fs.mkdirSync(tempDir, { recursive: true });
+            }
+            const mods = [];
+            let done = 0;
+            for (const m of selected) {
+                const tmpPath = path.join(tempDir, m.modName);
+                const files = this.fixerListIniBufFiles(m.location);
+                fs.mkdirSync(tmpPath, { recursive: true });
+                this.fixerCopyFileMap(files, tmpPath);
+                mods.push({ modId: m.id, modName: m.modName, srcPath: m.location, tmpPath: tmpPath,
+                    origFiles: [...files.keys()] });
+                done += 1;
+                if (typeof onProgress === 'function') {
+                    try { onProgress(done, selected.length); } catch (_e) { /* kệ */ }
+                }
+                // Nhường ~1 khung hình (16ms) để giao diện kịp VẼ tiến
+                // độ — setTimeout(0) thì tác vụ chép tiếp theo chạy ngay
+                // nên trình duyệt không có lúc nào vẽ, dòng tiến độ chỉ
+                // nằm trong DOM mà mắt không thấy.
+                await new Promise((r) => setTimeout(r, 16));
+            }
+            return { tempDir: tempDir, mods: mods };
+        } catch (e) {
+            if (tempDir) {
+                try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (_e) { /* kệ */ }
+            }
+            fixerFixing = false;
+            throw e;
+        }
+    }
+
+    // Bước 2 — mở Fixer lên và đợi nó đóng lại. Trả true khi Fixer đã
+    // thoát (dù sửa hay không), false khi không mở được.
+    fixerLaunchAndWait() {
+        const exePath = this.fixerExePath();
+        if (!exePath) return Promise.resolve(false);
+        return new Promise((resolve) => {
+            let child;
+            try {
+                const { spawn } = require('child_process');
+                child = spawn(exePath, [], { stdio: 'ignore' });
+            } catch (e) {
+                console.error('fixerLaunchAndWait spawn failed', e);
+                resolve(false);
+                return;
+            }
+            child.on('error', (e) => {
+                console.error('fixerLaunchAndWait error', e);
+                resolve(false);
+            });
+            child.on('exit', () => resolve(true));
+        });
+    }
+
+    // Hủy giữa chừng (không mở được Fixer...): dọn thư mục tạm, bỏ cờ.
+    fixerAbortFix(prepared) {
+        if (prepared && prepared.tempDir) {
+            try { fs.rmSync(prepared.tempDir, { recursive: true, force: true }); } catch (_e) { /* kệ */ }
+        }
+        fixerFixing = false;
+    }
+
+    // Bước 3 — kiểm tra bản đã sửa trong thư mục tạm rồi thay bản gốc.
+    // Mỗi mod: có đổi gì thì sao lưu bản gốc (CHỈ .ini/.buf — vì chỉ 2
+    // loại này bị đổi nên đủ để khôi phục) rồi chép file mới/đổi từ bản
+    // tạm về (kể cả file Fixer tạo ra như sổ theo dõi
+    // .zzz-fixer-state.json); file .ini/.buf nào Fixer xóa khỏi bản tạm
+    // thì xóa khỏi bản gốc (CHỈ 2 loại này, không bao giờ xóa file
+    // khác). File hình không đụng tới nên nguyên vẹn. Không đổi gì thì
+    // giữ nguyên bản gốc. Lỗi giữa chừng thì khôi phục từ bản sao lưu
+    // — không mất mod. Trả mảng kết quả từng mod: { modId, modName,
+    // status: 'fixed' | 'unchanged' | 'failed', backupPath? }. Xong thì
+    // dọn thư mục tạm + tải lại danh sách mod. onProgress(done, total)
+    // báo tiến độ từng mod.
+    async fixerApplyFixed(prepared, onProgress) {
+        const results = [];
+        try {
+            const backupRoot = path.join(this.fixerToolsDir(), 'backup');
+            let done = 0;
+            for (const mod of prepared.mods) {
+                try {
+                    // Bản gốc biến mất giữa chừng (người dùng/xóa lúc
+                    // cửa sổ Fixer đang mở): báo không sửa được. KHÔNG
+                    // chép về — chép về chỉ có .ini/.buf sẽ hồi sinh
+                    // mod thiếu mod.json/hình (test4 cũng báo 'failed'
+                    // vì chép sao lưu từ thư mục đã mất thì văng lỗi).
+                    if (!fs.existsSync(mod.srcPath)) throw new Error('original folder vanished mid-flow: ' + mod.srcPath);
+                    const changed = await this.fixerModChanged(mod);
+                    if (!changed) {
+                        results.push({ modId: mod.modId, modName: mod.modName, status: 'unchanged' });
+                    } else {
+                        // Sao lưu bản gốc TRƯỚC khi thay — CHỈ .ini/.buf
+                        // (chép, không cắt).
+                        const backupPath = path.join(backupRoot, `${mod.modName}-${Date.now()}`);
+                        fs.mkdirSync(backupRoot, { recursive: true });
+                        const srcFiles = this.fixerListIniBufFiles(mod.srcPath);
+                        this.fixerCopyFileMap(srcFiles, backupPath);
+                        const origSet = new Set(mod.origFiles || [...srcFiles.keys()]);
+                        const tmpFiles = this.fixerListAllFiles(mod.tmpPath);
+                        try {
+                            // Chép file mới/đổi từ bản tạm về: chỉ .ini,
+                            // .buf + sổ theo dõi của Fixer — không chép
+                            // file lạ khác (vd thư mục dự phòng của
+                            // Fixer nếu anh tick trong cửa sổ Fixer).
+                            for (const [rel, tmpFile] of tmpFiles) {
+                                const ext = path.extname(rel).toLowerCase();
+                                if (ext !== '.ini' && ext !== '.buf' && path.basename(rel) !== FIXER_STATE_FILE) continue;
+                                const dest = path.join(mod.srcPath, rel);
+                                fs.mkdirSync(path.dirname(dest), { recursive: true });
+                                fs.copyFileSync(tmpFile, dest);
+                            }
+                            // File .ini/.buf nào Fixer xóa khỏi bản tạm
+                            // thì xóa khỏi bản gốc (CHỈ 2 loại này —
+                            // origSet chỉ chứa .ini/.buf từ lúc chép).
+                            for (const rel of origSet) {
+                                if (!tmpFiles.has(rel)) {
+                                    try { fs.rmSync(path.join(mod.srcPath, rel), { force: true }); } catch (_e) { /* kệ */ }
+                                }
+                            }
+                        } catch (e) {
+                            // Thay thất bại: khôi phục bản gốc từ bản
+                            // sao lưu (chép .ini/.buf về) + xóa file mới
+                            // đã chép dở (file có trong bản tạm mà gốc
+                            // không có).
+                            try { this.fixerCopyFileMap(this.fixerListIniBufFiles(backupPath), mod.srcPath); } catch (_e) { /* kệ */ }
+                            for (const [rel] of tmpFiles) {
+                                if (origSet.has(rel)) continue;
+                                const ext = path.extname(rel).toLowerCase();
+                                if (ext !== '.ini' && ext !== '.buf' && path.basename(rel) !== FIXER_STATE_FILE) continue;
+                                try { fs.rmSync(path.join(mod.srcPath, rel), { force: true }); } catch (_e) { /* kệ */ }
+                            }
+                            throw e;
+                        }
+                        results.push({ modId: mod.modId, modName: mod.modName, status: 'fixed', backupPath: backupPath });
+                    }
+                } catch (e) {
+                    console.error(`fixerApplyFixed(${mod.modName}) failed`, e);
+                    results.push({ modId: mod.modId, modName: mod.modName, status: 'failed' });
+                }
+                done += 1;
+                if (typeof onProgress === 'function') {
+                    try { onProgress(done, prepared.mods.length); } catch (_e) { /* kệ */ }
+                }
+                // Nhường ~1 khung hình (16ms) để giao diện kịp VẼ tiến
+                // độ — xem chú thích ở fixerPrepareFix.
+                await new Promise((r) => setTimeout(r, 16));
+            }
+        } finally {
+            try { fs.rmSync(prepared.tempDir, { recursive: true, force: true }); } catch (_e) { /* kệ */ }
+            // Tải lại danh sách mod để lưới hiện đúng nội dung mới (mod
+            // đã thay + mod đã mất giữa chừng) — chỉ xóa cache thì lưới
+            // vẫn hiện danh sách cũ tới khi anh bấm Làm mới.
+            try { await this.rescanAllMods(); } catch (_e) { /* kệ */ }
+            fixerFixing = false;
+        }
+        return results;
+    }
+
+    // Bản chép tạm có khác bản gốc không: có file trạng thái của Fixer
+    // thì chắc chắn đã sửa; không thì so CHỈ file .ini/.buf (bản tạm gọn
+    // không có hình nên không so hình). Thêm/bớt file, đổi kích thước
+    // hay đổi nội dung (băm SHA1 theo luồng để không ngốn RAM với file
+    // .buf lớn) đều tính là đã sửa.
+    async fixerModChanged(mod) {
+        const srcPath = mod.srcPath;
+        const tmpPath = mod.tmpPath;
+        try {
+            if (fs.existsSync(path.join(tmpPath, FIXER_STATE_FILE))) return true;
+        } catch (_e) { /* tiếp tục so file */ }
+        const origSet = new Set(mod.origFiles || [...this.fixerListIniBufFiles(srcPath).keys()]);
+        const tmpFiles = this.fixerListIniBufFiles(tmpPath);
+        if (tmpFiles.size !== origSet.size) return true;
+        const hashFile = (p) => new Promise((resolve, reject) => {
+            const hash = require('crypto').createHash('sha1');
+            const stream = fs.createReadStream(p);
+            stream.on('error', reject);
+            stream.on('data', (d) => hash.update(d));
+            stream.on('end', () => resolve(hash.digest('hex')));
+        });
+        for (const rel of origSet) {
+            const tmpFile = tmpFiles.get(rel);
+            if (!tmpFile) return true;
+            try {
+                const a = fs.statSync(path.join(srcPath, rel));
+                const b = fs.statSync(tmpFile);
+                if (a.size !== b.size) return true;
+                if ((await hashFile(path.join(srcPath, rel))) !== (await hashFile(tmpFile))) return true;
+            } catch (_e) {
+                return true;
+            }
+        }
+        return false;
     }
 
     async initAllData() {
@@ -1091,20 +1666,40 @@ class IManager {
     }
 
 
+    // Đặt bìa mod từ 1 file ảnh — đường dùng chung cho thả ảnh lên thẻ
+    // (1.5.25 test3) và thả ảnh toàn app: đọc file thành base64 rồi ghi
+    // bằng cơ chế bìa sẵn có (setModPreviewBase64ByName — ghi file
+    // preview + thông báo "Updated cover" + vẽ lại thẻ). Trả true khi
+    // ghi xong.
+    setModCoverFromFile(file, modName) {
+        return new Promise((resolve) => {
+            if (!file || !file.type || !file.type.startsWith('image/')) {
+                resolve(false);
+                return;
+            }
+            // 因为electron的file对象不是标准的file对象，所以需要使用reader来读取文件
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    await this.setModPreviewBase64ByName(event.target.result, modName);
+                    resolve(true);
+                } catch (e) {
+                    console.error('setModCoverFromFile failed', e);
+                    resolve(false);
+                }
+            };
+            reader.onerror = () => resolve(false);
+            reader.readAsDataURL(file);
+        });
+    }
+
     async handleImageDrop(file) {
         // 再次确认是否是图片文件
         if (!file.type.startsWith('image/')) {
             snack('Invalid image file');
             return;
         }
-        // 因为electron的file对象不是标准的file对象，所以需要使用reader来读取文件
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const imageUrl = event.target.result;
-            // 这里的 imageUrl 是一个 base64 字符串，可以直接用于显示图片
-            this.setModPreviewBase64ByName(imageUrl, this.temp.currentMod.name);
-        };
-        reader.readAsDataURL(file);
+        await this.setModCoverFromFile(file, this.temp.currentMod.name);
     }
 
     // Xử lý 1 file được thả (dùng chung cho cả 2 đường: file có Entry từ
@@ -1762,6 +2357,10 @@ class IManager {
         }
         // Gỡ khỏi danh sách trong bộ nhớ (y như deleteModPlugin).
         this.data.modList = this.data.modList.filter((mod) => mod.name !== modName);
+        // Gỡ cả khỏi danh sách gốc của ModLoader — trước đây chỉ lọc
+        // modList nên mục ma còn lại trong modsRaw, làm kiểm tra bản
+        // mới Banana hỏi cả mod đã xóa (probe Banana 23/11).
+        ModLoader.removeModByFolder(folderName);
         if (this.temp.currentMod && this.temp.currentMod.name === modName) {
             this.setCurrentMod(this.data.modList[0]);
         }
@@ -1813,7 +2412,10 @@ class IManager {
         mod.triggerChanged();
     }
 
-    async handleArchiveDrop(file) {
+    // gbMeta (tải từ Banana): { url, fileId, fileDate } — ghi link + mã
+    // file vào mod.json sau khi nhập để lần sau kiểm tra bản mới được.
+    // Nhập tay (kéo-thả zip/thư mục) thì không truyền, mod không có link.
+    async handleArchiveDrop(file, gbMeta = null) {
         //debug
         console.log(`handle zip drop: ${file.name}`);
 
@@ -1862,6 +2464,20 @@ class IManager {
             // 读取 mod.json    
             const mod = await this.getModInfo(modName);
             console.log(`getModInfo:`, mod);
+
+            // Mod tải từ Banana: ghi link + mã file vào mod.json ngay
+            // (hộp sửa mở ngay sau đó phải thấy link) — ModData.url
+            // cũng đặt luôn để hộp sửa sao đúng link.
+            if (gbMeta && mod) {
+                const modInfo = ModLoader.getModByID(mod.id);
+                if (modInfo) {
+                    modInfo.metaData.set('url', gbMeta.url, ModMetaDataType.String);
+                    modInfo.metaData.set('gbFileId', gbMeta.fileId, ModMetaDataType.Number);
+                    modInfo.metaData.set('gbFileDate', gbMeta.fileDate, ModMetaDataType.Number);
+                    modInfo.saveMetaData();
+                }
+                mod.url = gbMeta.url;
+            }
 
             // Đoán nhân vật từ tên thư mục/file (Đạt dặn 22/11) — chạy
             // TRƯỚC khối gán-nhân-vật-hiện-tại: đoán ra thì dùng nhân
@@ -1999,6 +2615,398 @@ class IManager {
         // getModInfo 遇到新的 mod 会触发 addMod 事件，所以这里不需要再次触发
         // TC26: trả về true để handleDropEntry đếm số mod đã nhập.
         return true;
+    }
+
+    //-==================== GameBanana (1.5.25) ====================//
+    // Tải mod từ GameBanana + kiểm tra/cập nhật bản mới. Mọi lần gọi
+    // mạng dùng module https/http của Node (renderer fetch bị CORS chặn
+    // với gamebanana.com) — xem gbFetchBuffer.
+
+    // GET 1 URL, trả về Buffer. Tự đi theo chuyển hướng (tối đa 5 lần —
+    // link tải gamebanana.com/dl/<id> chuyển sang CDN), quá 15 giây
+    // không có dữ liệu thì ngắt. onProgress (nếu có) nhận (đã nhận,
+    // tổng — tổng = -1 khi máy chủ không báo dung lượng). Lỗi mạng
+    // thoáng qua (mất gói, wifi chập chờn, máy chủ ngắt giữa chừng) thì
+    // thử lại 1 lần sau 500ms thay vì bỏ luôn — lỗi HTTP (404/...) thì
+    // không thử lại vì thử nữa cũng lỗi y hệt. Xem _gbFetchBufferOnce
+    // để biết chi tiết 1 lần tải.
+    async gbFetchBuffer(url, onProgress = null, redirectsLeft = 5, retriesLeft = 1) {
+        try {
+            return await this._gbFetchBufferOnce(url, onProgress, redirectsLeft);
+        } catch (e) {
+            const isHttpError = /^HTTP \d+$/.test(e.message || '');
+            if (retriesLeft > 0 && !isHttpError) {
+                await new Promise((r) => setTimeout(r, 500));
+                return this.gbFetchBuffer(url, onProgress, redirectsLeft, retriesLeft - 1);
+            }
+            throw e;
+        }
+    }
+
+    async _gbFetchBufferOnce(url, onProgress = null, redirectsLeft = 5) {
+        return new Promise((resolve, reject) => {
+            const lib = url.startsWith('https:') ? https : http;
+            let settled = false;
+            const done = (fn, value) => {
+                if (settled) return;
+                settled = true;
+                fn(value);
+            };
+            const req = lib.get(url, { headers: { 'User-Agent': GB_USER_AGENT } }, (res) => {
+                // Chuyển hướng: đi theo link mới (tương đối thì nối với URL cũ).
+                if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && redirectsLeft > 0) {
+                    res.resume();
+                    const nextUrl = new URL(res.headers.location, url).href;
+                    this.gbFetchBuffer(nextUrl, onProgress, redirectsLeft - 1).then(
+                        (buf) => done(resolve, buf),
+                        (err) => done(reject, err)
+                    );
+                    return;
+                }
+                if (res.statusCode !== 200) {
+                    res.resume();
+                    done(reject, new Error(`HTTP ${res.statusCode}`));
+                    return;
+                }
+                const total = Number(res.headers['content-length']);
+                const chunks = [];
+                let received = 0;
+                let idleTimer = null;
+                const armIdle = () => {
+                    clearTimeout(idleTimer);
+                    idleTimer = setTimeout(() => {
+                        req.destroy(new Error('Timed out: no data for 15s'));
+                    }, 15000);
+                };
+                armIdle();
+                res.on('data', (chunk) => {
+                    chunks.push(chunk);
+                    received += chunk.length;
+                    armIdle();
+                    if (onProgress) {
+                        try { onProgress(received, Number.isFinite(total) ? total : -1); } catch (_e) { /* bỏ qua */ }
+                    }
+                });
+                res.on('end', () => {
+                    clearTimeout(idleTimer);
+                    done(resolve, Buffer.concat(chunks));
+                });
+                res.on('error', (err) => {
+                    clearTimeout(idleTimer);
+                    done(reject, err);
+                });
+            });
+            req.on('error', (err) => done(reject, err));
+        });
+    }
+
+    // Đọc JSON từ 1 URL (dùng cho cổng dữ liệu Banana). Lỗi mạng / sai
+    // định dạng thì văng lỗi — nơi gọi tự bắt và bỏ qua.
+    async gbFetchJson(url) {
+        const buf = await this.gbFetchBuffer(url);
+        return JSON.parse(buf.toString('utf8'));
+    }
+
+    // Danh sách file của 1 mod Banana (mảng _aFiles thô) — lỗi thì null.
+    async gbFetchModFiles(modId) {
+        try {
+            const data = await this.gbFetchJson(`${GB_API_BASE}/Mod/${modId}?_csvProperties=_aFiles`);
+            const files = data && data._aFiles;
+            return Array.isArray(files) ? files : null;
+        } catch (e) {
+            console.warn(`gbFetchModFiles(${modId}) failed`, e);
+            return null;
+        }
+    }
+
+    // Tải 1 file Banana về thành File (để nhập bằng đúng đường nhập mod
+    // có sẵn). onProgress nhận (đã tải, tổng) để hiện % trên nút.
+    async gbDownloadFile(downloadUrl, fileName, onProgress = null) {
+        const buf = await this.gbFetchBuffer(downloadUrl, onProgress);
+        return new File([buf], fileName, { type: 'application/octet-stream' });
+    }
+
+    // Kéo ảnh từ khung Banana ra ngoài (1.5.25 test3): tải ảnh về file
+    // tạm rồi nhờ tiến trình chính bắt đầu cú kéo ở mức hệ điều hành
+    // (kéo-thả HTML thường không xuyên qua được ranh giới webview).
+    // Dùng gbFetchBuffer như tải mod (chịu được chuyển hướng + thử lại
+    // 1 lần). File tạm của lần kéo trước bị xóa khi bắt đầu lần này.
+    // Trả true khi đã gửi lệnh kéo cho tiến trình chính.
+    async gbStartDragImage(imageUrl) {
+        try {
+            const url = (imageUrl || '').trim();
+            if (!/^https?:\/\//i.test(url)) return false;
+            const buf = await this.gbFetchBuffer(url);
+            if (!buf || buf.length === 0) return false;
+            if (gbDragTmpPath) {
+                try { fs.unlinkSync(gbDragTmpPath); } catch (_e) { /* file đã mất: thôi */ }
+                gbDragTmpPath = null;
+            }
+            const dir = path.join(os.tmpdir(), 'xxmm-gb-drag');
+            fs.mkdirSync(dir, { recursive: true });
+            let base = url.split('/').pop().split(/[?#]/)[0] || '';
+            base = base.replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 80) || 'dragged-image';
+            const ext = (base.match(/\.([A-Za-z0-9]+)$/) || [])[1] || '';
+            if (!/^(png|jpe?g|gif|webp|bmp|avif)$/i.test(ext)) {
+                base = base.replace(/\.[A-Za-z0-9]+$/, '') + '.png';
+            }
+            const tmpPath = path.join(dir, base);
+            fs.writeFileSync(tmpPath, buf);
+            gbDragTmpPath = tmpPath;
+            ipcRenderer.send('gb-start-drag', tmpPath);
+            return true;
+        } catch (e) {
+            console.error('gbStartDragImage failed for', imageUrl, e);
+            return false;
+        }
+    }
+
+    // Kiểm tra bản mới cho mọi mod đã gắn link Banana — hỏi lần lượt
+    // từng mod, nghỉ 300ms giữa các lần hỏi để không dội yêu cầu vào
+    // Banana. Mod nào file mới nhất khác file đã lưu thì bật dấu "Bản
+    // mới" trên thẻ (sự kiện gbUpdateReady). Mod mới gắn link (chưa có
+    // mã file) thì nhận file mới nhất làm mốc, không báo bản mới.
+    // manual = bấm nút kiểm tra tay: luôn báo kết quả; tự chạy lúc mở
+    // app thì chỉ báo khi có bản mới. Đang chạy thì lần gọi sau bỏ qua.
+    async checkGameBananaUpdates(manual = false) {
+        if (gbChecking) return { checked: 0, updates: 0, skipped: true };
+        gbChecking = true;
+        let checked = 0;
+        let updates = 0;
+        let failed = 0;
+        try {
+            const mods = ModLoader.modsRaw || [];
+            for (const modInfo of mods) {
+                // Thư mục mod đã bị xóa ngoài (người dùng xóa tay trong
+                // lúc app chạy, plugin xóa...) mà danh sách gốc chưa
+                // tải lại: bỏ qua, không hỏi Banana cho mod ma.
+                if (!modInfo.location || !fs.existsSync(modInfo.location)) continue;
+                const modId = parseGameBananaModId(modInfo.metaData.get('url') || '');
+                if (!modId) continue;
+                const files = await this.gbFetchModFiles(modId);
+                if (files === null) {
+                    // Hỏi Banana lỗi (mạng chập chờn...): bỏ qua mod này
+                    // lần này, lần kiểm tra sau hỏi lại — không tính là
+                    // "không có bản mới".
+                    failed++;
+                    await new Promise(r => setTimeout(r, 300));
+                    continue;
+                }
+                const latest = pickLatestGbFile(files);
+                if (!latest) {
+                    // Mod không có file tải được: đã kiểm xong, không có
+                    // gì để cập nhật.
+                    checked++;
+                    await new Promise(r => setTimeout(r, 300));
+                    continue;
+                }
+                checked++;
+                const storedFileId = Number(modInfo.metaData.get('gbFileId') || 0);
+                const modData = this.data.modList.find((m) => m.id === modInfo.id);
+                if (!storedFileId) {
+                    // Chưa có mốc (vừa dán link tay): nhận file mới nhất
+                    // làm mốc, không báo bản mới.
+                    modInfo.metaData.set('gbFileId', latest.id, ModMetaDataType.Number);
+                    modInfo.metaData.set('gbFileDate', latest.dateAdded, ModMetaDataType.Number);
+                    modInfo.saveMetaData();
+                } else if (latest.id !== storedFileId) {
+                    updates++;
+                    if (modData && !modData.gbHasUpdate) {
+                        modData.gbHasUpdate = true;
+                        EventSystem.trigger(EventType.gbUpdateReady, modData, true);
+                    }
+                } else if (modData && modData.gbHasUpdate) {
+                    // Đã là bản mới nhất (vd vừa cập nhật bằng tay ở
+                    // ngoài): tắt dấu cũ đi.
+                    modData.gbHasUpdate = false;
+                    EventSystem.trigger(EventType.gbUpdateReady, modData, false);
+                }
+                await new Promise(r => setTimeout(r, 300));
+            }
+        } finally {
+            gbChecking = false;
+        }
+        if (manual || updates > 0) {
+            if (updates > 0) {
+                t_snack({
+                    vi: `Có ${updates} mod có bản mới trên Banana`,
+                    en: `${updates} mod(s) have updates on GameBanana`,
+                });
+            } else if (manual && failed > 0 && checked === 0) {
+                // Bấm tay mà không hỏi được mod nào: báo lỗi mạng rõ
+                // ràng thay vì "không có bản mới" gây hiểu lầm.
+                t_snack({
+                    vi: 'Không kiểm tra được bản mới, hãy thử lại sau',
+                    en: 'Could not check for updates, please try again later',
+                }, 'error');
+            } else {
+                t_snack({
+                    vi: 'Không có mod nào có bản mới',
+                    en: 'No mod updates available',
+                });
+            }
+        }
+        return { checked, updates, failed };
+    }
+
+    // Cập nhật 1 mod lên bản mới nhất trên Banana (bấm dấu "Bản mới"
+    // trên thẻ): tải bản mới về THAY BẢN CŨ, không giữ bản cũ (Đạt
+    // chốt). Giữ nguyên nhân vật/tag/tên trong mod.json; mã file + ngày
+    // file cập nhật theo bản mới. Giải nén vào thư mục tạm TRƯỚC — thành
+    // công mới thay nội dung mod cũ (extractArchive xóa thư mục đích
+    // khi lỗi nên không giải nén thẳng vào mod cũ được).
+    async gbUpdateMod(mod) {
+        if (!mod || !mod.id) return false;
+        if (gbUpdatingIds.has(mod.id)) return false;
+        gbUpdatingIds.add(mod.id);
+        try {
+            const modInfo = ModLoader.getModByID(mod.id);
+            if (!modInfo) {
+                t_snack({ vi: 'Không tìm thấy mod', en: 'Mod not found' }, 'error');
+                return false;
+            }
+            const modId = parseGameBananaModId(modInfo.metaData.get('url') || '');
+            if (!modId) {
+                t_snack({ vi: 'Mod này không có link Banana', en: 'This mod has no GameBanana link' }, 'error');
+                return false;
+            }
+            const files = await this.gbFetchModFiles(modId);
+            const latest = files ? pickLatestGbFile(files) : null;
+            if (!latest) {
+                t_snack({ vi: 'Không kiểm tra được bản mới, hãy thử lại sau', en: 'Could not check for updates, please try again later' }, 'error');
+                return false;
+            }
+            const storedFileId = Number(modInfo.metaData.get('gbFileId') || 0);
+            if (storedFileId && latest.id === storedFileId) {
+                // Đã là bản mới nhất (bấm sau khi dấu chưa kịp tắt).
+                mod.gbHasUpdate = false;
+                EventSystem.trigger(EventType.gbUpdateReady, mod, false);
+                t_snack({ vi: 'Mod này đã là bản mới nhất', en: 'This mod is already up to date' });
+                return false;
+            }
+            // Đang áp dụng thì nhớ để kiểm tra lại liên kết sau khi thay.
+            const wasApplied = this.scanAppliedModIds().includes(mod.id);
+            // Tải bản mới về.
+            this.showDialog('loading-dialog');
+            let file = null;
+            try {
+                file = await this.gbDownloadFile(latest.downloadUrl, latest.name || `gb-${latest.id}.zip`);
+            } catch (e) {
+                console.error('gbUpdateMod download failed', e);
+                t_snack({ vi: `Tải bản mới thất bại: ${e.message}`, en: `Failed to download the update: ${e.message}` }, 'error');
+                return false;
+            } finally {
+                this.dismissDialog('loading-dialog');
+            }
+            // Giải nén vào thư mục tạm (cùng ổ với kho mod để chuyển
+            // sang nhanh). Tên có mốc giờ + số ngẫu nhiên để 2 lần cập
+            // nhật cùng lúc không đụng nhau.
+            const tmpDir = path.join(
+                this.config.modSourcePath,
+                `.gb-tmp-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`
+            );
+            let ok = false;
+            try {
+                ok = await this.extractArchive(file, tmpDir);
+            } catch (e) {
+                console.error('gbUpdateMod extract failed', e);
+                ok = false;
+            }
+            if (!ok) {
+                try { if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_e) { /* bỏ qua */ }
+                return false;
+            }
+            // Thay nội dung: xóa hết trong thư mục mod TRỪ mod.json (giữ
+            // nhân vật/tag/tên), rồi chuyển nội dung mới sang.
+            const modPath = modInfo.location;
+            try {
+                for (const entry of fs.readdirSync(modPath)) {
+                    if (entry === 'mod.json') continue;
+                    fs.rmSync(path.join(modPath, entry), { recursive: true, force: true });
+                }
+                for (const entry of fs.readdirSync(tmpDir)) {
+                    fs.renameSync(path.join(tmpDir, entry), path.join(modPath, entry));
+                }
+            } catch (e) {
+                console.error('gbUpdateMod swap failed', e);
+                t_snack({ vi: 'Thay bản mới thất bại, hãy kiểm tra lại thư mục mod', en: 'Failed to replace the mod files, please check the mod folder' }, 'error');
+                return false;
+            } finally {
+                try { if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_e) { /* bỏ qua */ }
+            }
+            // Ghi mốc file mới + tắt dấu bản mới.
+            modInfo.metaData.set('gbFileId', latest.id, ModMetaDataType.Number);
+            modInfo.metaData.set('gbFileDate', latest.dateAdded, ModMetaDataType.Number);
+            modInfo.saveMetaData();
+            mod.gbHasUpdate = false;
+            EventSystem.trigger(EventType.gbUpdateReady, mod, false);
+            // Ảnh bìa/dung lượng có thể đổi theo bản mới: đuổi ảnh cũ
+            // khỏi bộ nhớ đệm, quét lại dung lượng, thẻ tự đọc lại ảnh
+            // qua modInfoChanged.
+            ImageHelper.evictImage(mod.preview);
+            mod.clearPreviewCache();
+            mod.sizeBytes = -1;
+            ModSizeScanner.scanMissing([mod]);
+            mod.triggerChanged();
+            // Mod đang áp: liên kết trỏ vào thư mục (đường dẫn không
+            // đổi) nên vẫn còn hiệu lực — kiểm tra lại cho chắc, mất
+            // thì tạo lại.
+            if (wasApplied) this.gbEnsureAppliedLink(modInfo);
+            t_snack({ vi: `Đã cập nhật ${mod.name} lên bản mới`, en: `Updated ${mod.name} to the latest version` });
+            return true;
+        } finally {
+            gbUpdatingIds.delete(mod.id);
+        }
+    }
+
+    // Mod đang áp mà liên kết trong thư mục đích mất (vd người dùng xóa
+    // tay lúc đang cập nhật) thì tạo lại — chỉ tạo khi chưa có gì ở đó;
+    // thư mục/file thật thì không đụng vào (theo luật ApplyMods).
+    gbEnsureAppliedLink(modInfo) {
+        if (this.config.ifUseTraditionalApply) return;
+        const target = this.config.modTargetPath;
+        const source = this.config.modSourcePath;
+        if (!target || !source) return;
+        const dest = path.join(target, modInfo.modName);
+        const src = path.join(source, modInfo.modName);
+        try {
+            fs.lstatSync(dest);
+            // Đã có gì ở đó (liên kết, thư mục hay file thật): không đụng vào.
+            return;
+        } catch (e) {
+            if (!e || e.code !== 'ENOENT') return;
+        }
+        try {
+            fs.symlinkSync(src, dest, 'junction');
+        } catch (e) {
+            console.error(`gbEnsureAppliedLink: cannot recreate link ${dest}`, e);
+        }
+    }
+
+    // Dọn thư mục tạm của lần cập nhật Banana dở dang (sập giữa chừng):
+    // chỉ xóa thư mục cũ hơn 1 giờ để không đụng lần cập nhật đang chạy
+    // (thư mục của nó còn mới).
+    gbCleanStaleTempDirs() {
+        const dir = this.config.modSourcePath;
+        if (!dir || !fs.existsSync(dir)) return;
+        let entries;
+        try {
+            entries = fs.readdirSync(dir, { withFileTypes: true });
+        } catch (_e) {
+            return;
+        }
+        const now = Date.now();
+        for (const entry of entries) {
+            if (!entry.isDirectory() || !entry.name.startsWith('.gb-tmp-')) continue;
+            const full = path.join(dir, entry.name);
+            try {
+                const stat = fs.statSync(full);
+                if (now - stat.mtimeMs < 60 * 60 * 1000) continue;
+                fs.rmSync(full, { recursive: true, force: true });
+            } catch (_e) {
+                // Xóa không được thì thôi — lần sau dọn tiếp.
+            }
+        }
     }
 
     async setFilter(character) {

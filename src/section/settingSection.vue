@@ -27,6 +27,7 @@
                 <s-divider></s-divider>
                 <settingBar :data="presetPathData"></settingBar>
                 <settingBar :data="ifUseTraditionalApply"></settingBar>
+                <settingBar :data="showConflictWarning"></settingBar>
 
                 <s-divider></s-divider>
                 <s-button class="OO-color-gradient" @click="console.log(iManager.config)">
@@ -44,80 +45,84 @@
 
                 <div class="placeholder" style="flex: 1;min-height: 150px;"></div>
             </div>
-            <!-- -切换配置 -->
-            <!-- -在这里你可以选择开启在开始的时候选择配置文件的功能，并且设置配置文件保存位置 -->
-            <div v-if="currentTab === 'switch-config'">
-                <settingBar :data="openSwitchConfigPage"></settingBar>
-                <settingBar :data="openConfigFolder"></settingBar>
+            <!-- -Mod Fixer: sửa mod skin hỏng sau khi game cập nhật -->
+            <div v-if="currentTab === 'fixer'">
+                <div class="OO-setting-bar fixer-block">
+                    <h3>{{ $t('fixer.title') }}</h3>
+                    <p>{{ $t('fixer.description') }}</p>
+                    <p>{{ $t('fixer.currentVersion', { version: fixerVersionText }) }}</p>
+                </div>
                 <s-divider></s-divider>
-                <Markdown :content="$t('firstLoad.switchConfigTitle1')"></Markdown>
-                <Markdown :content="$t('firstLoad.switchConfigInfo1')"></Markdown>
-                <settingBar :data="newConfigName"></settingBar>
-                <settingBar :data="addConfig"></settingBar>
-                <s-divider></s-divider>
-                <Markdown :content="$t('firstLoad.switchConfigInfo2')"></Markdown>
-                <settingBar :data="changeConfig"></settingBar>
-                <settingBar :data="createShortOfCurrentConfig"></settingBar>
-                <div class="placeholder" style="flex: 1;min-height: 150px;"></div>
-            </div>
-
-
-
-            <!-- -about page -->
-            <div v-if="currentTab === 'about'">
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('firstLoad.aboutProgram') }} </h3>
-                </div>
-
-                <div class="OO-box OO-shade-box">
-                    <p> {{ $t('firstLoad.aboutProgramInfo') }} </p>
-                </div>
-                <div class="OO-setting-bar">
-                    <p> {{ $t('firstLoad.aboutProgramInfo-1') }} </p>
-                </div>
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('author') }} </h3>
-                    <p> XLXZ </p>
-                </div>
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('firstLoad.thanks') }} </h3>
-                    <s-button class="OO-button-box" @click="iManager.openUrl('https://github.com/soliddanii')">
-                        soliddanii
+                <div class="OO-setting-bar fixer-block fixer-actions">
+                    <s-button class="OO-button" :disabled="fixerState.checking || fixerState.downloading" @click="handleFixerCheck">
+                        {{ fixerState.checking ? $t('fixer.checking') : $t('fixer.checkButton') }}
+                    </s-button>
+                    <s-button class="OO-button" :disabled="fixerState.downloading || (fixerInstalled && !fixerState.latestVersion)" @click="handleFixerDownload">
+                        {{ fixerState.downloading ? $t('fixer.downloading', { percent: fixerState.downloadPercent }) : $t('fixer.downloadButton') }}
+                    </s-button>
+                    <s-button class="OO-button" :disabled="!fixerInstalled" @click="handleFixerOpen">
+                        {{ $t('fixer.openButton') }}
                     </s-button>
                 </div>
+                <div class="OO-setting-bar fixer-block">
+                    <p>{{ $t('fixer.modsPathLabel') }}</p>
+                    <p class="fixer-path">{{ fixerStatus.modsPath }}</p>
+                </div>
                 <s-divider></s-divider>
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('github') }} </h3>
-                    <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                        style="border: 5px solid  var(--s-color-surface-container-high);transform: scale(1);left: 15px;"
-                        @click="iManager.openUrl('https://github.com/XiaoLinXiaoZhu/XX-Mod-Manager')">
-                        <s-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                                <path d="m256-240-56-56 384-384H240v-80h480v480h-80v-344L256-240Z"></path>
-                            </svg></s-icon>
-                    </s-icon-button>
+                <div class="OO-setting-bar fixer-block">
+                    <h3>{{ $t('fixer.scanTitle') }}</h3>
+                    <p>{{ $t('fixer.scanHint') }}</p>
+                    <div class="fixer-scan-actions">
+                        <s-button class="OO-button" :disabled="fixerState.scanning || fixerState.flowStep !== 'idle'" @click="handleFixerScan">
+                            {{ fixerState.scanning ? $t('fixer.scanning') : $t('fixer.scanButton') }}
+                        </s-button>
+                        <s-button class="OO-button" :disabled="fixerState.scanning || fixerState.flowStep !== 'idle'" @click="handleFixerAutoFix">
+                            {{ $t('fixer.autoFixButton') }}
+                        </s-button>
+                    </div>
                 </div>
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('gamebanana') }} </h3>
-                    <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                        style="border: 5px solid  var(--s-color-surface-container-high);transform: scale(1);left: 15px;"
-                        @click="iManager.openUrl('https://gamebanana.com/tools/17889')">
-                        <s-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                                <path d="m256-240-56-56 384-384H240v-80h480v480h-80v-344L256-240Z"></path>
-                            </svg></s-icon>
-                    </s-icon-button>
+                <div v-if="fixerState.scannedOnce" class="OO-setting-bar fixer-block fixer-scan-list">
+                    <p v-if="fixerState.suspects.length === 0">{{ $t('fixer.noBrokenMods') }}</p>
+                    <template v-else>
+                        <p>{{ $t('fixer.scanDone', { count: fixerState.suspects.length }) }}</p>
+                        <div class="fixer-select-all">
+                            <s-button class="OO-button" @click="handleFixerSelectAll">{{ $t('fixer.selectAll') }}</s-button>
+                            <s-button class="OO-button" @click="handleFixerDeselectAll">{{ $t('fixer.deselectAll') }}</s-button>
+                        </div>
+                        <div v-for="mod in fixerState.suspects" :key="mod.modId" class="fixer-suspect-row">
+                            <s-checkbox :checked="fixerState.selectedIds.includes(mod.modId)" @change="handleFixerToggle(mod.modId, $event)"></s-checkbox>
+                            <span class="fixer-suspect-name">{{ mod.modName }}</span>
+                            <span class="fixer-suspect-count">{{ $t('fixer.oldHashes', { count: mod.matchedHashes.length }) }}</span>
+                        </div>
+                        <s-button class="OO-button" :disabled="fixerState.selectedIds.length === 0 || fixerState.flowStep !== 'idle'" @click="handleFixerStart">
+                            {{ $t('fixer.fixButton') }}
+                        </s-button>
+                    </template>
                 </div>
-                <div class="OO-setting-bar">
-                    <h3> {{ $t('caimogu') }} </h3>
-                    <s-icon-button type="filled" slot="start" class="OO-icon-button"
-                        style="border: 5px solid  var(--s-color-surface-container-high);transform: scale(1);left: 15px;"
-                        @click="iManager.openUrl('https://www.caimogu.cc/post/1408504.html')">
-                        <s-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                                <path d="m256-240-56-56 384-384H240v-80h480v480h-80v-344L256-240Z"></path>
-                            </svg></s-icon>
-                    </s-icon-button>
+                <div v-if="fixerState.flowStep !== 'idle'" class="OO-setting-bar fixer-block fixer-flow">
+                    <p v-if="fixerState.flowStep === 'preparing'">{{ fixerState.progressTotal > 0 ? $t('fixer.copyingOut', { done: fixerState.progressDone, total: fixerState.progressTotal }) : $t('fixer.fixPreparing') }}</p>
+                    <template v-if="fixerState.flowStep === 'waiting' && fixerState.prepared">
+                        <p>{{ fixerState.prepared.mods.map((m) => m.modName).join(', ') }}</p>
+                        <p>{{ $t('fixer.tempFolderLabel') }}</p>
+                        <p class="fixer-path">{{ fixerState.prepared.tempDir }}</p>
+                        <s-button class="OO-button" @click="handleFixerCopyTempPath">{{ $t('fixer.copyPath') }}</s-button>
+                        <p>{{ $t('fixer.fixWaiting') }}</p>
+                    </template>
+                    <p v-if="fixerState.flowStep === 'applying'">{{ fixerState.progressTotal > 0 ? $t('fixer.copyingBack', { done: fixerState.progressDone, total: fixerState.progressTotal }) : $t('fixer.fixApplying') }}</p>
+                    <div v-if="fixerState.flowStep === 'done'">
+                        <p v-if="fixerDoneCount > 0">{{ $t('fixer.fixDone', { count: fixerDoneCount }) }}</p>
+                        <p v-if="fixerUnchangedCount > 0">{{ $t('fixer.fixUnchanged', { count: fixerUnchangedCount }) }}</p>
+                        <p v-if="fixerFailedCount > 0">{{ $t('fixer.fixFailed', { count: fixerFailedCount }) }}</p>
+                        <p v-for="r in fixerState.results" :key="r.modId" class="fixer-result" :class="'fixer-result-' + r.status">{{ r.modName }}</p>
+                        <p>{{ $t('fixer.backupNote') }}</p>
+                        <s-button class="OO-button" @click="handleFixerDismissResults">{{ $t('buttons.close') }}</s-button>
+                    </div>
                 </div>
                 <div class="placeholder" style="flex: 1;min-height: 150px;"></div>
             </div>
+            <!-- Tab Chuyển đổi cấu hình + Giới thiệu đã bỏ theo lệnh Đạt
+                 23/11 (test10): đổi cấu hình vẫn làm được bằng tham số
+                 dòng lệnh --customConfig / --switchConfig, xem Help. -->
 
             <!-- -插件管理面板，控制插件的开关 -->
             <div v-if="currentTab === 'plugin'">
@@ -184,7 +189,6 @@ import { computed, onMounted, ref, watch } from 'vue';
 import IManager from '../../electron/IManager';
 const iManager = new IManager();
 import fsProxy from '../../electron/fsProxy';
-import TapeConfig from '../../switchConfig/src/js/configManager.ts';
 import getData from './settingSectionData.js';
 const {
     languageData,
@@ -199,15 +203,15 @@ const {
 } = getData();
 
 import { useI18n } from 'vue-i18n'
-import Markdown from '../components/markdown.vue';
 const { t, locale } = useI18n()
 
 import { IPluginLoader } from '../../helper/PluginLoader.ts';
 import { EventSystem, EventType } from '../../helper/EventSystem.ts';
 import { SnackType, t_snack, snack } from '../../helper/SnackHelper.ts';
 import { updateState, fetchAppVersion, checkForUpdates } from '../../helper/UpdateHelper';
+import { fixerState } from '../../helper/FixerHelper';
 
-const tabs = ref(['normal', 'advanced', 'switch-config', 'about', 'plugin']);
+const tabs = ref(['normal', 'advanced', 'fixer', 'plugin']);
 const translatedTabs = computed(() => {
     const tTab = tabs.value.map((tab) => {
         // 如果 是 插件的 tab ，则尝试获取 plugin.t_displayName
@@ -265,6 +269,199 @@ watch(() => updateState.status, (newStatus) => {
     }
 });
 
+//-==================== Mod Fixer ====================-
+// Trạng thái Fixer (đọc trực tiếp từ config + đĩa; đọc lại sau mỗi
+// thao tác vì computed không tự cập nhật khi config đổi).
+const fixerStatus = ref(iManager.fixerStatus());
+const fixerInstalled = computed(() => fixerStatus.value.installed);
+const fixerVersionText = computed(() => fixerStatus.value.version || t('fixer.notDownloaded'));
+const fixerDoneCount = computed(() => fixerState.results.filter((r) => r.status === 'fixed').length);
+const fixerUnchangedCount = computed(() => fixerState.results.filter((r) => r.status === 'unchanged').length);
+const fixerFailedCount = computed(() => fixerState.results.filter((r) => r.status === 'failed').length);
+
+const refreshFixerStatus = () => { fixerStatus.value = iManager.fixerStatus(); };
+
+const handleFixerCheck = async () => {
+    if (fixerState.checking || fixerState.downloading) return;
+    fixerState.checking = true;
+    fixerState.latestVersion = '';
+    try {
+        const result = await iManager.checkFixerUpdate();
+        if (!result) return;
+        if (result.updateAvailable) {
+            fixerState.latestVersion = result.latest;
+            snack(t('fixer.updateAvailable', { version: result.latest }));
+        } else {
+            snack(t('fixer.upToDate'));
+        }
+    } catch (e) {
+        console.error('checkFixerUpdate failed', e);
+        snack(t('fixer.checkFailed'), SnackType.error);
+    } finally {
+        fixerState.checking = false;
+    }
+};
+
+const handleFixerDownload = async () => {
+    if (fixerState.downloading || (fixerInstalled.value && !fixerState.latestVersion)) return;
+    fixerState.downloading = true;
+    fixerState.downloadPercent = 0;
+    try {
+        const exePath = await iManager.downloadFixer((received, total) => {
+            fixerState.downloadPercent = total > 0 ? Math.round((received / total) * 100) : 0;
+        });
+        if (exePath) {
+            snack(t('fixer.downloadDone'));
+            fixerState.latestVersion = '';
+            refreshFixerStatus();
+        }
+    } catch (e) {
+        console.error('downloadFixer failed', e);
+        snack(t('fixer.downloadFailed'), SnackType.error);
+    } finally {
+        fixerState.downloading = false;
+        fixerState.downloadPercent = 0;
+    }
+};
+
+const handleFixerOpen = () => {
+    if (!iManager.openFixer()) snack(t('fixer.openFailed'), SnackType.error);
+};
+
+const handleFixerScan = async () => {
+    if (fixerState.scanning || fixerState.flowStep !== 'idle') return null;
+    fixerState.scanning = true;
+    try {
+        const suspects = await iManager.fixerScanBrokenMods();
+        if (suspects) {
+            fixerState.suspects = suspects;
+            fixerState.selectedIds = [];
+            fixerState.scannedOnce = true;
+            // Lưu id mod nghi hỏng vào config để công tắc lọc ở trang Mod
+            // vẫn dùng được sau khi đóng app mở lại (Đạt dặn 23/11).
+            iManager.config.fixerSuspectIds = suspects.map((m) => m.modId);
+            iManager.saveConfig();
+            return suspects;
+        }
+        return null;
+    } catch (e) {
+        console.error('fixerScanBrokenMods failed', e);
+        snack(t('fixer.scanFailed'), SnackType.error);
+        return null;
+    } finally {
+        fixerState.scanning = false;
+    }
+};
+
+// Tự sửa hết (Đạt chốt 23/11: bỏ bước kiểm mod trong game): quét rồi
+// sửa hết mod nghi hỏng luôn, dùng lại đúng luồng sửa của nút Sửa
+// (chép tạm -> mở Fixer -> đợi đóng -> chép về), chỉ bỏ bước tick
+// chọn tay. Quét ra 0 mod thì báo, không mở Fixer.
+const handleFixerAutoFix = async () => {
+    if (fixerState.scanning || fixerState.flowStep !== 'idle') return;
+    if (!fixerInstalled.value) {
+        snack(t('fixer.needFixerFirst'), SnackType.error);
+        return;
+    }
+    const suspects = await handleFixerScan();
+    if (!suspects) return; // Quét lỗi: handleFixerScan đã báo lỗi rồi.
+    if (suspects.length === 0) {
+        snack(t('fixer.noBrokenMods'));
+        return;
+    }
+    fixerState.selectedIds = suspects.map((m) => m.modId);
+    await handleFixerStart();
+};
+
+const handleFixerToggle = (modId, event) => {
+    const checked = event && event.target ? event.target.checked : !fixerState.selectedIds.includes(modId);
+    if (checked && !fixerState.selectedIds.includes(modId)) fixerState.selectedIds.push(modId);
+    else if (!checked) fixerState.selectedIds = fixerState.selectedIds.filter((id) => id !== modId);
+};
+const handleFixerSelectAll = () => { fixerState.selectedIds = fixerState.suspects.map((m) => m.modId); };
+const handleFixerDeselectAll = () => { fixerState.selectedIds = []; };
+
+const handleFixerStart = async () => {
+    if (fixerState.flowStep !== 'idle') return;
+    if (fixerState.selectedIds.length === 0) {
+        snack(t('fixer.fixNoSelection'), SnackType.error);
+        return;
+    }
+    if (!fixerInstalled.value) {
+        snack(t('fixer.needFixerFirst'), SnackType.error);
+        return;
+    }
+    fixerState.results = [];
+    fixerState.flowStep = 'preparing';
+    fixerState.progressDone = 0;
+    fixerState.progressTotal = 0;
+    let prepared = null;
+    try {
+        prepared = await iManager.fixerPrepareFix([...fixerState.selectedIds], (done, total) => {
+            fixerState.progressDone = done;
+            fixerState.progressTotal = total;
+        });
+    } catch (e) {
+        console.error('fixerPrepareFix failed', e);
+        snack(t('fixer.fixError'), SnackType.error);
+        fixerState.flowStep = 'idle';
+        return;
+    }
+    fixerState.prepared = prepared;
+    fixerState.flowStep = 'waiting';
+    fixerState.progressDone = 0;
+    fixerState.progressTotal = 0;
+    const launched = await iManager.fixerLaunchAndWait();
+    if (!launched) {
+        iManager.fixerAbortFix(prepared);
+        fixerState.prepared = null;
+        fixerState.flowStep = 'idle';
+        snack(t('fixer.openFailed'), SnackType.error);
+        return;
+    }
+    fixerState.flowStep = 'applying';
+    fixerState.progressDone = 0;
+    fixerState.progressTotal = 0;
+    try {
+        fixerState.results = await iManager.fixerApplyFixed(prepared, (done, total) => {
+            fixerState.progressDone = done;
+            fixerState.progressTotal = total;
+        });
+    } catch (e) {
+        console.error('fixerApplyFixed failed', e);
+        snack(t('fixer.fixError'), SnackType.error);
+        fixerState.results = [];
+    }
+    fixerState.prepared = null;
+    fixerState.flowStep = 'done';
+    // Xóa mod đã sửa khỏi danh sách nghi hỏng để không sửa trùng.
+    const fixedIds = new Set(fixerState.results.filter((r) => r.status === 'fixed').map((r) => r.modId));
+    fixerState.suspects = fixerState.suspects.filter((m) => !fixedIds.has(m.modId));
+    fixerState.selectedIds = fixerState.selectedIds.filter((id) => !fixedIds.has(id));
+    // Đồng bộ danh sách đã lưu: mod đã sửa biến khỏi lọc ở trang Mod
+    // ngay, không cần đợi quét lại.
+    iManager.config.fixerSuspectIds = fixerState.suspects.map((m) => m.modId);
+    iManager.saveConfig();
+};
+
+const handleFixerCopyTempPath = async () => {
+    if (!fixerState.prepared) return;
+    try {
+        await navigator.clipboard.writeText(fixerState.prepared.tempDir);
+        snack(t('fixer.pathCopied'));
+    } catch (e) {
+        console.error('copy temp path failed', e);
+    }
+};
+
+// Đóng kết quả sửa, về trạng thái chờ để quét/sửa tiếp được — không có
+// nút này thì sau 1 lần sửa, nút Quét + nút Sửa khóa luôn (flowStep
+// kẹt ở 'done') tới khi mở lại app.
+const handleFixerDismissResults = () => {
+    fixerState.results = [];
+    fixerState.flowStep = 'idle';
+};
+
 
 const plugins = ref({});
 const pluginConfig = ref({});
@@ -309,137 +506,6 @@ const refreshDuleToPlugin = {
     onChange: (value) => {
         const { ipcRenderer } = require('electron');
         ipcRenderer.send('refresh-main-window');
-    }
-}
-
-const newConfigName = {
-    name: 'newConfigName',
-    data: '',
-    type: 'string',
-    displayName: 'New Config Name',
-    t_displayName: {
-        vi: 'Tên cấu hình mới',
-        en: 'New Config Name'
-    },
-    onChange: (value) => {
-        console.log('newConfigName changed:', value);
-        newConfigName.data = value;
-    }
-}
-
-const addConfig = {
-    name: 'addConfig',
-    data: null,
-    type: 'iconbutton',
-    displayName: 'Add Config',
-    buttonName: 'Add',
-    t_displayName: {
-        vi: 'Thêm cấu hình',
-        en: 'Add Config'
-    },
-    t_buttonName: {
-        vi: 'Thêm',
-        en: 'Add'
-    },
-    onChange: (value) => {
-        console.log('addConfig changed:', value);
-        TapeConfig.createConfig(newConfigName.data).then(() => {
-            console.log('addConfig success');
-            // 打开配置页面
-            iManager.changeUrl('/switchConfig');
-        }).catch((err) => {
-            console.log('addConfig failed:', err);
-        });
-    }
-}
-
-const openConfigFolder = {
-    name: 'openConfigFolder',
-    data: null,
-    type: 'iconbutton',
-    displayName: 'Open Config Folder',
-    buttonName: 'Open',
-    t_displayName: {
-        vi: 'Mở thư mục cấu hình',
-        en: 'Open Config Folder'
-    },
-    t_buttonName: {
-        vi: 'Mở',
-        en: 'Open'
-    },
-    onChange: (value) => {
-        console.log('openConfigFolder changed:', value);
-        TapeConfig.getConfigRootPath().then((path) => {
-            fsProxy.openDir(path);
-        }).catch((err) => {
-            console.log('openConfigFolder failed:', err);
-        });
-    }
-}
-
-const openSwitchConfigPage = {
-    name: 'openSwitchConfigPage',
-    data: null,
-    type: 'iconbutton',
-    displayName: 'Open Switch Config Page',
-    buttonName: 'Open',
-    t_displayName: {
-        vi: 'Mở trang đổi cấu hình',
-        en: 'Open Switch Config Page'
-    },
-    t_buttonName: {
-        vi: 'Mở',
-        en: 'Open'
-    },
-    onChange: (value) => {
-        console.log('openSwitchConfigPage,herf:', window.location.href, '/switchConfig');
-        iManager.changeUrl('/switchConfig');
-    }
-}
-
-const changeConfig = {
-    name: 'changeConfig',
-    data: null,
-    type: 'dir',
-    displayName: 'Change Config',
-    t_displayName: {
-        vi: 'Lưu cấu hình thành',
-        en: 'Save Config To'
-    },
-    onChange: (value) => {
-        console.log('changeConfig changed:', value);
-        changeConfig.data = value;
-    }
-}
-
-const createShortOfCurrentConfig = {
-    name: 'createShortOfCurrentConfig',
-    data: null,
-    type: 'iconbutton',
-    displayName: 'Create Short Of Custom Config',
-    description: 'Create Short Of Custom Config',
-    buttonName: 'Create',
-    t_displayName: {
-        vi: 'Tạo shortcut dùng cấu hình hiện tại',
-        en: 'Create Short Of Current Config'
-    },
-    t_description: {
-        vi: 'Tạo shortcut dùng cấu hình hiện tại',
-        en: 'Create Short Of Current Config'
-    },
-    t_buttonName: {
-        vi: 'Tạo shortcut',
-        en: 'Create Short Cut'
-    },
-    onChange: (value) => {
-        console.log('createShortOfCurrentConfig changed:', changeConfig.data);
-
-
-        iManager.createAppShortCut(changeConfig.data).then(() => {
-            console.log('createShortOfCurrentConfig success');
-        }).catch((err) => {
-            console.log('createShortOfCurrentConfig failed:', err);
-        });
     }
 }
 
@@ -493,6 +559,32 @@ const ifUseTraditionalApply = {
         
     }
 }
+
+// Công tắc cảnh báo mod trùng nhau (Đạt dặn 23/11, test10): mặc định
+// TẮT — anh bật khi cần. Tắt thì bấm Apply áp dụng thẳng, không quét
+// trùng; bật thì có trùng sẽ hiện hộp cảnh báo trước như cũ.
+const showConflictWarning = {
+    name: 'showConflictWarning',
+    data: iManager.config.showConflictWarning,
+    type: 'boolean',
+    displayName: 'Show Mod Conflict Warning',
+    t_displayName: {
+        vi: 'Hiện cảnh báo mod trùng nhau',
+        en: 'Show Mod Conflict Warning'
+    },
+    description: 'If true, applying mods that change the same game asset will show a warning dialog first',
+    t_description: {
+        vi: 'Khi bật, bấm Áp dụng mà có 2 mod cùng thay 1 thứ trong game thì app hiện hộp cảnh báo trước; khi tắt thì áp dụng thẳng, không hỏi.',
+        en: 'When enabled, applying mods that change the same game asset will show a warning dialog first; when disabled, mods are applied directly without asking.'
+    },
+    onChange: (value) => {
+        console.log('showConflictWarning changed:', value);
+        showConflictWarning.data = value;
+        iManager.config.showConflictWarning = value;
+        iManager.saveConfig();
+    }
+}
+
 
 
 onMounted(async () => {
@@ -567,6 +659,97 @@ onMounted(async () => {
 .update-check-row p {
     margin: 0;
     white-space: nowrap;
+}
+
+/* Mod Fixer: khối xếp dọc (OO-setting-bar mặc định là hàng ngang cao
+   50px, không đủ cho mô tả + đường dẫn + danh sách). */
+.fixer-block {
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;
+    padding: 16px 20px;
+    gap: 8px;
+}
+
+.fixer-block h3 {
+    max-width: 100%;
+}
+
+.fixer-block p {
+    margin: 0;
+}
+
+/* Nút trong khối Fixer xếp theo luồng thường: style.css đặt
+   .OO-setting-bar s-button tuyệt đối ở mép phải (cho hàng 1 nút như
+   kiểm tra cập nhật) — trong khối Fixer có nhiều nút, để vậy chúng
+   chồng hết lên nhau ở mép phải, bấm nhầm nút (phát hiện qua ảnh chụp
+   probe test4). Dùng position: relative (KHÔNG phải static): phần tử
+   con tuyệt đối trong shadow DOM của Sober cần host có vị trí để neo
+   vào — host static thì chúng neo vào khối .fixer-block, phủ kín cả
+   khối, bấm nút nào cũng trúng nút sau cùng (phát hiện qua
+   elementFromPoint ở diag test4). Scoped nên thắng luật toàn cục. */
+.fixer-block s-button {
+    position: relative;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    max-width: none;
+}
+
+.fixer-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+/* Hàng nút Quét + Tự sửa hết trong khối quét. */
+.fixer-scan-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.fixer-path {
+    width: 100%;
+    word-break: break-all;
+    font-size: 13px;
+    color: var(--s-color-on-surface-variant, #aaa);
+}
+
+.fixer-select-all {
+    display: flex;
+    gap: 8px;
+}
+
+.fixer-suspect-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 4px 0;
+}
+
+.fixer-suspect-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fixer-suspect-count {
+    font-size: 12px;
+    color: var(--s-color-on-surface-variant, #aaa);
+}
+
+.fixer-result-fixed {
+    color: #4caf50;
+}
+
+.fixer-result-unchanged {
+    color: #9e9e9e;
+}
+
+.fixer-result-failed {
+    color: #f44336;
 }
 
 .setting-content {

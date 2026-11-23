@@ -110,7 +110,7 @@
             </s-tooltip>
         </div>
         <div class="bottom-center">
-            <span class="mod-stats">{{ $t('stats.line', { total: statsTotal, enabled: selectedModIdSet.size, characters: statsCharacters }) }}</span>
+            <span class="mod-stats">{{ $t('stats.line', { total: statsTotal, enabled: statsEnabled, characters: statsCharacters }) }}</span>
         </div>
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
@@ -598,16 +598,35 @@ function handleFullImageClicked() {
 // vật. modList không phải reactive (chỉ bắn sự kiện modListChanged khi
 // gán lại) nên đọc lại mỗi khi có sự kiện modListChanged / modInfoChanged
 // (đổi nhân vật của mod cũng đổi số nhân vật); số mod đang bật đọc thẳng
-// từ selectedModIdSet (reactive) trong template nên tự cập nhật khi bấm
-// chọn/bỏ chọn. "Unknown" không phải nhân vật nên không tính.
+// từ selectedModIdSet (reactive) nên tự cập nhật khi bấm chọn/bỏ chọn.
+// "Unknown" không phải nhân vật nên không tính. Lọc "chỉ mod nghi hỏng"
+// đang bật thì cả 3 số đều theo mod nghi hỏng (Đạt dặn 23/11).
 const statsTotal = ref(0);
 const statsCharacters = ref(0);
 const refreshStats = () => {
-    const list = iManager.data.modList || [];
+    let list = iManager.data.modList || [];
+    if (g_config_vue.showOnlySuspected.value) {
+        const ids = g_config_vue.fixerSuspectIds.value;
+        if (Array.isArray(ids)) {
+            const suspectSet = new Set(ids);
+            list = list.filter(mod => suspectSet.has(mod.id));
+        }
+    }
     statsTotal.value = list.length;
     const characters = new Set(list.map(mod => (mod.character || '').trim()).filter(c => c && c !== 'Unknown'));
     statsCharacters.value = characters.size;
 };
+// Số mod đang bật trong dòng thống kê: lọc nghi hỏng bật thì chỉ đếm
+// mod đang bật nằm trong danh sách nghi hỏng.
+const statsEnabled = computed(() => {
+    if (!g_config_vue.showOnlySuspected.value) return selectedModIdSet.size;
+    const ids = g_config_vue.fixerSuspectIds.value;
+    if (!Array.isArray(ids)) return selectedModIdSet.size;
+    const suspectSet = new Set(ids);
+    let n = 0;
+    for (const id of selectedModIdSet) if (suspectSet.has(id)) n++;
+    return n;
+});
 
 onMounted(() => {
     refreshStats();
@@ -615,6 +634,8 @@ onMounted(() => {
     EventSystem.on(EventType.modListChanged, refreshStats);
     EventSystem.on(EventType.modListChanged, refreshApplied);
     EventSystem.on(EventType.modInfoChanged, refreshStats);
+    // Lọc nghi hỏng đổi (bật/tắt, quét lại) thì tính lại thống kê.
+    watch(() => [g_config_vue.showOnlySuspected.value, g_config_vue.fixerSuspectIds.value], refreshStats);
     // Đo rộng khung lưới ngay + theo dõi khi đổi cỡ (để tính số cột,
     // nhãn % thật và nút +/− theo cột).
     measureGridWidth();
@@ -802,6 +823,13 @@ function handleUndoButtonClicked() {
 
 async function handleApplyButtonClicked() {
     if (applying.value) {
+        return;
+    }
+    // Công tắc cảnh báo mod trùng nhau (Đạt dặn 23/11, mặc định TẮT):
+    // tắt thì áp dụng thẳng, không quét trùng; bật thì giữ hành vi cũ
+    // (có trùng thì hiện hộp hỏi trước).
+    if (!iManager.config.showConflictWarning) {
+        await runApply();
         return;
     }
     // Cảnh báo mod đụng nhau: quét các mod đang bật, nếu 2 mod cùng thay

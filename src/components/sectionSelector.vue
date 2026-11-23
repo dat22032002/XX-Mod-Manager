@@ -9,6 +9,9 @@
                 :class="{ active: sec === currentSection }" 
                 :data-section="sec"
                 @click="selectSection(sec)"
+                @dragenter="onSectionDragHover(sec, $event)"
+                @dragover="onSectionDragHover(sec, $event)"
+                @dragleave="onSectionDragLeave(sec)"
             >
                 <p v-if="!displayLabels"> {{ $t('element.section.' + sec) }} </p>
                 <template v-else>
@@ -23,7 +26,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 
 const props = defineProps({
     sections: {
@@ -55,6 +58,14 @@ const props = defineProps({
     labels: {
         type: Array,
         default: undefined
+    },
+    // Chuyển mục khi kéo file rê giữ trên nút (1.5.25 test3): kéo ảnh
+    // từ trang Banana, rê qua nút Mod giữ ~0,5 giây thì tự chuyển sang
+    // tab Mod để thả vào thẻ. Chỉ bật cho nút Mod/Banana/Help/Settings
+    // ở App.vue — nút Dọc/Ngang và Tất cả/Đã chọn không bật.
+    hoverSwitch: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -80,6 +91,41 @@ const selectSection = (sec) => {
     emit('update:currentSection', sec);
     emit('update:modelValue', sec);
 };
+
+// Chuyển mục khi kéo file rê giữ trên nút (1.5.25 test3, xem prop
+// hoverSwitch): chỉ nhận gói kéo có file (types chứa 'Files') để kéo
+// chữ/link không làm nhảy mục. dragover bắn liên tục nên chỉ hẹn giờ
+// 1 lần cho mỗi mục; rời nút thì hủy hẹn; mục đang hiện thì không hẹn.
+const HOVER_SWITCH_DELAY_MS = 500;
+let hoverSwitchTimer = null;
+let hoverSwitchSection = null;
+const clearHoverSwitch = () => {
+    if (hoverSwitchTimer !== null) {
+        clearTimeout(hoverSwitchTimer);
+        hoverSwitchTimer = null;
+    }
+    hoverSwitchSection = null;
+};
+const onSectionDragHover = (sec, event) => {
+    if (!props.hoverSwitch) return;
+    if (sec === currentSection.value) return;
+    const types = event.dataTransfer ? event.dataTransfer.types : [];
+    if (!types.includes('Files')) return;
+    if (hoverSwitchSection === sec) return;
+    clearHoverSwitch();
+    hoverSwitchSection = sec;
+    hoverSwitchTimer = setTimeout(() => {
+        hoverSwitchTimer = null;
+        hoverSwitchSection = null;
+        selectSection(sec);
+    }, HOVER_SWITCH_DELAY_MS);
+};
+const onSectionDragLeave = (sec) => {
+    if (hoverSwitchSection === sec) clearHoverSwitch();
+};
+onUnmounted(() => {
+    clearHoverSwitch();
+});
 
 const sliderStyle = computed(() => {
     const index = props.sections.indexOf(currentSection.value);

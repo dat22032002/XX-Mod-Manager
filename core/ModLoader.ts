@@ -106,7 +106,10 @@ class ModLoader {
             // loại khỏi danh sách quét (so khớp không phân biệt hoa thường vì
             // Windows không phân biệt). Mục cache cũ của nó cũng bị xóa ở
             // bước dọn cache bên dưới vì không còn nằm trong seenFolders.
-            const modDirs = mods.filter(mod => mod.isDirectory() && mod.name.toLowerCase() !== 'recyclebin');
+            // Thư mục tạm .gb-tmp-* của lần cập nhật Banana dở dang (sập
+            // giữa chừng) cũng không phải mod — loại luôn để không hiện
+            // thành mod ma trong lưới (dọn đĩa do gbCleanStaleTempDirs lo).
+            const modDirs = mods.filter(mod => mod.isDirectory() && mod.name.toLowerCase() !== 'recyclebin' && !mod.name.startsWith('.gb-tmp-'));
             for (let i = 0; i < modDirs.length; i += LOAD_CHUNK_SIZE) {
                 const chunk = modDirs.slice(i, i + LOAD_CHUNK_SIZE);
                 // Validity checks are async disk stats: run them together.
@@ -251,6 +254,23 @@ class ModLoader {
     private static addToIdIndex(modInfo: ModInfo): void {
         if (modInfo.id && !this.modsById.has(modInfo.id)) {
             this.modsById.set(modInfo.id, modInfo);
+        }
+    }
+
+    // Gỡ 1 mod khỏi danh sách gốc theo tên thư mục (khi xóa/hủy mod mà
+    // không tải lại toàn bộ — vd discardNewMod): dọn cả modsRaw lẫn bảng
+    // tra theo id, không thì mục ma còn lại làm các đường dùng modsRaw
+    // (kiểm tra bản mới Banana, Apply) tưởng mod vẫn còn. Trùng id thì
+    // mục còn lại thế chỗ trong bảng tra (theo luật "mục đầu thắng" của
+    // addToIdIndex).
+    public static removeModByFolder(folderName: string): void {
+        const removed = this.modsRaw.find((m) => m.modName === folderName);
+        if (!removed) return;
+        this.modsRaw = this.modsRaw.filter((m) => m !== removed);
+        if (removed.id && this.modsById.get(removed.id) === removed) {
+            this.modsById.delete(removed.id);
+            const next = this.modsRaw.find((m) => m.id === removed.id);
+            if (next) this.modsById.set(next.id, next);
         }
     }
 

@@ -291,11 +291,11 @@ const multipleGamesContentVi =
 Bằng cách dùng cấu hình cục bộ thay vì cấu hình toàn cục, bạn có thể tạo nhiều cấu hình cho các game khác nhau để đặt trình tải mod, thư mục nguồn mod, thư mục đích mod, v.v.
 
 # Tạo cấu hình cục bộ
-1. Mở trang 【Cài đặt】.
-2. Tìm trang 【Chuyển đổi cấu hình】.
-3. Chọn đường dẫn của 【Lưu thành】, nó phải là một thư mục trống, rồi bấm Tạo lối tắt.
+1. Tạo một thư mục trống cho cấu hình mới (ví dụ D:\\XXMM-ZZZ).
+2. Tạo lối tắt tới "XX Mod Manager.exe" trên màn hình nền, rồi thêm tham số --customConfig "đường dẫn thư mục vừa tạo" vào cuối ô Đích (Target) của lối tắt.
+3. Mở app bằng lối tắt đó — lần đầu mở, app hiện trang hướng dẫn cho người mới để đặt đường dẫn mod cho game đó.
 
-Sau đó, khi bạn mở chương trình bằng lối tắt tạo trên màn hình nền, chương trình sẽ tải cấu hình cục bộ bạn đã chọn, thay vì cấu hình toàn cục.
+Sau đó, mỗi lần mở app bằng lối tắt này, chương trình sẽ tải cấu hình cục bộ bạn đã chọn, thay vì cấu hình toàn cục.
 
 # Cách dùng nâng cao
 Nếu bạn biết kiến thức dòng lệnh cơ bản, việc dùng cấu hình cục bộ thực ra là cung cấp tham số khởi động khi XXMM khởi động:
@@ -515,11 +515,11 @@ const multipleGamesContentEn =
 By using local configuration instead of global configuration, you can create multiple configurations for different games to set mod loaders, mod source folders, mod target folders, etc.
 
 # Create Local Configuration
-1. Open the [Settings] page.
-2. Find the [Switch Configuration] page.
-3. Select the path of [Save As], it should be an empty folder, and then click Create Shortcut.
+1. Create an empty folder for the new configuration (for example D:\\XXMM-ZZZ).
+2. Create a desktop shortcut to "XX Mod Manager.exe", then append the parameter --customConfig "path to the folder you just created" to the end of the shortcut's Target field.
+3. Open the app with that shortcut — on the first run, the new user guide will appear so you can set the mod paths for that game.
 
-After that, when you open the program by creating a shortcut on the desktop, the program will load the local configuration you selected, instead of the global configuration.
+After that, when you open the program with this shortcut, the program will load the local configuration you selected, instead of the global configuration.
 
 # Advanced Usage
 If you know basic command line knowledge, using local configuration is actually providing startup parameters when XXMM starts:

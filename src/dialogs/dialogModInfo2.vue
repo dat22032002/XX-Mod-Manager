@@ -169,6 +169,22 @@
               </div>
             </div>
 
+            <!-- -link mod Banana (1.5.25): luôn hiện, nằm trên Mô tả.
+                 Mod tải từ Banana thì hiện link đó; mod chưa có link thì
+                 ô trống — dán link vào rồi Lưu là gắn link (được kiểm
+                 tra bản mới), xóa hết link rồi Lưu là gỡ link. -->
+            <div class="OO-setting-bar" id="edit-mod-link-row">
+              <h3> {{ $t('editDialog.mod-info-link') }} </h3>
+              <s-text-field :value="tempModInfo.url" @input="tempModInfo.url = $event.target.value"
+                style="right: 52px;" id="edit-mod-link" />
+              <div style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%);">
+                <s-icon-button v-if="tempModInfo.url" @click="handleOpenLink" class="OO-icon-button"
+                  style="margin: 0; border: 5px solid var(--s-color-surface-container-high); transform: scale(1);">
+                  <s-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" /></svg></s-icon>
+                </s-icon-button>
+              </div>
+            </div>
+
             <!-- -mod描述 -->
             <div class="OO-setting-bar"
               style="display: flex;flex-direction: column;align-items: flex-start;justify-content: space-between;height:150px;">
@@ -420,6 +436,14 @@ const handleHotkeyInput = (hotkey, value) => {
     return;
   }
   hotkey.key = value;
+}
+
+// Mở link mod bằng trình duyệt mặc định của máy (1.5.25): link dán tay
+// không có https:// thì thêm vào, không thì trình duyệt không mở được.
+const handleOpenLink = () => {
+  const url = (tempModInfo.value.url || '').trim();
+  if (!url) return;
+  iManager.openUrl(/^https?:\/\//i.test(url) ? url : `https://${url}`);
 }
 
 const handleSelectImage = async () => {

@@ -1,7 +1,8 @@
 <template>
-    <s-card ref="modItemRef" class="mod-item" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id" inWindow="none"
+    <s-card ref="modItemRef" class="mod-item" :class="{ 'cover-drop-hover': coverDropOver }" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id" inWindow="none"
         :name="props.modRef.name" :character="props.modRef.character" :data-tag="props.modRef.tag" @click="click" :compact="props.compactMode" :data-layout="props.cardLayout"
         @mouseenter="onCardHoverStart" @mouseleave="onCardHoverEnd"
+        @dragenter="onCoverDragEnter" @dragover="onCoverDragOver" @dragleave="onCoverDragLeave" @drop="onCoverDrop"
         @contextmenu.prevent.stop="openEditModDialog">
 
         <div slot="image" v-if="ifDisplayImage">
@@ -12,6 +13,12 @@
 
         <div slot="headline" id="mod-item-headline">
             <span class="mod-item-name">{{ props.modRef.name }}</span>
+            <!-- Dấu bản mới Banana: bấm để cập nhật thẳng từ thẻ (1.5.25).
+                 Nằm ở hàng tiêu đề nên hiện được cả thẻ thường lẫn thẻ gọn. -->
+            <button v-if="gbHasUpdateRef" class="gb-update-btn" :class="{ updating: gbUpdatingRef }"
+                @click.stop="updateFromBanana" :title="gbUpdateTitle">
+                {{ gbUpdatingRef ? $t('banana.updating') : $t('banana.updateAvailable') }}
+            </button>
             <button class="pin-btn" :class="{ pinned: props.modRef.pinned }" @click.stop="togglePin"
                 :title="pinTitle" aria-label="Pin to top">
                 <svg viewBox="0 0 24 24" width="18" height="18">
@@ -79,6 +86,29 @@ const sizeText = computed(() => formatModSize(sizeBytesRef.value));
 const onModSizeReady = (mod) => {
     if (mod && mod.id === props.modRef.id) {
         sizeBytesRef.value = mod.sizeBytes;
+    }
+};
+
+// Dấu bản mới Banana: kiểm tra nền lúc mở app có thể xong trước khi
+// thẻ gắn vào lưới ảo nên đọc cờ sẵn trên ModData lúc gắn, rồi sự kiện
+// gbUpdateReady cập nhật riêng thẻ này khi kiểm xong sau đó.
+const gbHasUpdateRef = ref(props.modRef.gbHasUpdate ?? false);
+const gbUpdatingRef = ref(false);
+const gbUpdateTitle = computed(() => new TranslatedText(
+    'A new version is available on GameBanana — click to update',
+    'Có bản mới trên Banana — bấm để cập nhật').get());
+const onGbUpdateReady = (mod, hasUpdate) => {
+    if (mod && mod.id === props.modRef.id) {
+        gbHasUpdateRef.value = !!hasUpdate;
+    }
+};
+const updateFromBanana = async () => {
+    if (gbUpdatingRef.value) return;
+    gbUpdatingRef.value = true;
+    try {
+        await iManager.gbUpdateMod(props.modRef);
+    } finally {
+        gbUpdatingRef.value = false;
     }
 };
 
@@ -214,6 +244,53 @@ const onCardHoverEnd = () => {
     clearHoverFollow();
 };
 
+//===================== kéo-thả ảnh đổi bìa =====================//
+// Thả file ảnh lên thẻ thì bìa của đúng mod đó đổi ngay (1.5.25 test3):
+// ghi bằng cơ chế bìa chung (setModCoverFromFile — ghi file preview +
+// thông báo "Updated cover" + vẽ lại thẻ). Thả file không phải ảnh thì
+// để sự kiện nổi lên lưới như cũ (nhập mod / báo lỗi). Kéo file rê qua
+// thẻ thì thẻ sáng viền để biết sẽ thả vào đây (đếm số lần vào/ra để
+// viền không nhấp nháy khi rê qua ảnh con bên trong thẻ).
+const coverDropOver = ref(false);
+let coverDropDepth = 0;
+const hasImageFile = (event) => {
+    const files = event.dataTransfer ? event.dataTransfer.files : null;
+    if (!files) return false;
+    for (const f of files) {
+        if (f.type && f.type.startsWith('image/')) return true;
+    }
+    return false;
+};
+const onCoverDragEnter = (event) => {
+    if (!event.dataTransfer || !event.dataTransfer.types.includes('Files')) return;
+    event.preventDefault();
+    coverDropDepth++;
+    coverDropOver.value = true;
+};
+const onCoverDragOver = (event) => {
+    if (!event.dataTransfer || !event.dataTransfer.types.includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+};
+const onCoverDragLeave = () => {
+    coverDropDepth = Math.max(0, coverDropDepth - 1);
+    if (coverDropDepth === 0) coverDropOver.value = false;
+};
+const onCoverDrop = async (event) => {
+    coverDropDepth = 0;
+    coverDropOver.value = false;
+    if (!hasImageFile(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const files = event.dataTransfer.files;
+    let imageFile = null;
+    for (const f of files) {
+        if (f.type && f.type.startsWith('image/')) { imageFile = f; break; }
+    }
+    if (!imageFile) return;
+    await iManager.setModCoverFromFile(imageFile, props.modRef.name);
+};
+
 onMounted(() => {
     // Đổi ảnh preview (kéo thả ảnh mới vào thẻ, chọn ảnh khác trong hộp
     // sửa mod) thì thẻ phải đọc lại ảnh: trước đây thẻ chỉ tải ảnh 1 lần
@@ -221,11 +298,13 @@ onMounted(() => {
     // Chi tiết bên phải (modInfo) đã nghe sự kiện này từ trước, thẻ thì chưa.
     EventSystem.on(EventType.modInfoChanged, onModInfoChanged);
     EventSystem.on(EventType.modSizeReady, onModSizeReady);
+    EventSystem.on(EventType.gbUpdateReady, onGbUpdateReady);
 });
 
 onUnmounted(() => {
     EventSystem.off(EventType.modInfoChanged, onModInfoChanged);
     EventSystem.off(EventType.modSizeReady, onModSizeReady);
+    EventSystem.off(EventType.gbUpdateReady, onGbUpdateReady);
     clearHoverFollow();
 });
 
@@ -490,6 +569,14 @@ defineExpose({
     outline: none;
 }
 
+/* Kéo file ảnh rê qua thẻ (1.5.25 test3): viền vàng ngoài thẻ cho biết
+   thả vào đây sẽ đổi bìa mod này (dạng outline để không đè lên viền
+   chọn như kiểu xem trước lúc bôi đen). */
+.mod-item.cover-drop-hover {
+    outline: 3px solid var(--s-color-primary);
+    outline-offset: 2px;
+}
+
 .mod-item {
     perspective: 500px;
     /* Kích thước theo mức phóng to: biến --card-width đặt trên
@@ -596,6 +683,29 @@ defineExpose({
 
 .mod-item .pin-btn svg {
     fill: currentColor;
+}
+
+/* Dấu bản mới Banana (1.5.25): viên vàng chữ "Update"/"Bản mới" ở hàng
+   tiêu đề, bấm là cập nhật; đang cập nhật thì mờ đi (bấm nữa cũng bị
+   chặn trong updateFromBanana). */
+.mod-item .gb-update-btn {
+    flex-shrink: 0;
+    height: 26px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 13px;
+    background-color: var(--s-color-primary);
+    color: var(--s-color-on-primary);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 26px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.mod-item .gb-update-btn.updating {
+    opacity: 0.6;
+    cursor: default;
 }
 
 

@@ -37,6 +37,8 @@ enum EventType {
     modListChanged = 'modListChanged',
     // Quét nền vừa tính xong dung lượng 1 mod (thẻ đó tự cập nhật dòng dung lượng)
     modSizeReady = 'modSizeReady',
+    // Kiểm tra bản mới GameBanana vừa xong cho 1 mod (thẻ đó tự hiện/tắt dấu "Bản mới")
+    gbUpdateReady = 'gbUpdateReady',
     // Làm mới danh sách mà không tải lại cửa sổ (giữ vị trí cuộn, bộ lọc, tìm kiếm, lựa chọn)
     refreshModList = 'refreshModList',
     //----------事件节点----------

@@ -25,7 +25,7 @@
                 </s-icon-button>
             </div>
             <div id="drag-bar" style="flex: 1;height: 100%;app-region: drag;"></div>
-            <sectionSelector :sections="sections" @update:currentSection="handleSectionChange"></sectionSelector>
+            <sectionSelector :sections="sections" :hover-switch="true" @update:currentSection="handleSectionChange"></sectionSelector>
         </div>
 
         <div class="section-container">
@@ -36,6 +36,9 @@
             <div class="section-slider" :style="{transform: `translateX(calc(${sections.indexOf(currentSection)} * (10px - 100vw) ))`}">
                 <div style="width: calc(100vw - 10px);">
                     <modCardSection />
+                </div>
+                <div style="width: calc(100vw - 10px);">
+                    <bananaSection :active="currentSection === 'banana'" />
                 </div>
                 <div style="width: calc(100vw - 10px);">
                     <helpSection v-if="loaded" />
@@ -68,6 +71,7 @@
 import { ref} from 'vue';
 
 import modCardSection from './section/modCardSection.vue';
+import bananaSection from './section/bananaSection.vue';
 import sectionSelector from './components/sectionSelector.vue';
 import dialogAddPreset from './dialogs/dialogAddPreset.vue';
 import settingSection from './section/settingSection.vue'; 
@@ -104,7 +108,7 @@ import IManager from '../electron/IManager';
 import { g_temp_vue } from '../electron/IManager';
 const currentMod = g_temp_vue.currentMod;
 
-const sections = ref(['mod', 'help', 'settings']);
+const sections = ref(['mod', 'banana', 'help', 'settings']);
 const currentSection = ref('mod');
 
 const handleSectionChange = (section) => {
@@ -233,6 +237,10 @@ waitInitIManager().then((iManager) => {
     flex-direction: row;
     flex: 1;
     transition: transform 0.3s;
+    /* Giữ visible: thử overflow:hidden ở test9 thì khung web Banana
+       KHÔNG bị cắt (khung web vẽ ở lớp riêng, không nghe overflow của
+       tổ tiên) nên dải tràn vẫn còn. Dải tràn được xử lý bằng cách ẩn
+       toàn bộ trang Banana khi rời trang (bananaSection.vue). */
     overflow: visible;
     position: relative;
     height: calc(100%);

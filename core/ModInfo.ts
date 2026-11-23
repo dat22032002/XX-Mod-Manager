@@ -465,6 +465,11 @@ modDataTemplate.add('pinned', false, ModMetaDataType.Boolean);
 // nhất từ 1.5.18, thay tiền tố tên thư mục. Mod cũ chưa có trường này
 // được đoán tag theo tiền tố lúc tải (xem init()).
 modDataTemplate.add('tag', 'character', ModMetaDataType.String);
+// GameBanana: file đã tải về của mod (để kiểm tra bản mới). 0 = mod chưa
+// gắn link Banana (mod cũ từ Discord, hoặc link đã bị gỡ). Link trang mod
+// nằm ở trường 'url' có sẵn — mã mod đọc từ link đó, không lưu riêng.
+modDataTemplate.add('gbFileId', 0, ModMetaDataType.Number);
+modDataTemplate.add('gbFileDate', 0, ModMetaDataType.Number);
 ModInfo.setModDataTemplate(modDataTemplate);
 
 // const modInfo = new ModInfo("E:\\1myProgramFile\\electron Files\\TestMod");

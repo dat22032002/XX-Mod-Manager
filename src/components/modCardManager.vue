@@ -197,6 +197,17 @@ const filteredMods = computed(() => {
     if (type !== 'all') {
         result = result.filter(mod => getModTag(mod) === type);
     }
+    // Chỉ hiện mod nghi hỏng (công tắc trong bảng lọc — Đạt dặn 23/11):
+    // giữ lại mod có id trong danh sách lần quét Fixer gần nhất (lưu
+    // trong config nên mở app lại vẫn còn; null = chưa quét bao giờ thì
+    // công tắc không bật được nên nhánh này không chạy).
+    if (g_config_vue.showOnlySuspected.value) {
+        const ids = g_config_vue.fixerSuspectIds.value;
+        if (Array.isArray(ids)) {
+            const suspectSet = new Set(ids);
+            result = result.filter(mod => suspectSet.has(mod.id));
+        }
+    }
     // Sắp xếp: ghim luôn lên đầu, sau đó theo kiểu xếp đã chọn (mặc định
     // giữ thứ tự tải vào như trước; sort của JS là ổn định nên mod ngang
     // nhau không bị xáo trộn). slice() để không sửa mảng gốc.
@@ -378,15 +389,17 @@ const setModCardRef = (id) => (el) => {
 };
 
 // Xóa hết bộ lọc về mặc định (nút trên màn hình trống): xóa chữ tìm
-// kiếm, nhân vật về Tất cả, loại về All types, xếp về Default. Phát
-// 'filtersCleared' để modCardSection bảo characterList xóa chữ trong ô
-// tìm — watcher currentCharacter ở đó chỉ chạy khi nhân vật ĐỔI, mà lúc
-// gõ tìm không ra mod nào nhân vật vẫn đang là Tất cả nên không đổi.
+// kiếm, nhân vật về Tất cả, loại về All types, xếp về Default, tắt lọc
+// chỉ hiện mod nghi hỏng. Phát 'filtersCleared' để modCardSection bảo
+// characterList xóa chữ trong ô tìm — watcher currentCharacter ở đó chỉ
+// chạy khi nhân vật ĐỔI, mà lúc gõ tìm không ra mod nào nhân vật vẫn
+// đang là Tất cả nên không đổi.
 const emit = defineEmits(['filtersCleared']);
 const clearAllFilters = () => {
     applySearch('');
     iManager.config.modTypeFilter = 'all';
     iManager.config.modSortBy = 'default';
+    iManager.config.showOnlySuspected = false;
     iManager.saveConfig();
     emit('filtersCleared');
 };
