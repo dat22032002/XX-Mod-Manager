@@ -25,7 +25,7 @@
                 </s-icon-button>
             </div>
             <div id="drag-bar" style="flex: 1;height: 100%;app-region: drag;"></div>
-            <sectionSelector :sections="sections" @update:currentSection="handleSectionChange"></sectionSelector>
+            <sectionSelector :sections="sections" :hover-switch="true" @update:currentSection="handleSectionChange"></sectionSelector>
         </div>
 
         <div class="section-container">

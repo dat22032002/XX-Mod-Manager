@@ -52,7 +52,7 @@
          đăng nhập Banana giữ qua các lần mở app (mod người lớn bắt
          đăng nhập xác minh tuổi mới xem được). -->
     <webview v-if="activated" ref="webviewRef" src="https://gamebanana.com/games/19567"
-      partition="persist:gamebanana" allowpopups class="banana-webview"></webview>
+      partition="persist:gamebanana" allowpopups :preload="preloadUrl" class="banana-webview"></webview>
     <div v-else class="banana-placeholder OO-box">
       <p>{{ $t('banana.loading') }}</p>
     </div>
@@ -95,6 +95,20 @@ iframe[src*="googlesyndication"],
 const GB_WIDEN_CSS = `
 #BodyWrapper { max-width: none !important; }
 `;
+
+// Đường dẫn tới preload của khung Banana (1.5.25 test3): file
+// public/banana-preload.js được Vite chép nguyên sang dist/ nên nằm
+// cạnh index.html — tính từ địa chỉ trang đang chạy, chạy được cả bản
+// dev (dist trên ổ đĩa) lẫn bản đóng gói (dist trong asar). Chạy qua
+// máy chủ dev Vite (http:) thì không có đường dẫn file nên thôi.
+const preloadUrl = computed(() => {
+  try {
+    if (window.location.protocol !== 'file:') return null;
+    return new URL('banana-preload.js', window.location.href).href;
+  } catch (_e) {
+    return null;
+  }
+});
 
 const props = defineProps({
   // Trang này đang hiện hay không (App.vue truyền theo mục đang chọn).
@@ -166,6 +180,18 @@ const attachWebviewListeners = () => {
     wv.insertCSS(GB_AD_HIDE_CSS + GB_WIDEN_CSS).catch(() => {
       // Khung đóng trước khi kịp chèn: thôi, lần sang trang sau chèn lại.
     });
+  });
+  // Tin từ preload trong khung (1.5.25 test3): preload báo đã sẵn sàng
+  // + gửi địa chỉ ảnh khi bắt đầu kéo ảnh.
+  wv.addEventListener('ipc-message', (e) => {
+    if (e.channel === 'gb-preload-ready') {
+      window.__gbPreloadReady = true;
+      return;
+    }
+    if (e.channel === 'gb-drag-image') {
+      const url = e.args && e.args[0] && e.args[0].url;
+      if (url) iManager.gbStartDragImage(url);
+    }
   });
   // Link mở cửa sổ mới (target=_blank) thì mở bằng trình duyệt ngoài,
   // không mở cửa sổ mới trong app.

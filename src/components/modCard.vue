@@ -1,7 +1,8 @@
 <template>
-    <s-card ref="modItemRef" class="mod-item" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id" inWindow="none"
+    <s-card ref="modItemRef" class="mod-item" :class="{ 'cover-drop-hover': coverDropOver }" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id" inWindow="none"
         :name="props.modRef.name" :character="props.modRef.character" :data-tag="props.modRef.tag" @click="click" :compact="props.compactMode" :data-layout="props.cardLayout"
         @mouseenter="onCardHoverStart" @mouseleave="onCardHoverEnd"
+        @dragenter="onCoverDragEnter" @dragover="onCoverDragOver" @dragleave="onCoverDragLeave" @drop="onCoverDrop"
         @contextmenu.prevent.stop="openEditModDialog">
 
         <div slot="image" v-if="ifDisplayImage">
@@ -241,6 +242,53 @@ const onCardHoverStart = () => {
 
 const onCardHoverEnd = () => {
     clearHoverFollow();
+};
+
+//===================== kéo-thả ảnh đổi bìa =====================//
+// Thả file ảnh lên thẻ thì bìa của đúng mod đó đổi ngay (1.5.25 test3):
+// ghi bằng cơ chế bìa chung (setModCoverFromFile — ghi file preview +
+// thông báo "Updated cover" + vẽ lại thẻ). Thả file không phải ảnh thì
+// để sự kiện nổi lên lưới như cũ (nhập mod / báo lỗi). Kéo file rê qua
+// thẻ thì thẻ sáng viền để biết sẽ thả vào đây (đếm số lần vào/ra để
+// viền không nhấp nháy khi rê qua ảnh con bên trong thẻ).
+const coverDropOver = ref(false);
+let coverDropDepth = 0;
+const hasImageFile = (event) => {
+    const files = event.dataTransfer ? event.dataTransfer.files : null;
+    if (!files) return false;
+    for (const f of files) {
+        if (f.type && f.type.startsWith('image/')) return true;
+    }
+    return false;
+};
+const onCoverDragEnter = (event) => {
+    if (!event.dataTransfer || !event.dataTransfer.types.includes('Files')) return;
+    event.preventDefault();
+    coverDropDepth++;
+    coverDropOver.value = true;
+};
+const onCoverDragOver = (event) => {
+    if (!event.dataTransfer || !event.dataTransfer.types.includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+};
+const onCoverDragLeave = () => {
+    coverDropDepth = Math.max(0, coverDropDepth - 1);
+    if (coverDropDepth === 0) coverDropOver.value = false;
+};
+const onCoverDrop = async (event) => {
+    coverDropDepth = 0;
+    coverDropOver.value = false;
+    if (!hasImageFile(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const files = event.dataTransfer.files;
+    let imageFile = null;
+    for (const f of files) {
+        if (f.type && f.type.startsWith('image/')) { imageFile = f; break; }
+    }
+    if (!imageFile) return;
+    await iManager.setModCoverFromFile(imageFile, props.modRef.name);
 };
 
 onMounted(() => {
@@ -519,6 +567,14 @@ defineExpose({
     border: 5px solid #F44336;
     background-image: none;
     outline: none;
+}
+
+/* Kéo file ảnh rê qua thẻ (1.5.25 test3): viền vàng ngoài thẻ cho biết
+   thả vào đây sẽ đổi bìa mod này (dạng outline để không đè lên viền
+   chọn như kiểu xem trước lúc bôi đen). */
+.mod-item.cover-drop-hover {
+    outline: 3px solid var(--s-color-primary);
+    outline-offset: 2px;
 }
 
 .mod-item {

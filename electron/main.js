@@ -1,5 +1,5 @@
 // main.js
-const { app, BrowserWindow, ipcMain, screen, dialog, session } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, dialog, session, nativeImage } = require('electron');
 const path = require('node:path')
 const { isGbAdUrl } = require('./gbAdBlock');
 require('./fileSystem.js')
@@ -453,6 +453,40 @@ ipcMain.handle('set-bounds', async (event, boundsStr) => {
 ipcMain.on('snack', (event, message, type = 'info') => {
   currentMainWindow.webContents.send('snack', message, type)
 })
+
+//-==================== 拖拽图片 ====================
+// Kéo ảnh từ khung Banana ra (1.5.25 test3): renderer tải ảnh về file
+// tạm rồi gửi đường dẫn sang đây, tiến trình chính bắt đầu cú kéo ở
+// mức hệ điều hành để ảnh kéo được ra khỏi khung web (kéo-thả HTML
+// thường không xuyên qua được ranh giới webview). Icon kéo là chính
+// tấm ảnh, thu nhỏ nếu rộng quá 256px; lỗi icon thì vẫn kéo được.
+// startDrag chạy lệch 1 nhịp (setImmediate) để bộ nghe IPC trả về ngay:
+// trên Linux, startDrag mở vòng lặp kéo lồng nhau, gọi thẳng trong bộ
+// nghe sẽ kẹt việc gửi tin IPC sau đó; lệch 1 nhịp thì không ảnh hưởng
+// cú kéo thật (chuột vẫn đang giữ).
+ipcMain.on('gb-start-drag', (event, filePath) => {
+  try {
+    if (!filePath || typeof filePath !== 'string') return;
+    const sender = event.sender;
+    setImmediate(() => {
+      try {
+        if (sender.isDestroyed()) return;
+        let icon;
+        try {
+          const img = nativeImage.createFromPath(filePath);
+          if (!img.isEmpty()) {
+            icon = img.getSize().width > 256 ? img.resize({ width: 256 }) : img;
+          }
+        } catch (_e) { /* không có icon kéo thì vẫn kéo được */ }
+        sender.startDrag(icon ? { file: filePath, icon } : { file: filePath });
+      } catch (e) {
+        console.error('gb-start-drag failed', e);
+      }
+    });
+  } catch (e) {
+    console.error('gb-start-drag failed', e);
+  }
+});
 
 
 

@@ -25,6 +25,11 @@ const https = require(httpsModuleName);
 const httpModuleName = 'http';
 const http = require(httpModuleName);
 
+// Thư mục tạm của hệ điều hành (để file ảnh kéo từ khung Banana) —
+// require qua biến trung gian như 'path'.
+const osModuleName = 'os';
+const os = require(osModuleName);
+
 // Cờ chống chạy chồng cho kiểm tra/cập nhật Banana — ĐẶT Ở CẤP MODULE
 // (không phải trường của instance): mỗi component tạo riêng 1 new
 // IManager() nên cờ instance không chặn được nhau — kiểm tra tự động
@@ -33,6 +38,11 @@ const http = require(httpModuleName);
 // mọi instance.
 let gbChecking = false;
 const gbUpdatingIds = new Set();
+
+// File tạm của lần kéo ảnh gần nhất từ khung Banana — xóa khi bắt đầu
+// lần kéo sau (xem gbStartDragImage). Cấp module như gbChecking vì mỗi
+// component tạo riêng 1 IManager.
+let gbDragTmpPath = null;
 
 // 导入 libarchivejs
 let Archive = window.Archive;
@@ -1125,20 +1135,40 @@ class IManager {
     }
 
 
+    // Đặt bìa mod từ 1 file ảnh — đường dùng chung cho thả ảnh lên thẻ
+    // (1.5.25 test3) và thả ảnh toàn app: đọc file thành base64 rồi ghi
+    // bằng cơ chế bìa sẵn có (setModPreviewBase64ByName — ghi file
+    // preview + thông báo "Updated cover" + vẽ lại thẻ). Trả true khi
+    // ghi xong.
+    setModCoverFromFile(file, modName) {
+        return new Promise((resolve) => {
+            if (!file || !file.type || !file.type.startsWith('image/')) {
+                resolve(false);
+                return;
+            }
+            // 因为electron的file对象不是标准的file对象，所以需要使用reader来读取文件
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    await this.setModPreviewBase64ByName(event.target.result, modName);
+                    resolve(true);
+                } catch (e) {
+                    console.error('setModCoverFromFile failed', e);
+                    resolve(false);
+                }
+            };
+            reader.onerror = () => resolve(false);
+            reader.readAsDataURL(file);
+        });
+    }
+
     async handleImageDrop(file) {
         // 再次确认是否是图片文件
         if (!file.type.startsWith('image/')) {
             snack('Invalid image file');
             return;
         }
-        // 因为electron的file对象不是标准的file对象，所以需要使用reader来读取文件
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const imageUrl = event.target.result;
-            // 这里的 imageUrl 是一个 base64 字符串，可以直接用于显示图片
-            this.setModPreviewBase64ByName(imageUrl, this.temp.currentMod.name);
-        };
-        reader.readAsDataURL(file);
+        await this.setModCoverFromFile(file, this.temp.currentMod.name);
     }
 
     // Xử lý 1 file được thả (dùng chung cho cả 2 đường: file có Entry từ
@@ -2163,6 +2193,41 @@ class IManager {
     async gbDownloadFile(downloadUrl, fileName, onProgress = null) {
         const buf = await this.gbFetchBuffer(downloadUrl, onProgress);
         return new File([buf], fileName, { type: 'application/octet-stream' });
+    }
+
+    // Kéo ảnh từ khung Banana ra ngoài (1.5.25 test3): tải ảnh về file
+    // tạm rồi nhờ tiến trình chính bắt đầu cú kéo ở mức hệ điều hành
+    // (kéo-thả HTML thường không xuyên qua được ranh giới webview).
+    // Dùng gbFetchBuffer như tải mod (chịu được chuyển hướng + thử lại
+    // 1 lần). File tạm của lần kéo trước bị xóa khi bắt đầu lần này.
+    // Trả true khi đã gửi lệnh kéo cho tiến trình chính.
+    async gbStartDragImage(imageUrl) {
+        try {
+            const url = (imageUrl || '').trim();
+            if (!/^https?:\/\//i.test(url)) return false;
+            const buf = await this.gbFetchBuffer(url);
+            if (!buf || buf.length === 0) return false;
+            if (gbDragTmpPath) {
+                try { fs.unlinkSync(gbDragTmpPath); } catch (_e) { /* file đã mất: thôi */ }
+                gbDragTmpPath = null;
+            }
+            const dir = path.join(os.tmpdir(), 'xxmm-gb-drag');
+            fs.mkdirSync(dir, { recursive: true });
+            let base = url.split('/').pop().split(/[?#]/)[0] || '';
+            base = base.replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 80) || 'dragged-image';
+            const ext = (base.match(/\.([A-Za-z0-9]+)$/) || [])[1] || '';
+            if (!/^(png|jpe?g|gif|webp|bmp|avif)$/i.test(ext)) {
+                base = base.replace(/\.[A-Za-z0-9]+$/, '') + '.png';
+            }
+            const tmpPath = path.join(dir, base);
+            fs.writeFileSync(tmpPath, buf);
+            gbDragTmpPath = tmpPath;
+            ipcRenderer.send('gb-start-drag', tmpPath);
+            return true;
+        } catch (e) {
+            console.error('gbStartDragImage failed for', imageUrl, e);
+            return false;
+        }
     }
 
     // Kiểm tra bản mới cho mọi mod đã gắn link Banana — hỏi lần lượt
