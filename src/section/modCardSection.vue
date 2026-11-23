@@ -218,6 +218,13 @@
                 </div>
             </div>
         </div>
+        <div class="bottom-center">
+            <!-- Ẩn tạm lúc bảng nổi đang mở: bảng chiếm khoảng giữa
+                 thanh dưới, để dòng thống kê lại thì nó bị cắt dở
+                 ("46 mods · 0 en...") trông luộm thuộm; đóng bảng thì
+                 dòng thống kê hiện lại như thường. -->
+            <span class="mod-stats" v-show="!viewPanelOpen">{{ $t('stats.line', { total: statsTotal, enabled: statsEnabled, characters: statsCharacters }) }}</span>
+        </div>
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
             <!-- Tiến độ tải mod lúc mở app (1.5.26) hiện đúng chỗ này —
@@ -650,13 +657,50 @@ function handleDocumentClickForViewPanel(event) {
 }
 
 //-============================= thống kê kho mod ==============================
-// Dòng thống kê (tổng số mod / đang bật / nhân vật) DỜI LÊN HÀNG TRÊN
-// CÙNG, ngang hàng thanh Mod/Banana/Help (1.5.26) — code tính toán nằm
-// ở App.vue, không còn ở đây nữa.
+// Dòng thống kê ở giữa thanh dưới (chỗ cũ, Đạt dặn 23/11 để lại chỗ cũ
+// sau khi thử dời lên hàng trên ở 1.5.26-test1): tổng số mod, số mod
+// đang bật, số nhân vật. modList không phải reactive (chỉ bắn sự kiện
+// modListChanged khi gán lại) nên đọc lại mỗi khi có sự kiện
+// modListChanged / modInfoChanged (đổi nhân vật của mod cũng đổi số nhân
+// vật); số mod đang bật đọc thẳng từ selectedModIdSet (reactive) nên tự
+// cập nhật khi bấm chọn/bỏ chọn. "Unknown" không phải nhân vật nên không
+// tính. Lọc "chỉ mod nghi hỏng" đang bật thì cả 3 số đều theo mod nghi
+// hỏng (Đạt dặn 23/11).
+const statsTotal = ref(0);
+const statsCharacters = ref(0);
+const refreshStats = () => {
+    let list = iManager.data.modList || [];
+    if (g_config_vue.showOnlySuspected.value) {
+        const ids = g_config_vue.fixerSuspectIds.value;
+        if (Array.isArray(ids)) {
+            const suspectSet = new Set(ids);
+            list = list.filter(mod => suspectSet.has(mod.id));
+        }
+    }
+    statsTotal.value = list.length;
+    const characters = new Set(list.map(mod => (mod.character || '').trim()).filter(c => c && c !== 'Unknown'));
+    statsCharacters.value = characters.size;
+};
+// Số mod đang bật trong dòng thống kê: lọc nghi hỏng bật thì chỉ đếm
+// mod đang bật nằm trong danh sách nghi hỏng.
+const statsEnabled = computed(() => {
+    if (!g_config_vue.showOnlySuspected.value) return selectedModIdSet.size;
+    const ids = g_config_vue.fixerSuspectIds.value;
+    if (!Array.isArray(ids)) return selectedModIdSet.size;
+    const suspectSet = new Set(ids);
+    let n = 0;
+    for (const id of selectedModIdSet) if (suspectSet.has(id)) n++;
+    return n;
+});
 
 onMounted(() => {
+    refreshStats();
     refreshApplied();
+    EventSystem.on(EventType.modListChanged, refreshStats);
     EventSystem.on(EventType.modListChanged, refreshApplied);
+    EventSystem.on(EventType.modInfoChanged, refreshStats);
+    // Lọc nghi hỏng đổi (bật/tắt, quét lại) thì tính lại thống kê.
+    watch(() => [g_config_vue.showOnlySuspected.value, g_config_vue.fixerSuspectIds.value], refreshStats);
     // Tiến độ tải mod lúc mở app / làm mới (1.5.26): ModLoader bắn sự
     // kiện sau mỗi khối 10 mod.
     EventSystem.on(EventType.loadModsProgress, handleLoadModsProgress);
@@ -1119,6 +1163,22 @@ EventSystem.on('toggledMod', (mod) => {
 
 .view-panel > * {
     flex-shrink: 0;
+}
+
+.bottom-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.mod-stats {
+    font-size: 14px;
+    color: var(--s-color-on-surface-variant);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .bottom-right {

@@ -25,9 +25,6 @@
                 </s-icon-button>
             </div>
             <div id="drag-bar" style="flex: 1;height: 100%;app-region: drag;"></div>
-            <!-- Dòng thống kê kho mod (1.5.26): dời lên hàng trên cùng,
-                 ngang hàng thanh Mod/Banana/Help, phía bên phải. -->
-            <span class="mod-stats head-stats">{{ $t('stats.line', { total: statsTotal, enabled: statsEnabled, characters: statsCharacters }) }}</span>
             <sectionSelector :sections="sections" :hover-switch="true" @update:currentSection="handleSectionChange"></sectionSelector>
         </div>
 
@@ -71,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref } from 'vue';
 
 import modCardSection from './section/modCardSection.vue';
 import bananaSection from './section/bananaSection.vue';
@@ -93,8 +90,6 @@ import dialogUpdateAvailable from './dialogs/dialogUpdateAvailable.vue';
 import dialogUpdateDownloaded from './dialogs/dialogUpdateDownloaded.vue';
 
 import DialogNeedRefresh from './dialogs/dialogNeedRefresh.vue';
-import { EventSystem, EventType } from '../helper/EventSystem';
-import { selectedModIdSet } from '../helper/SelectedMods';
 
 // Nghe sự kiện cập nhật từ tiến trình chính (có bản mới -> mở hộp hỏi).
 import { initUpdateListener } from '../helper/UpdateHelper';
@@ -109,7 +104,7 @@ const loaded = ref(false);
 import { waitInitIManager } from '../electron/IManager';
 import IManager from '../electron/IManager';
 
-import { g_temp_vue, g_config_vue } from '../electron/IManager';
+import { g_temp_vue } from '../electron/IManager';
 const currentMod = g_temp_vue.currentMod;
 
 const sections = ref(['mod', 'banana', 'help', 'settings']);
@@ -122,51 +117,6 @@ const handleSectionChange = (section) => {
 };
 
 const iManager = new IManager();
-
-//-============================= thống kê kho mod ==============================
-// Dòng thống kê ở hàng trên cùng, ngang hàng thanh Mod/Banana/Help, phía
-// bên phải (1.5.26 — dời lên từ giữa thanh dưới): tổng số mod, số mod
-// đang bật, số nhân vật. modList không phải reactive (chỉ bắn sự kiện
-// modListChanged khi gán lại) nên đọc lại mỗi khi có sự kiện
-// modListChanged / modInfoChanged (đổi nhân vật của mod cũng đổi số nhân
-// vật); số mod đang bật đọc thẳng từ selectedModIdSet (reactive) nên tự
-// cập nhật khi bấm chọn/bỏ chọn. "Unknown" không phải nhân vật nên không
-// tính. Lọc "chỉ mod nghi hỏng" đang bật thì cả 3 số đều theo mod nghi
-// hỏng (Đạt dặn 23/11).
-const statsTotal = ref(0);
-const statsCharacters = ref(0);
-const refreshStats = () => {
-    let list = iManager.data.modList || [];
-    if (g_config_vue.showOnlySuspected.value) {
-        const ids = g_config_vue.fixerSuspectIds.value;
-        if (Array.isArray(ids)) {
-            const suspectSet = new Set(ids);
-            list = list.filter(mod => suspectSet.has(mod.id));
-        }
-    }
-    statsTotal.value = list.length;
-    const characters = new Set(list.map(mod => (mod.character || '').trim()).filter(c => c && c !== 'Unknown'));
-    statsCharacters.value = characters.size;
-};
-// Số mod đang bật trong dòng thống kê: lọc nghi hỏng bật thì chỉ đếm
-// mod đang bật nằm trong danh sách nghi hỏng.
-const statsEnabled = computed(() => {
-    if (!g_config_vue.showOnlySuspected.value) return selectedModIdSet.size;
-    const ids = g_config_vue.fixerSuspectIds.value;
-    if (!Array.isArray(ids)) return selectedModIdSet.size;
-    const suspectSet = new Set(ids);
-    let n = 0;
-    for (const id of selectedModIdSet) if (suspectSet.has(id)) n++;
-    return n;
-});
-
-onMounted(() => {
-    refreshStats();
-    EventSystem.on(EventType.modListChanged, refreshStats);
-    EventSystem.on(EventType.modInfoChanged, refreshStats);
-    // Lọc nghi hỏng đổi (bật/tắt, quét lại) thì tính lại thống kê.
-    watch(() => [g_config_vue.showOnlySuspected.value, g_config_vue.fixerSuspectIds.value], refreshStats);
-});
 
 // Nút X chỉ mở hộp hỏi xác nhận; chỉ khi bấm Xác nhận mới tắt app.
 const handleCloseClick = () => {
@@ -230,21 +180,6 @@ waitInitIManager().then((iManager) => {
     align-items: center;
     padding: 5px 20px;
     height: 50px;
-}
-
-/* Dòng thống kê kho mod ở hàng trên (1.5.26, dời lên từ thanh dưới):
-   cỡ + màu như cũ, chừa khe với thanh chọn mục bên phải. */
-.mod-stats {
-    font-size: 14px;
-    color: var(--s-color-on-surface-variant);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-shrink: 0;
-}
-
-.head-stats {
-    margin-right: 12px;
 }
 
 /* 3 nút cửa sổ nối thành 1 viên nhộng (Đạt dặn 20/11): khung cao
