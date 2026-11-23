@@ -14,17 +14,22 @@
             id="edit-mod-info-left">
             <div class="OO-box OO-shade-box"
               style="width: calc(100% - 40px);padding: 10px 20px;margin:0;border-radius: 12px;">
-              <h3 id="editDialog-mod-info-name" style="white-space:normal;word-break:keep-all;height: fit-content;">
+              <!-- Tên mod dài thì cắt 1 hàng + dấu "..." (Đạt dặn 22/11):
+                   tên 1 token dài từng tràn 120px đâm qua viền ô, tên
+                   nhiều từ xuống 2 hàng làm ô tên cao thêm 30px kéo cả
+                   cột trái đi xuống. Rê chuột vào tên thì xem đủ tên. -->
+              <h3 id="editDialog-mod-info-name" :title="tempModInfo ? tempModInfo.name : ''"
+                style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height: fit-content;">
                 {{ tempModInfo ? tempModInfo.name : "no name" }}</h3>
             </div>
-            <p id="editDialog-mod-info-character"
-              style="margin-top: 2px;font-size: small;color: gray;height: fit-content;width: fit-content;margin-bottom: 0;padding-bottom: 10px;">
-              {{ props.mod ? props.mod.character : "no character" }}</p>
-
             <!-- Bấm vào ảnh bìa thì mở Showcase y chang bấm ảnh ở khung
-                 phải (Đạt dặn 22/11) — xem khối showcase ở cuối file. -->
-            <div id="img-container" @click="openShowcase"
-              style="width: 280px;height: 224px;border-radius: 0 30px;overflow: hidden;cursor: pointer;">
+                 phải (Đạt dặn 22/11) — xem khối showcase ở cuối file.
+                 Kéo-thả ảnh vào khung bìa thì đổi ảnh bìa (Đạt dặn
+                 22/11) — xem handleCoverDrop ở dưới. -->
+            <div id="img-container" @click="openShowcase" @dragenter="handleCoverDragEnter"
+              @dragleave="handleCoverDragLeave" @dragover="handleCoverDragOver" @drop="handleCoverDrop"
+              :class="{ 'cover-drop-hover': coverDragOver }"
+              style="width: 280px;height: 248px;border-radius: 12px;overflow: hidden;cursor: pointer;">
               <img id="editDialog-mod-info-image"
                 style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;" :src="img" />
             </div>
@@ -617,6 +622,50 @@ const handlePaste = async (event) => {
   }
 };
 
+// Kéo-thả ảnh vào khung bìa (Đạt dặn 22/11) — dùng chung đường dán ảnh:
+// thả file ảnh thì khung hiện ảnh mới ngay, bấm Lưu mới ghi thật (cờ
+// changdPreviewByPaste), bấm Hủy thì bỏ. Chỉ nhận file đúng là ảnh;
+// file khác thì báo lỗi, không làm gì cả. Đếm số lần vào/ra để viền
+// sáng không nhấp nháy khi rê qua ảnh con bên trong khung.
+const coverDragOver = ref(false);
+let coverDragDepth = 0;
+const handleCoverDragEnter = (event) => {
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+  coverDragDepth++;
+  coverDragOver.value = true;
+};
+const handleCoverDragLeave = () => {
+  coverDragDepth = Math.max(0, coverDragDepth - 1);
+  if (coverDragDepth === 0) coverDragOver.value = false;
+};
+const handleCoverDragOver = (event) => {
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+};
+const handleCoverDrop = (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  coverDragDepth = 0;
+  coverDragOver.value = false;
+  const files = event.dataTransfer?.files;
+  if (!files) return;
+  let imageFile = null;
+  for (const file of files) {
+    if (file.type && file.type.startsWith('image/')) { imageFile = file; break; }
+  }
+  if (!imageFile) {
+    snack('Invalid image file');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    img.value = e.target.result;
+    changdPreviewByPaste = true;
+  };
+  reader.readAsDataURL(imageFile);
+};
+
 onMounted(() => {
   // Nhảy tới mod MỚI sau khi Lưu (Đạt dặn 22/11) — bộ nghe RIÊNG, không
   // sửa bộ nghe show/dismissed có sẵn để gộp sạch với tính năng
@@ -795,6 +844,12 @@ onMounted(() => {
    cột trái hộp chỉ rộng 280px nên "MOD Cover" bị cắt thành "MOD Co…". */
 #edit-mod-dialog .OO-setting-bar h3 {
   font-size: 16px;
+}
+
+/* Kéo ảnh tới khung bìa thì sáng viền vàng để biết chỗ thả. */
+#img-container.cover-drop-hover {
+  outline: 3px solid #f2d900;
+  outline-offset: -3px;
 }
 
 </style>
