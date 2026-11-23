@@ -174,7 +174,18 @@ const batchClicked = computed(() => batchSelectedModIdSet.has(props.modRef.id));
 // lúc vẽ thẻ nên đổi tag trong hộp sửa mod là màu đổi theo ngay).
 // Tag trống/lạ thì tên giữ màu mặc định. Màu chỉ để hiển thị —
 // tag thật của mod (lọc, luật bật/tắt) không đổi.
+//
+// LƯU Ý (lỗi Đạt báo 22:13): đổi tag HÀNG LOẠT sửa thẳng đối tượng
+// gốc (getModInfoById trả về đúng đối tượng trong kho, không qua
+// lớp phản ứng của Vue) nên Vue không tự biết tag đã đổi — computed
+// cứ giữ màu cũ dù thẻ đã vẽ lại (data-tag thì đổi vì nó đọc trực
+// tiếp lúc vẽ). Vì vậy màu tên còn phụ thuộc vào modInfoVersion:
+// mỗi lần có sự kiện modInfoChanged cho đúng mod này thì tăng
+// version, ép màu tính lại. Hộp sửa mod vẫn đi đường cũ (sửa qua
+// lớp phản ứng) nên không ảnh hưởng.
+const modInfoVersion = ref(0);
 const displayTag = computed(() => {
+    void modInfoVersion.value;
     const tag = props.modRef.tag;
     return tag && tag in TAG_NAME_COLORS ? tag : null;
 });
@@ -324,8 +335,11 @@ onUnmounted(() => {
 });
 
 // Thông tin mod đổi: chỉ đọc lại ảnh khi đúng là mod của thẻ này.
+// Đồng thời tăng modInfoVersion để màu tên tính lại (đổi tag hàng
+// loạt sửa thẳng đối tượng gốc nên computed màu không tự biết).
 const onModInfoChanged = async (mod) => {
     if (mod && mod.id === props.modRef.id) {
+        modInfoVersion.value++;
         img.value = await getImage();
     }
 };
