@@ -219,11 +219,11 @@
             </div>
         </div>
         <div class="bottom-center">
-            <!-- Ẩn tạm lúc bảng nổi đang mở: bảng chiếm khoảng giữa
-                 thanh dưới, để dòng thống kê lại thì nó bị cắt dở
-                 ("46 mods · 0 en...") trông luộm thuộm; đóng bảng thì
-                 dòng thống kê hiện lại như thường. -->
-            <span class="mod-stats" v-show="!viewPanelOpen">{{ $t('stats.line', { total: statsTotal, enabled: statsEnabled, characters: statsCharacters }) }}</span>
+            <!-- Dòng thống kê HIỆN LUÔN, kể cả khi bảng nổi đang mở
+                 (Đạt dặn 23/11: mở bảng mà số liệu biến mất là lỗi).
+                 Màn hình hẹp thì chữ có thể bị cắt dở — đánh đổi anh
+                 đã chấp nhận; màn hình rộng thì hiện đủ. -->
+            <span class="mod-stats">{{ $t('stats.line', { total: statsTotal, enabled: statsEnabled, characters: statsCharacters }) }}</span>
         </div>
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
