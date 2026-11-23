@@ -44,6 +44,13 @@ const gbUpdatingIds = new Set();
 // component tạo riêng 1 IManager.
 let gbDragTmpPath = null;
 
+// Cờ chống chạy chồng cho Mod Fixer — CẤP MODULE như gbChecking (mỗi
+// component tạo riêng 1 IManager nên cờ instance không chặn được nhau).
+let fixerChecking = false;
+let fixerDownloading = false;
+let fixerScanning = false;
+let fixerFixing = false;
+
 // 导入 libarchivejs
 let Archive = window.Archive;
 //! 下面两个变量是为了解决 vite 打包时，无法正确导入 wasm 文件的问题
@@ -79,6 +86,12 @@ import { DialogID, DialogHelper } from '../helper/DialogHelper';
 // quét dung lượng + bộ nhớ đệm ảnh (cập nhật bản mới xong thì đuổi ảnh
 // bìa cũ, quét lại dung lượng).
 import { parseGameBananaModId, pickLatestGbFile, GB_API_BASE, GB_USER_AGENT } from '../helper/GameBanana';
+// Mod Fixer: hàm thuần (đọc release GitHub, tách bảng mã cũ từ file .py)
+// + bảng mã cũ đóng gói kèm app (dự phòng khi không tải được từ GitHub)
+// + đọc mã hash trong file .ini của mod (để quét mod nghi hỏng).
+import { FIXER_API_LATEST, FIXER_PYDATA_API, FIXER_PYDATA_RAW_BASE, FIXER_STATE_FILE, normalizeFixerRelease, parseFixerOldHashes } from '../helper/ModFixer';
+import fixerOldHashesBundled from '../helper/fixer-old-hashes.json';
+import { extractModHashes } from '../helper/ConflictCheck';
 import ModSizeScanner from '../helper/ModSizeScanner';
 import { ImageHelper } from '../helper/ImageHelper';
 
@@ -126,6 +139,8 @@ let g_config = {
     showChipCounts: false,
     modTypeFilter: 'all',
     modSortBy: 'default',
+    fixerVersion: null, // Bản Fixer đã tải về (tag release, vd zzz-mod-fixer-v2.3.0)
+    fixerFileName: null, // Tên file .exe Fixer đã tải về
 };
 let g_data = {
     modList: [],
@@ -174,6 +189,8 @@ const g_config_vue = {
     showChipCounts: ref(false),
     modTypeFilter: ref('all'),
     modSortBy: ref('default'),
+    fixerVersion: ref(null),
+    fixerFileName: ref(null),
 };
 
 const g_data_vue = {
@@ -276,6 +293,8 @@ class IManager {
         showChipCounts: false, // Chip nhân vật hiện số lượng mod trong ngoặc, vd Ellen (24) (công tắc trong bảng lọc — Đạt dặn 20/11)
         modTypeFilter: 'all', // Lọc theo loại mod: all/outfit/weapon/effect
         modSortBy: 'default', // Sắp xếp mod: default/name-asc/name-desc/time-desc/time-asc
+        fixerVersion: null, // Bản Fixer đã tải về (tag release, vd zzz-mod-fixer-v2.3.0)
+        fixerFileName: null, // Tên file .exe Fixer đã tải về
     };
 
     // 程序运行时的数据
@@ -902,6 +921,342 @@ class IManager {
             console.error(`stderr: ${stderr}`);
         }
         );
+    }
+
+    //-==================== Mod Fixer (1.5.25) ====================//
+    // Tích hợp ZZZ Mod Fixer (Vonksdesu): kiểm tra/tải/mở đồ sửa mod
+    // skin + quét mod nghi hỏng (đối chiếu mã trong .ini với bảng mã cũ
+    // của Fixer) + sửa mod đã chọn trên bản chép tạm rồi chép về.
+    // Mọi lần gọi mạng tái dùng gbFetchBuffer/gbFetchJson của Banana
+    // (chịu chuyển hướng + thử lại 1 lần + ngắt khi 15s không có dữ liệu).
+
+    // Thư mục chứa file Fixer đã tải về (+ bảng mã cũ lưu đệm + bản dự
+    // phòng của mod đã sửa): <userData>/tools/ZZZ-Mod-Fixer/.
+    fixerToolsDir() {
+        const dir = path.join(XXMMCore.getDataPathSync(), 'tools', 'ZZZ-Mod-Fixer');
+        try { fs.mkdirSync(dir, { recursive: true }); } catch (_e) { /* lần sau thử lại */ }
+        return dir;
+    }
+
+    // Đường dẫn file .exe Fixer đã tải về — chưa tải (hoặc file bị xóa
+    // tay) thì null.
+    fixerExePath() {
+        const fileName = this.config.fixerFileName;
+        if (!fileName) return null;
+        const exePath = path.join(this.fixerToolsDir(), fileName);
+        return fs.existsSync(exePath) ? exePath : null;
+    }
+
+    // Trạng thái Fixer cho giao diện.
+    fixerStatus() {
+        const exePath = this.fixerExePath();
+        return {
+            installed: !!exePath,
+            version: this.config.fixerVersion || null,
+            exePath: exePath,
+            modsPath: this.config.modSourcePath || '',
+        };
+    }
+
+    // Bản mới nhất của Fixer trên GitHub (kèm file .exe) — lỗi mạng hay
+    // không có file .exe thì văng lỗi, nơi gọi tự bắt và báo.
+    async fetchFixerRelease() {
+        const release = normalizeFixerRelease(await this.gbFetchJson(FIXER_API_LATEST));
+        if (!release || !release.asset) throw new Error('No Fixer release found');
+        return release;
+    }
+
+    // Có bản Fixer mới không. Trả { latest, asset, updateAvailable } —
+    // đang kiểm tra dở thì null (chống bấm trùng).
+    async checkFixerUpdate() {
+        if (fixerChecking) return null;
+        fixerChecking = true;
+        try {
+            const release = await this.fetchFixerRelease();
+            return {
+                latest: release.tag,
+                asset: release.asset,
+                updateAvailable: release.tag !== this.config.fixerVersion,
+            };
+        } finally {
+            fixerChecking = false;
+        }
+    }
+
+    // Tải file .exe của bản mới nhất về thư mục tools (ghi file tạm rồi
+    // đổi tên để file đang tải dở không bị tưởng là xong). onProgress
+    // nhận (đã tải, tổng) để hiện %. Trả đường dẫn file — lỗi thì văng lỗi.
+    async downloadFixer(onProgress = null) {
+        if (fixerDownloading) return null;
+        fixerDownloading = true;
+        try {
+            const release = await this.fetchFixerRelease();
+            const buf = await this.gbFetchBuffer(release.asset.downloadUrl, onProgress);
+            if (!buf || buf.length === 0) throw new Error('Empty download');
+            const dir = this.fixerToolsDir();
+            const tmpPath = path.join(dir, release.asset.name + '.download');
+            const finalPath = path.join(dir, release.asset.name);
+            fs.writeFileSync(tmpPath, buf);
+            fs.renameSync(tmpPath, finalPath);
+            // Xóa file .exe cũ (tên khác bản mới) để không còn 2 bản.
+            if (this.config.fixerFileName && this.config.fixerFileName !== release.asset.name) {
+                try { fs.unlinkSync(path.join(dir, this.config.fixerFileName)); } catch (_e) { /* kệ */ }
+            }
+            this.config.fixerVersion = release.tag;
+            this.config.fixerFileName = release.asset.name;
+            this.saveConfig();
+            return finalPath;
+        } finally {
+            fixerDownloading = false;
+        }
+    }
+
+    // Mở Fixer lên (không đợi đóng) — dùng cho nút "Mở Fixer". Trả false
+    // khi chưa tải Fixer về hoặc mở lỗi.
+    openFixer() {
+        const exePath = this.fixerExePath();
+        if (!exePath) return false;
+        try {
+            const { spawn } = require('child_process');
+            const child = spawn(exePath, [], { detached: true, stdio: 'ignore' });
+            child.unref();
+            return true;
+        } catch (e) {
+            console.error('openFixer failed', e);
+            return false;
+        }
+    }
+
+    // Bảng mã cũ (mã cũ -> mã mới) để quét mod nghi hỏng. Thứ tự:
+    // (1) bảng lưu đệm theo bản Fixer trong thư mục tools (đã tải từ
+    // GitHub lần trước); (2) tải mới từ repo Fixer rồi lưu đệm;
+    // (3) mạng lỗi thì dùng bảng đóng gói kèm app (749 mã, trích từ
+    // bản v2.3.0). Trả Map.
+    async fixerOldHashMap() {
+        const version = this.config.fixerVersion || 'bundled';
+        const cachePath = path.join(this.fixerToolsDir(), `old-hashes-${version}.json`);
+        try {
+            const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+            if (cached && typeof cached === 'object' && Object.keys(cached).length > 0) {
+                return new Map(Object.entries(cached));
+            }
+        } catch (_e) { /* chưa có đệm: tải mới */ }
+        try {
+            const fresh = await this.fetchFixerOldHashMap();
+            if (fresh.size > 0) {
+                try { fs.writeFileSync(cachePath, JSON.stringify(Object.fromEntries(fresh))); } catch (_e) { /* kệ */ }
+                return fresh;
+            }
+        } catch (e) {
+            console.warn('fixerOldHashMap: fetch failed, using bundled table', e);
+        }
+        return new Map(Object.entries(fixerOldHashesBundled));
+    }
+
+    // Tải + tách bảng mã cũ từ repo Fixer (nhánh gui-version): hỏi API
+    // lấy danh sách file .py, tải song song 10 file/lượt rồi tách entry
+    // update_hash trong từng file.
+    async fetchFixerOldHashMap() {
+        const listing = await this.gbFetchJson(FIXER_PYDATA_API);
+        const files = (Array.isArray(listing) ? listing : [])
+            .filter((f) => f && typeof f.name === 'string' && f.name.endsWith('.py'))
+            .map((f) => ({ name: f.name, url: `${FIXER_PYDATA_RAW_BASE}/${encodeURIComponent(f.name)}` }));
+        if (files.length === 0) throw new Error('No fixer data files listed');
+        const merged = new Map();
+        const BATCH = 10;
+        for (let i = 0; i < files.length; i += BATCH) {
+            const batch = files.slice(i, i + BATCH);
+            const texts = await Promise.all(batch.map((f) =>
+                this.gbFetchBuffer(f.url).then((b) => b.toString('utf8')).catch((e) => {
+                    console.warn(`fetchFixerOldHashMap: ${f.name} failed`, e);
+                    return '';
+                })
+            ));
+            for (const text of texts) {
+                const entries = parseFixerOldHashes(text);
+                for (const [oldHash, newHash] of Object.entries(entries)) {
+                    if (!merged.has(oldHash)) merged.set(oldHash, newHash);
+                }
+            }
+        }
+        return merged;
+    }
+
+    // Quét mod nghi hỏng: mod nào còn mã cũ trong file .ini thì liệt kê.
+    // CHỈ ĐỌC, không sửa gì. Trả mảng { modId, modName, location,
+    // matchedHashes } — đang quét dở thì null.
+    async fixerScanBrokenMods() {
+        if (fixerScanning) return null;
+        fixerScanning = true;
+        try {
+            const oldHashes = await this.fixerOldHashMap();
+            const suspects = [];
+            for (const modInfo of ModLoader.modsRaw) {
+                const location = modInfo && modInfo.location;
+                if (!location || !fs.existsSync(location)) continue;
+                let hashes;
+                try { hashes = extractModHashes(location); } catch (_e) { continue; }
+                const matched = [...new Set(
+                    hashes.map((h) => h.hash).filter((h) => oldHashes.has(h))
+                )];
+                if (matched.length > 0) {
+                    suspects.push({
+                        modId: modInfo.id,
+                        modName: modInfo.modName,
+                        location: location,
+                        matchedHashes: matched,
+                    });
+                }
+            }
+            return suspects;
+        } finally {
+            fixerScanning = false;
+        }
+    }
+
+    // Bước 1 — CHÉP (không cắt) các mod đã chọn ra thư mục tạm để Fixer
+    // sửa trên bản chép. Trả { tempDir, mods: [{ modId, modName, srcPath,
+    // tmpPath }] } — đang sửa dở thì văng lỗi (chống bấm trùng).
+    async fixerPrepareFix(modIds) {
+        if (fixerFixing) throw new Error('Fix already in progress');
+        fixerFixing = true;
+        try {
+            const selected = ModLoader.modsRaw.filter((m) =>
+                modIds.includes(m.id) && m.location && fs.existsSync(m.location));
+            if (selected.length === 0) throw new Error('No mods selected');
+            const tempDir = path.join(os.tmpdir(), `xxmm-fixer-${Date.now()}`);
+            fs.mkdirSync(tempDir, { recursive: true });
+            const mods = [];
+            for (const m of selected) {
+                const tmpPath = path.join(tempDir, m.modName);
+                fs.cpSync(m.location, tmpPath, { recursive: true });
+                mods.push({ modId: m.id, modName: m.modName, srcPath: m.location, tmpPath: tmpPath });
+            }
+            return { tempDir: tempDir, mods: mods };
+        } catch (e) {
+            fixerFixing = false;
+            throw e;
+        }
+    }
+
+    // Bước 2 — mở Fixer lên và đợi nó đóng lại. Trả true khi Fixer đã
+    // thoát (dù sửa hay không), false khi không mở được.
+    fixerLaunchAndWait() {
+        const exePath = this.fixerExePath();
+        if (!exePath) return Promise.resolve(false);
+        return new Promise((resolve) => {
+            let child;
+            try {
+                const { spawn } = require('child_process');
+                child = spawn(exePath, [], { stdio: 'ignore' });
+            } catch (e) {
+                console.error('fixerLaunchAndWait spawn failed', e);
+                resolve(false);
+                return;
+            }
+            child.on('error', (e) => {
+                console.error('fixerLaunchAndWait error', e);
+                resolve(false);
+            });
+            child.on('exit', () => resolve(true));
+        });
+    }
+
+    // Hủy giữa chừng (không mở được Fixer...): dọn thư mục tạm, bỏ cờ.
+    fixerAbortFix(prepared) {
+        if (prepared && prepared.tempDir) {
+            try { fs.rmSync(prepared.tempDir, { recursive: true, force: true }); } catch (_e) { /* kệ */ }
+        }
+        fixerFixing = false;
+    }
+
+    // Bước 3 — kiểm tra bản đã sửa trong thư mục tạm rồi thay bản gốc.
+    // Mỗi mod: có đổi gì thì sao lưu bản gốc rồi thay bằng bản đã sửa;
+    // không đổi gì thì giữ nguyên bản gốc. Lỗi giữa chừng thì khôi phục
+    // bản gốc từ bản sao lưu — không mất mod. Trả mảng kết quả từng mod:
+    // { modId, modName, status: 'fixed' | 'unchanged' | 'failed',
+    //   backupPath? }. Xong thì dọn thư mục tạm + tải lại danh sách mod.
+    async fixerApplyFixed(prepared) {
+        const results = [];
+        try {
+            const backupRoot = path.join(this.fixerToolsDir(), 'backup');
+            for (const mod of prepared.mods) {
+                try {
+                    const changed = await this.fixerModChanged(mod.srcPath, mod.tmpPath);
+                    if (!changed) {
+                        results.push({ modId: mod.modId, modName: mod.modName, status: 'unchanged' });
+                        continue;
+                    }
+                    // Sao lưu bản gốc TRƯỚC khi thay (chép, không cắt).
+                    const backupPath = path.join(backupRoot, `${mod.modName}-${Date.now()}`);
+                    fs.mkdirSync(backupRoot, { recursive: true });
+                    fs.cpSync(mod.srcPath, backupPath, { recursive: true });
+                    try {
+                        fs.rmSync(mod.srcPath, { recursive: true, force: true });
+                        fs.renameSync(mod.tmpPath, mod.srcPath);
+                    } catch (e) {
+                        // Thay thất bại: khôi phục bản gốc từ bản sao lưu.
+                        try { fs.rmSync(mod.srcPath, { recursive: true, force: true }); } catch (_e) { /* kệ */ }
+                        fs.cpSync(backupPath, mod.srcPath, { recursive: true });
+                        throw e;
+                    }
+                    results.push({ modId: mod.modId, modName: mod.modName, status: 'fixed', backupPath: backupPath });
+                } catch (e) {
+                    console.error(`fixerApplyFixed(${mod.modName}) failed`, e);
+                    results.push({ modId: mod.modId, modName: mod.modName, status: 'failed' });
+                }
+            }
+        } finally {
+            try { fs.rmSync(prepared.tempDir, { recursive: true, force: true }); } catch (_e) { /* kệ */ }
+            // Tải lại danh sách mod để lưới hiện đúng nội dung mới (mod
+            // đã thay + mod đã mất giữa chừng) — chỉ xóa cache thì lưới
+            // vẫn hiện danh sách cũ tới khi anh bấm Làm mới.
+            try { await this.rescanAllMods(); } catch (_e) { /* kệ */ }
+            fixerFixing = false;
+        }
+        return results;
+    }
+
+    // Bản chép tạm có khác bản gốc không: có file trạng thái của Fixer
+    // thì chắc chắn đã sửa; không thì so từng file (kích thước rồi nội
+    // dung qua băm SHA1 theo luồng để không ngốn RAM với file .buf lớn).
+    async fixerModChanged(srcPath, tmpPath) {
+        try {
+            if (fs.existsSync(path.join(tmpPath, FIXER_STATE_FILE))) return true;
+        } catch (_e) { /* tiếp tục so file */ }
+        const listFiles = (dir, base, out) => {
+            let entries;
+            try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_e) { return out; }
+            for (const e of entries) {
+                const p = path.join(dir, e.name);
+                if (e.isDirectory()) listFiles(p, base, out);
+                else if (e.isFile()) out.set(path.relative(base, p), p);
+            }
+            return out;
+        };
+        const srcFiles = listFiles(srcPath, srcPath, new Map());
+        const tmpFiles = listFiles(tmpPath, tmpPath, new Map());
+        if (srcFiles.size !== tmpFiles.size) return true;
+        const hashFile = (p) => new Promise((resolve, reject) => {
+            const hash = require('crypto').createHash('sha1');
+            const stream = fs.createReadStream(p);
+            stream.on('error', reject);
+            stream.on('data', (d) => hash.update(d));
+            stream.on('end', () => resolve(hash.digest('hex')));
+        });
+        for (const [rel, srcFile] of srcFiles) {
+            const tmpFile = tmpFiles.get(rel);
+            if (!tmpFile) return true;
+            try {
+                const a = fs.statSync(srcFile);
+                const b = fs.statSync(tmpFile);
+                if (a.size !== b.size) return true;
+                if ((await hashFile(srcFile)) !== (await hashFile(tmpFile))) return true;
+            } catch (_e) {
+                return true;
+            }
+        }
+        return false;
     }
 
     async initAllData() {
