@@ -455,11 +455,26 @@ ipcMain.on('snack', (event, message, type = 'info') => {
 })
 
 //-==================== 拖拽图片 ====================
+// Icon dự phòng cho cú kéo ảnh Banana (1.5.25 test5): nativeImage của
+// Electron chỉ đọc được PNG/JPEG — ảnh webp (định dạng của gần hết ảnh
+// GameBanana) đọc ra rỗng, mà startDrag không có icon thì có thể không
+// bắt đầu cú kéo mà không báo lỗi (đúng lỗi Đạt gặp 23/11: kéo ảnh không
+// được, không thấy gì). Tạo 1 lần (ô vàng 64x64) rồi giữ lại dùng dần.
+let gbDragFallbackIcon = null;
+function getGbDragFallbackIcon() {
+  if (!gbDragFallbackIcon || gbDragFallbackIcon.isEmpty()) {
+    gbDragFallbackIcon = nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAYUlEQVR4nO3PMQ0AIADAMMC/P+SACI6GZFWwzbPH15YOeNWA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaAdgHY7wJWiQoVpQAAAABJRU5ErkJggg==');
+  }
+  return gbDragFallbackIcon;
+}
+
 // Kéo ảnh từ khung Banana ra (1.5.25 test3): renderer tải ảnh về file
 // tạm rồi gửi đường dẫn sang đây, tiến trình chính bắt đầu cú kéo ở
 // mức hệ điều hành để ảnh kéo được ra khỏi khung web (kéo-thả HTML
 // thường không xuyên qua được ranh giới webview). Icon kéo là chính
-// tấm ảnh, thu nhỏ nếu rộng quá 256px; lỗi icon thì vẫn kéo được.
+// tấm ảnh, thu nhỏ nếu rộng quá 256px, phóng lên 64px nếu nhỏ quá;
+// ảnh đọc không được (webp/gif/bmp) thì dùng ô vàng dự phòng — cú kéo
+// LUÔN có icon (không icon thì có thể không bắt đầu, xem trên).
 // startDrag chạy lệch 1 nhịp (setImmediate) để bộ nghe IPC trả về ngay:
 // trên Linux, startDrag mở vòng lặp kéo lồng nhau, gọi thẳng trong bộ
 // nghe sẽ kẹt việc gửi tin IPC sau đó; lệch 1 nhịp thì không ảnh hưởng
@@ -475,10 +490,12 @@ ipcMain.on('gb-start-drag', (event, filePath) => {
         try {
           const img = nativeImage.createFromPath(filePath);
           if (!img.isEmpty()) {
-            icon = img.getSize().width > 256 ? img.resize({ width: 256 }) : img;
+            const w = img.getSize().width;
+            icon = w > 256 ? img.resize({ width: 256 }) : (w < 64 ? img.resize({ width: 64 }) : img);
           }
-        } catch (_e) { /* không có icon kéo thì vẫn kéo được */ }
-        sender.startDrag(icon ? { file: filePath, icon } : { file: filePath });
+        } catch (_e) { /* đọc icon lỗi thì dùng icon dự phòng dưới */ }
+        if (!icon || icon.isEmpty()) icon = getGbDragFallbackIcon();
+        sender.startDrag({ file: filePath, icon });
       } catch (e) {
         console.error('gb-start-drag failed', e);
       }

@@ -190,7 +190,13 @@ const attachWebviewListeners = () => {
     }
     if (e.channel === 'gb-drag-image') {
       const url = e.args && e.args[0] && e.args[0].url;
-      if (url) iManager.gbStartDragImage(url);
+      if (url) {
+        // Tải ảnh lỗi thì báo cho anh biết (trước đây lỗi chỉ ghi vào
+        // log, ngoài mặt không thấy gì nên tưởng kéo hỏng).
+        iManager.gbStartDragImage(url).then((ok) => {
+          if (!ok) snack(t('banana.dragImageFailed'), 'error');
+        });
+      }
     }
   });
   // Link mở cửa sổ mới (target=_blank) thì mở bằng trình duyệt ngoài,

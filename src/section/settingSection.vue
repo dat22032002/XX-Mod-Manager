@@ -404,6 +404,10 @@ const handleFixerScan = async () => {
             fixerState.suspects = suspects;
             fixerState.selectedIds = [];
             fixerState.scannedOnce = true;
+            // Lưu id mod nghi hỏng vào config để công tắc lọc ở trang Mod
+            // vẫn dùng được sau khi đóng app mở lại (Đạt dặn 23/11).
+            iManager.config.fixerSuspectIds = suspects.map((m) => m.modId);
+            iManager.saveConfig();
         }
     } catch (e) {
         console.error('fixerScanBrokenMods failed', e);
@@ -466,6 +470,10 @@ const handleFixerStart = async () => {
     const fixedIds = new Set(fixerState.results.filter((r) => r.status === 'fixed').map((r) => r.modId));
     fixerState.suspects = fixerState.suspects.filter((m) => !fixedIds.has(m.modId));
     fixerState.selectedIds = fixerState.selectedIds.filter((id) => !fixedIds.has(id));
+    // Đồng bộ danh sách đã lưu: mod đã sửa biến khỏi lọc ở trang Mod
+    // ngay, không cần đợi quét lại.
+    iManager.config.fixerSuspectIds = fixerState.suspects.map((m) => m.modId);
+    iManager.saveConfig();
 };
 
 const handleFixerCopyTempPath = async () => {

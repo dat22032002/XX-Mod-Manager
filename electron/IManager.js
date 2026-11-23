@@ -141,6 +141,8 @@ let g_config = {
     modSortBy: 'default',
     fixerVersion: null, // Bản Fixer đã tải về (tag release, vd zzz-mod-fixer-v2.3.0)
     fixerFileName: null, // Tên file .exe Fixer đã tải về
+    fixerSuspectIds: null, // id các mod nghi hỏng từ lần quét Fixer gần nhất (null = chưa quét bao giờ)
+    showOnlySuspected: false, // Lưới Mod chỉ hiện mod nghi hỏng (công tắc trong bảng lọc — Đạt dặn 23/11)
 };
 let g_data = {
     modList: [],
@@ -191,6 +193,8 @@ const g_config_vue = {
     modSortBy: ref('default'),
     fixerVersion: ref(null),
     fixerFileName: ref(null),
+    fixerSuspectIds: ref(null),
+    showOnlySuspected: ref(false),
 };
 
 const g_data_vue = {
@@ -295,6 +299,8 @@ class IManager {
         modSortBy: 'default', // Sắp xếp mod: default/name-asc/name-desc/time-desc/time-asc
         fixerVersion: null, // Bản Fixer đã tải về (tag release, vd zzz-mod-fixer-v2.3.0)
         fixerFileName: null, // Tên file .exe Fixer đã tải về
+        fixerSuspectIds: null, // id các mod nghi hỏng từ lần quét Fixer gần nhất (null = chưa quét bao giờ)
+        showOnlySuspected: false, // Lưới Mod chỉ hiện mod nghi hỏng (công tắc trong bảng lọc — Đạt dặn 23/11)
     };
 
     // 程序运行时的数据

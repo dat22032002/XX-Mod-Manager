@@ -135,6 +135,8 @@
     "typeGroup": "Type",
     "sortGroup": "Sort",
     "showCounts": "Show mod counts",
+ "onlySuspected": "Suspect mods only",
+ "scanFirstHint": "Scan for broken mods in Settings → Mod Fixer first",
     "allTypes": "All types",
     "sortDefault": "Default",
     "sortNameAsc": "Name A–Z",
@@ -292,6 +294,7 @@
     "chooseFile": "Choose a file to download",
     "noFiles": "No downloadable files found for this mod",
     "downloadFailed": "Download failed",
+ "dragImageFailed": "Couldn't load that image to drag",
     "updateAvailable": "Update",
     "updating": "Updating…"
   },

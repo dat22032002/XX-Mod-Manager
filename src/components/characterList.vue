@@ -100,6 +100,15 @@
                     <span class="counts-label">{{ $t('filter.showCounts') }}</span>
                     <s-switch id="chip-counts-switch" :checked="showChipCounts" @change="toggleChipCounts"></s-switch>
                 </div>
+                <!-- Chỉ hiện mod nghi hỏng (Đạt dặn 23/11): bật thì lưới
+                     Mod chỉ hiện mod trong danh sách lần quét Fixer gần
+                     nhất (lưu trong config nên mở app lại vẫn còn). Chưa
+                     quét bao giờ thì công tắc mờ đi + nhắc quét trước. -->
+                <div class="counts-wrap" :class="{ disabled: !hasScannedOnce }">
+                    <span class="counts-label">{{ $t('filter.onlySuspected') }}</span>
+                    <s-switch id="suspect-only-switch" :checked="showOnlySuspected" :disabled="!hasScannedOnce" @change="toggleOnlySuspected"></s-switch>
+                </div>
+                <p v-if="!hasScannedOnce" class="suspect-hint">{{ $t('filter.scanFirstHint') }}</p>
             </div>
             </Transition>
             </div>
@@ -157,6 +166,10 @@ const characterList = g_data_vue.characterList;
 // sách cũng vàng theo, không cần hàm đồng bộ riêng.
 const currentCharacter = g_temp_vue.currentCharacter;
 const showChipCounts = g_config_vue.showChipCounts;
+const showOnlySuspected = g_config_vue.showOnlySuspected;
+// Đã quét Fixer lần nào chưa: danh sách id trong config là mảng (kể cả
+// rỗng = quét xong, 0 mod hỏng) thì đã quét; null = chưa quét bao giờ.
+const hasScannedOnce = computed(() => Array.isArray(g_config_vue.fixerSuspectIds.value));
 
 // Hình mũi tên (Đạt duyệt mockup 21/11, sửa theo ý Đạt 23/11): hàng
 // nhân vật thu hẹp theo khoảng cách từ MỐC — mốc dài nhất (full),
@@ -256,7 +269,8 @@ const selectCharacter = (name) => {
 // lưới đang bị lọc dù bảng đã đóng.
 const panelOpen = ref(false);
 const hasActiveFilter = computed(() =>
-    g_config_vue.modTypeFilter.value !== 'all' || g_config_vue.modSortBy.value !== 'default');
+    g_config_vue.modTypeFilter.value !== 'all' || g_config_vue.modSortBy.value !== 'default' ||
+    g_config_vue.showOnlySuspected.value);
 
 // Tag mod (ModTag): Character, Skin, Weapon, Effect, Accessory, Other —
 // chuẩn phân loại duy nhất từ 1.5.18, thay tiền tố tên thư mục. Thêm
@@ -345,6 +359,18 @@ function handleSortChange(sort) {
 // để con số ổn định, đúng nghĩa "nhân vật này có bao nhiêu mod".
 function toggleChipCounts() {
     iManager.config.showChipCounts = !g_config_vue.showChipCounts.value;
+    saveFilterSettings();
+}
+
+//-=============== Chỉ hiện mod nghi hỏng ===============//
+// Công tắc trong bảng lọc (Đạt dặn 23/11): bật thì lưới Mod chỉ hiện
+// mod trong danh sách nghi hỏng của lần quét Fixer gần nhất (lưu trong
+// config); tắt thì hiện bình thường. Chưa quét bao giờ thì công tắc mờ
+// đi, bấm không ăn (chặn ở đây phòng khi s-switch bỏ qua disabled).
+// Lựa chọn lưu trong config như các lọc khác.
+function toggleOnlySuspected() {
+    if (!hasScannedOnce.value) return;
+    iManager.config.showOnlySuspected = !g_config_vue.showOnlySuspected.value;
     saveFilterSettings();
 }
 
@@ -641,10 +667,25 @@ defineExpose({ clearSearchInput });
     box-sizing: border-box;
 }
 
+/* Hàng công tắc mờ đi khi chưa quét Fixer bao giờ (công tắc không bấm
+   được, xem toggleOnlySuspected). */
+.counts-wrap.disabled {
+    opacity: 0.5;
+}
+
 .counts-label {
     font-size: 0.875rem;
     color: var(--s-color-on-surface);
     white-space: nowrap;
+}
+
+/* Dòng nhắc quét trước khi dùng lọc mod nghi hỏng: chữ nhỏ, mờ, cho
+   xuống dòng tự do (khác nhãn công tắc 1 dòng). */
+.suspect-hint {
+    font-size: 0.75rem;
+    color: var(--s-color-on-surface-variant);
+    margin: 2px 4px 0;
+    line-height: 1.4;
 }
 
 /* 2 hàng Tất cả / Đã chọn: chung 1 hàng, mỗi bên một nửa (Đạt dặn

@@ -135,6 +135,8 @@
     "typeGroup": "Loại",
     "sortGroup": "Xếp",
     "showCounts": "Hiện số lượng mod",
+ "onlySuspected": "Chỉ mod nghi hỏng",
+ "scanFirstHint": "Quét mod nghi hỏng ở Cài đặt → Mod Fixer trước",
     "allTypes": "Mọi loại",
     "sortDefault": "Mặc định",
     "sortNameAsc": "Tên A–Z",
@@ -292,6 +294,7 @@
     "chooseFile": "Chọn file để tải",
     "noFiles": "Không thấy file tải được của mod này",
     "downloadFailed": "Tải thất bại",
+ "dragImageFailed": "Không tải được ảnh để kéo",
     "updateAvailable": "Bản mới",
     "updating": "Đang cập nhật…"
   },
