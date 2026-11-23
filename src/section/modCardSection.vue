@@ -147,9 +147,11 @@
             </s-button>
 
             <!-- Bảng tùy chọn hiển thị (1.5.26): nút Dọc/Ngang, công tắc
-                 gọn, zoom, ảnh gốc gom vào 1 bảng nổi mở ngang; nút mở
-                 bảng nằm bên phải nút Undo. Bấm nút thì mở/đóng, bấm ra
-                 ngoài thì đóng. -->
+                 gọn, zoom, ảnh gốc gom vào 1 bảng mở ngang; nút mở bảng
+                 nằm bên phải nút Undo. Bấm nút thì mở/đóng, bấm ra ngoài
+                 thì đóng. Bảng nằm GỌN TRONG hàng thanh dưới, thu/phóng
+                 theo chiều ngang từ nút mở bảng (Đạt sửa 23/11: không
+                 trồi lên che khung thẻ mod như bản đầu). -->
             <div class="view-panel-anchor" ref="viewPanelAnchorRef">
                 <s-tooltip>
                     <s-icon-button id="view-panel-trigger" slot="trigger" class="OO-button"
@@ -163,7 +165,7 @@
                     </s-icon-button>
                     <p> {{ $t('buttons.viewOptions') }} </p>
                 </s-tooltip>
-                <div v-show="viewPanelOpen" class="view-panel">
+                <div class="view-panel" :class="{ open: viewPanelOpen, 'no-transition': viewPanelNoTransition }">
                     <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, trong
                          bảng tùy chọn hiển thị (1.5.26). -->
                     <!-- Nút Dọc/Ngang dùng thẳng component nút Mod/Help/Setting
@@ -619,15 +621,26 @@ function handleFullImageClicked() {
 //#endregion
 
 //-============================= bảng tùy chọn hiển thị ==============================
-// Bảng nổi mở ngang chứa 4 nút xem thẻ (Dọc/Ngang, công tắc gọn, zoom,
+// Bảng mở ngang chứa 4 nút xem thẻ (Dọc/Ngang, công tắc gọn, zoom,
 // ảnh gốc) — nút mở bảng nằm bên phải nút Undo (1.5.26). Bấm nút thì
 // mở/đóng; bấm ra ngoài thì đóng (bộ nghe click ở document, đăng ký
-// trong onMounted). Viên vàng của nút Dọc/Ngang tính bằng % thuần CSS
-// nên nằm trong bảng đang ẩn (display:none) vẫn trượt đúng khi mở,
-// không cần đo lại như chipRadioBar.
+// trong onMounted). Bảng nằm TRONG LUỒNG hàng thanh dưới, ngay sau nút
+// mở bảng: đóng thì co về rộng 0 (max-width + opacity), mở thì dài
+// sang phải — không trồi lên chạm khung thẻ mod (Đạt sửa 23/11). Viên
+// vàng của nút Dọc/Ngang tính bằng % thuần CSS nên lúc bảng đang co
+// (max-width 0) vẫn trượt đúng khi mở, không cần đo lại như chipRadioBar.
 const viewPanelOpen = ref(false);
+// Đóng tức thì (không hiệu ứng trượt) khi dòng tiến độ hiện — xem
+// watcher ở dưới.
+const viewPanelNoTransition = ref(false);
 const viewPanelAnchorRef = useTemplateRef('viewPanelAnchorRef');
 function handleViewPanelTriggerClicked() {
+    // Đang tải mod / đang Apply thì dòng tiến độ đang chiếm khoảng
+    // giữa thanh dưới — không mở bảng để khỏi che dòng tiến độ.
+    if (applying.value || loadingMods.value) return;
+    // Mở/đóng bằng nút thì luôn có hiệu ứng (lần đóng do tiến độ tắt
+    // hiệu ứng để biến mất ngay — bật lại ở đây).
+    viewPanelNoTransition.value = false;
     viewPanelOpen.value = !viewPanelOpen.value;
 }
 function handleDocumentClickForViewPanel(event) {
@@ -794,6 +807,19 @@ const progressPercent = computed(() => {
     const total = applying.value ? applyTotal.value : loadTotal.value;
     const done = applying.value ? applyDone.value : loadDone.value;
     return total > 0 ? Math.round(done / total * 100) : 0;
+});
+
+// Bảng tự đóng khi dòng tiến độ hiện (đang tải mod / đang Apply): bảng
+// mở thì chiếm khoảng giữa thanh dưới — đúng chỗ dòng tiến độ — nên
+// đóng bảng để dòng tiến độ luôn thấy được (1.5.26). Đóng TỨC THÌ
+// (tắt hiệu ứng trượt 0,25s): tải/áp với ít mod xong rất nhanh, trượt
+// từ từ thì dòng tiến độ đã biến mất trước khi bảng co xong, mà lúc
+// trượt bảng vẫn che nửa trái dòng tiến độ.
+watch(() => applying.value || loadingMods.value, (visible) => {
+    if (visible) {
+        viewPanelNoTransition.value = true;
+        viewPanelOpen.value = false;
+    }
 });
 
 // Tập mod đang thật sự bật trong game (quét thư mục đích — xem
@@ -1037,32 +1063,62 @@ EventSystem.on('toggledMod', (mod) => {
     gap: 8px;
 }
 
-/* Neo cho bảng tùy chọn hiển thị (1.5.26): bảng mở lên trên, thẳng mép
-   trái nút mở bảng. */
+/* Neo cho bảng tùy chọn hiển thị (1.5.26): nút mở bảng + bảng xếp
+   thành 1 hàng ngang trong thanh dưới, bảng nằm ngay sau nút. */
 .view-panel-anchor {
-    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     flex-shrink: 0;
 }
 
-/* Bảng nổi mở ngang (1.5.26): 4 nút xem thẻ xếp thành 1 hàng ngang,
-   mở lên trên thanh dưới. Nền đen tuyền + viền + bóng như bảng thao
-   tác hàng loạt (Đạt dặn 20/11: không dùng surface-container trong
-   suốt, không dùng surface-container-low trùng màu nút). */
+/* Bảng mở ngang (1.5.26): 4 nút xem thẻ xếp thành 1 hàng ngang, nằm
+   GỌN TRONG hàng thanh dưới (cao 60px) — đóng thì co về rộng 0, mở thì
+   dài sang phải từ nút mở bảng, KHÔNG trồi lên chạm khung thẻ mod
+   (Đạt sửa 23/11). Đệm dọc chỉ 2px để bảng (~54px) vừa trong thanh
+   dưới. Nền đen tuyền + viền + bóng như bảng thao tác hàng loạt
+   (Đạt dặn 20/11: không dùng surface-container trong suốt, không dùng
+   surface-container-low trùng màu nút). Nút trong bảng flex-shrink: 0
+   để lúc thu/phóng nút bị cắt dần chứ không bị bóp méo. Đóng thì đệm
+   ngang + viền cũng về 0 (chỉ max-width: 0 vẫn để lại 28px đệm+viền —
+   probe 23/11 đo ra), min-width: 0 để mục flex co hết được. */
 .view-panel {
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 0;
     display: flex;
     align-items: center;
     gap: 8px;
     background-color: #000000;
     border: 2px solid var(--s-color-outline-variant);
     border-radius: 12px;
-    padding: 10px 12px;
+    padding: 2px 0;
+    border-width: 0;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     box-sizing: border-box;
     white-space: nowrap;
-    z-index: 50;
+    flex-shrink: 0;
+    min-width: 0;
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: max-width 0.25s ease, opacity 0.2s ease, padding 0.25s ease, border-width 0.25s ease;
+}
+
+.view-panel.open {
+    max-width: 560px;
+    opacity: 1;
+    pointer-events: auto;
+    padding: 2px 12px;
+    border-width: 2px;
+}
+
+/* Đóng tức thì khi dòng tiến độ hiện (xem watcher): bảng biến mất
+   ngay trong khung vẽ đó, không trượt 0,25s che dòng tiến độ. */
+.view-panel.no-transition {
+    transition: none;
+}
+
+.view-panel > * {
+    flex-shrink: 0;
 }
 
 .bottom-right {
