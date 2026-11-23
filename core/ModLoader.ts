@@ -254,6 +254,23 @@ class ModLoader {
         }
     }
 
+    // Gỡ 1 mod khỏi danh sách gốc theo tên thư mục (khi xóa/hủy mod mà
+    // không tải lại toàn bộ — vd discardNewMod): dọn cả modsRaw lẫn bảng
+    // tra theo id, không thì mục ma còn lại làm các đường dùng modsRaw
+    // (kiểm tra bản mới Banana, Apply) tưởng mod vẫn còn. Trùng id thì
+    // mục còn lại thế chỗ trong bảng tra (theo luật "mục đầu thắng" của
+    // addToIdIndex).
+    public static removeModByFolder(folderName: string): void {
+        const removed = this.modsRaw.find((m) => m.modName === folderName);
+        if (!removed) return;
+        this.modsRaw = this.modsRaw.filter((m) => m !== removed);
+        if (removed.id && this.modsById.get(removed.id) === removed) {
+            this.modsById.delete(removed.id);
+            const next = this.modsRaw.find((m) => m.id === removed.id);
+            if (next) this.modsById.set(next.id, next);
+        }
+    }
+
     public static getModByID(id: string): ModInfo | undefined {
         return this.modsById.get(id);
     }

@@ -18,6 +18,22 @@ const fs = require('fs');
 const urlModuleName = 'url';
 const { fileURLToPath } = require(urlModuleName);
 
+// Gọi mạng tới GameBanana bằng module Node (renderer fetch bị CORS chặn
+// với gamebanana.com) — require qua biến trung gian như 'path'.
+const httpsModuleName = 'https';
+const https = require(httpsModuleName);
+const httpModuleName = 'http';
+const http = require(httpModuleName);
+
+// Cờ chống chạy chồng cho kiểm tra/cập nhật Banana — ĐẶT Ở CẤP MODULE
+// (không phải trường của instance): mỗi component tạo riêng 1 new
+// IManager() nên cờ instance không chặn được nhau — kiểm tra tự động
+// lúc mở app và kiểm tra bấm tay có thể chạy chồng, hỏi Banana trùng
+// nhau. Module chỉ đóng gói 1 lần nên biến cấp module dùng chung cho
+// mọi instance.
+let gbChecking = false;
+const gbUpdatingIds = new Set();
+
 // 导入 libarchivejs
 let Archive = window.Archive;
 //! 下面两个变量是为了解决 vite 打包时，无法正确导入 wasm 文件的问题
@@ -49,6 +65,12 @@ import { PathHelper } from '../helper/PathHelper';
 import { ModData } from '../core/ModHelper';
 // 导入 DialogHelper
 import { DialogID, DialogHelper } from '../helper/DialogHelper';
+// GameBanana: hàm thuần (đọc mã mod từ link, chọn file mới nhất) +
+// quét dung lượng + bộ nhớ đệm ảnh (cập nhật bản mới xong thì đuổi ảnh
+// bìa cũ, quét lại dung lượng).
+import { parseGameBananaModId, pickLatestGbFile, GB_API_BASE, GB_USER_AGENT } from '../helper/GameBanana';
+import ModSizeScanner from '../helper/ModSizeScanner';
+import { ImageHelper } from '../helper/ImageHelper';
 
 // // 导入 hmc-win32
 // require qua biến trung gian như 'path' ở trên: hmc-win32 là module native,
@@ -487,6 +509,18 @@ class IManager {
 
         //debug
         console.log(`Đã tải ${loadModData.length} mod, tổng cộng ${this.data.characterList.length} nhân vật, có ${this.newMods.length} mod mới`);
+
+        // Dọn thư mục tạm của lần cập nhật Banana dở dang (sập giữa chừng).
+        this.gbCleanStaleTempDirs();
+
+        // Kiểm tra bản mới Banana chạy nền sau khi mod đã tải xong
+        // (không chặn app mở): đợi 2 giây để nhường lần vẽ đầu tiên.
+        setTimeout(() => {
+            this.checkGameBananaUpdates(false).catch((e) => {
+                console.error('checkGameBananaUpdates failed', e);
+            });
+        }, 2000);
+
         return loadRawMods;
     }
 
@@ -1762,6 +1796,10 @@ class IManager {
         }
         // Gỡ khỏi danh sách trong bộ nhớ (y như deleteModPlugin).
         this.data.modList = this.data.modList.filter((mod) => mod.name !== modName);
+        // Gỡ cả khỏi danh sách gốc của ModLoader — trước đây chỉ lọc
+        // modList nên mục ma còn lại trong modsRaw, làm kiểm tra bản
+        // mới Banana hỏi cả mod đã xóa (probe Banana 23/11).
+        ModLoader.removeModByFolder(folderName);
         if (this.temp.currentMod && this.temp.currentMod.name === modName) {
             this.setCurrentMod(this.data.modList[0]);
         }
@@ -1813,7 +1851,10 @@ class IManager {
         mod.triggerChanged();
     }
 
-    async handleArchiveDrop(file) {
+    // gbMeta (tải từ Banana): { url, fileId, fileDate } — ghi link + mã
+    // file vào mod.json sau khi nhập để lần sau kiểm tra bản mới được.
+    // Nhập tay (kéo-thả zip/thư mục) thì không truyền, mod không có link.
+    async handleArchiveDrop(file, gbMeta = null) {
         //debug
         console.log(`handle zip drop: ${file.name}`);
 
@@ -1862,6 +1903,20 @@ class IManager {
             // 读取 mod.json    
             const mod = await this.getModInfo(modName);
             console.log(`getModInfo:`, mod);
+
+            // Mod tải từ Banana: ghi link + mã file vào mod.json ngay
+            // (hộp sửa mở ngay sau đó phải thấy link) — ModData.url
+            // cũng đặt luôn để hộp sửa sao đúng link.
+            if (gbMeta && mod) {
+                const modInfo = ModLoader.getModByID(mod.id);
+                if (modInfo) {
+                    modInfo.metaData.set('url', gbMeta.url, ModMetaDataType.String);
+                    modInfo.metaData.set('gbFileId', gbMeta.fileId, ModMetaDataType.Number);
+                    modInfo.metaData.set('gbFileDate', gbMeta.fileDate, ModMetaDataType.Number);
+                    modInfo.saveMetaData();
+                }
+                mod.url = gbMeta.url;
+            }
 
             // Đoán nhân vật từ tên thư mục/file (Đạt dặn 22/11) — chạy
             // TRƯỚC khối gán-nhân-vật-hiện-tại: đoán ra thì dùng nhân
@@ -1999,6 +2054,363 @@ class IManager {
         // getModInfo 遇到新的 mod 会触发 addMod 事件，所以这里不需要再次触发
         // TC26: trả về true để handleDropEntry đếm số mod đã nhập.
         return true;
+    }
+
+    //-==================== GameBanana (1.5.25) ====================//
+    // Tải mod từ GameBanana + kiểm tra/cập nhật bản mới. Mọi lần gọi
+    // mạng dùng module https/http của Node (renderer fetch bị CORS chặn
+    // với gamebanana.com) — xem gbFetchBuffer.
+
+    // GET 1 URL, trả về Buffer. Tự đi theo chuyển hướng (tối đa 5 lần —
+    // link tải gamebanana.com/dl/<id> chuyển sang CDN), quá 15 giây
+    // không có dữ liệu thì ngắt. onProgress (nếu có) nhận (đã nhận,
+    // tổng — tổng = -1 khi máy chủ không báo dung lượng).
+    // GET 1 URL, trả về Buffer. Lỗi mạng thoáng qua (mất gói, wifi chập
+    // chờn, máy chủ ngắt giữa chừng) thì thử lại 1 lần sau 500ms thay vì
+    // bỏ luôn — lỗi HTTP (404/...) thì không thử lại vì thử nữa cũng
+    // lỗi y hệt. Xem _gbFetchBufferOnce để biết chi tiết 1 lần tải.
+    async gbFetchBuffer(url, onProgress = null, redirectsLeft = 5, retriesLeft = 1) {
+        try {
+            return await this._gbFetchBufferOnce(url, onProgress, redirectsLeft);
+        } catch (e) {
+            const isHttpError = /^HTTP \d+$/.test(e.message || '');
+            if (retriesLeft > 0 && !isHttpError) {
+                await new Promise((r) => setTimeout(r, 500));
+                return this.gbFetchBuffer(url, onProgress, redirectsLeft, retriesLeft - 1);
+            }
+            throw e;
+        }
+    }
+
+    async _gbFetchBufferOnce(url, onProgress = null, redirectsLeft = 5) {
+        return new Promise((resolve, reject) => {
+            const lib = url.startsWith('https:') ? https : http;
+            let settled = false;
+            const done = (fn, value) => {
+                if (settled) return;
+                settled = true;
+                fn(value);
+            };
+            const req = lib.get(url, { headers: { 'User-Agent': GB_USER_AGENT } }, (res) => {
+                // Chuyển hướng: đi theo link mới (tương đối thì nối với URL cũ).
+                if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && redirectsLeft > 0) {
+                    res.resume();
+                    const nextUrl = new URL(res.headers.location, url).href;
+                    this.gbFetchBuffer(nextUrl, onProgress, redirectsLeft - 1).then(
+                        (buf) => done(resolve, buf),
+                        (err) => done(reject, err)
+                    );
+                    return;
+                }
+                if (res.statusCode !== 200) {
+                    res.resume();
+                    done(reject, new Error(`HTTP ${res.statusCode}`));
+                    return;
+                }
+                const total = Number(res.headers['content-length']);
+                const chunks = [];
+                let received = 0;
+                let idleTimer = null;
+                const armIdle = () => {
+                    clearTimeout(idleTimer);
+                    idleTimer = setTimeout(() => {
+                        req.destroy(new Error('Timed out: no data for 15s'));
+                    }, 15000);
+                };
+                armIdle();
+                res.on('data', (chunk) => {
+                    chunks.push(chunk);
+                    received += chunk.length;
+                    armIdle();
+                    if (onProgress) {
+                        try { onProgress(received, Number.isFinite(total) ? total : -1); } catch (_e) { /* bỏ qua */ }
+                    }
+                });
+                res.on('end', () => {
+                    clearTimeout(idleTimer);
+                    done(resolve, Buffer.concat(chunks));
+                });
+                res.on('error', (err) => {
+                    clearTimeout(idleTimer);
+                    done(reject, err);
+                });
+            });
+            req.on('error', (err) => done(reject, err));
+        });
+    }
+
+    // Đọc JSON từ 1 URL (dùng cho cổng dữ liệu Banana). Lỗi mạng / sai
+    // định dạng thì văng lỗi — nơi gọi tự bắt và bỏ qua.
+    async gbFetchJson(url) {
+        const buf = await this.gbFetchBuffer(url);
+        return JSON.parse(buf.toString('utf8'));
+    }
+
+    // Danh sách file của 1 mod Banana (mảng _aFiles thô) — lỗi thì null.
+    async gbFetchModFiles(modId) {
+        try {
+            const data = await this.gbFetchJson(`${GB_API_BASE}/Mod/${modId}?_csvProperties=_aFiles`);
+            const files = data && data._aFiles;
+            return Array.isArray(files) ? files : null;
+        } catch (e) {
+            console.warn(`gbFetchModFiles(${modId}) failed`, e);
+            return null;
+        }
+    }
+
+    // Tải 1 file Banana về thành File (để nhập bằng đúng đường nhập mod
+    // có sẵn). onProgress nhận (đã tải, tổng) để hiện % trên nút.
+    async gbDownloadFile(downloadUrl, fileName, onProgress = null) {
+        const buf = await this.gbFetchBuffer(downloadUrl, onProgress);
+        return new File([buf], fileName, { type: 'application/octet-stream' });
+    }
+
+    // Kiểm tra bản mới cho mọi mod đã gắn link Banana — hỏi lần lượt
+    // từng mod, nghỉ 300ms giữa các lần hỏi để không dội yêu cầu vào
+    // Banana. Mod nào file mới nhất khác file đã lưu thì bật dấu "Bản
+    // mới" trên thẻ (sự kiện gbUpdateReady). Mod mới gắn link (chưa có
+    // mã file) thì nhận file mới nhất làm mốc, không báo bản mới.
+    // manual = bấm nút kiểm tra tay: luôn báo kết quả; tự chạy lúc mở
+    // app thì chỉ báo khi có bản mới. Đang chạy thì lần gọi sau bỏ qua.
+    async checkGameBananaUpdates(manual = false) {
+        if (gbChecking) return { checked: 0, updates: 0, skipped: true };
+        gbChecking = true;
+        let checked = 0;
+        let updates = 0;
+        let failed = 0;
+        try {
+            const mods = ModLoader.modsRaw || [];
+            for (const modInfo of mods) {
+                // Thư mục mod đã bị xóa ngoài (người dùng xóa tay trong
+                // lúc app chạy, plugin xóa...) mà danh sách gốc chưa
+                // tải lại: bỏ qua, không hỏi Banana cho mod ma.
+                if (!modInfo.location || !fs.existsSync(modInfo.location)) continue;
+                const modId = parseGameBananaModId(modInfo.metaData.get('url') || '');
+                if (!modId) continue;
+                const files = await this.gbFetchModFiles(modId);
+                if (files === null) {
+                    // Hỏi Banana lỗi (mạng chập chờn...): bỏ qua mod này
+                    // lần này, lần kiểm tra sau hỏi lại — không tính là
+                    // "không có bản mới".
+                    failed++;
+                    await new Promise(r => setTimeout(r, 300));
+                    continue;
+                }
+                const latest = pickLatestGbFile(files);
+                if (!latest) {
+                    // Mod không có file tải được: đã kiểm xong, không có
+                    // gì để cập nhật.
+                    checked++;
+                    await new Promise(r => setTimeout(r, 300));
+                    continue;
+                }
+                checked++;
+                const storedFileId = Number(modInfo.metaData.get('gbFileId') || 0);
+                const modData = this.data.modList.find((m) => m.id === modInfo.id);
+                if (!storedFileId) {
+                    // Chưa có mốc (vừa dán link tay): nhận file mới nhất
+                    // làm mốc, không báo bản mới.
+                    modInfo.metaData.set('gbFileId', latest.id, ModMetaDataType.Number);
+                    modInfo.metaData.set('gbFileDate', latest.dateAdded, ModMetaDataType.Number);
+                    modInfo.saveMetaData();
+                } else if (latest.id !== storedFileId) {
+                    updates++;
+                    if (modData && !modData.gbHasUpdate) {
+                        modData.gbHasUpdate = true;
+                        EventSystem.trigger(EventType.gbUpdateReady, modData, true);
+                    }
+                } else if (modData && modData.gbHasUpdate) {
+                    // Đã là bản mới nhất (vd vừa cập nhật bằng tay ở
+                    // ngoài): tắt dấu cũ đi.
+                    modData.gbHasUpdate = false;
+                    EventSystem.trigger(EventType.gbUpdateReady, modData, false);
+                }
+                await new Promise(r => setTimeout(r, 300));
+            }
+        } finally {
+            gbChecking = false;
+        }
+        if (manual || updates > 0) {
+            if (updates > 0) {
+                t_snack({
+                    vi: `Có ${updates} mod có bản mới trên Banana`,
+                    en: `${updates} mod(s) have updates on GameBanana`,
+                });
+            } else if (manual && failed > 0 && checked === 0) {
+                // Bấm tay mà không hỏi được mod nào: báo lỗi mạng rõ
+                // ràng thay vì "không có bản mới" gây hiểu lầm.
+                t_snack({
+                    vi: 'Không kiểm tra được bản mới, hãy thử lại sau',
+                    en: 'Could not check for updates, please try again later',
+                }, 'error');
+            } else {
+                t_snack({
+                    vi: 'Không có mod nào có bản mới',
+                    en: 'No mod updates available',
+                });
+            }
+        }
+        return { checked, updates, failed };
+    }
+
+    // Cập nhật 1 mod lên bản mới nhất trên Banana (bấm dấu "Bản mới"
+    // trên thẻ): tải bản mới về THAY BẢN CŨ, không giữ bản cũ (Đạt
+    // chốt). Giữ nguyên nhân vật/tag/tên trong mod.json; mã file + ngày
+    // file cập nhật theo bản mới. Giải nén vào thư mục tạm TRƯỚC — thành
+    // công mới thay nội dung mod cũ (extractArchive xóa thư mục đích
+    // khi lỗi nên không giải nén thẳng vào mod cũ được).
+    async gbUpdateMod(mod) {
+        if (!mod || !mod.id) return false;
+        if (gbUpdatingIds.has(mod.id)) return false;
+        gbUpdatingIds.add(mod.id);
+        try {
+            const modInfo = ModLoader.getModByID(mod.id);
+            if (!modInfo) {
+                t_snack({ vi: 'Không tìm thấy mod', en: 'Mod not found' }, 'error');
+                return false;
+            }
+            const modId = parseGameBananaModId(modInfo.metaData.get('url') || '');
+            if (!modId) {
+                t_snack({ vi: 'Mod này không có link Banana', en: 'This mod has no GameBanana link' }, 'error');
+                return false;
+            }
+            const files = await this.gbFetchModFiles(modId);
+            const latest = files ? pickLatestGbFile(files) : null;
+            if (!latest) {
+                t_snack({ vi: 'Không kiểm tra được bản mới, hãy thử lại sau', en: 'Could not check for updates, please try again later' }, 'error');
+                return false;
+            }
+            const storedFileId = Number(modInfo.metaData.get('gbFileId') || 0);
+            if (storedFileId && latest.id === storedFileId) {
+                // Đã là bản mới nhất (bấm sau khi dấu chưa kịp tắt).
+                mod.gbHasUpdate = false;
+                EventSystem.trigger(EventType.gbUpdateReady, mod, false);
+                t_snack({ vi: 'Mod này đã là bản mới nhất', en: 'This mod is already up to date' });
+                return false;
+            }
+            // Đang áp dụng thì nhớ để kiểm tra lại liên kết sau khi thay.
+            const wasApplied = this.scanAppliedModIds().includes(mod.id);
+            // Tải bản mới về.
+            this.showDialog('loading-dialog');
+            let file = null;
+            try {
+                file = await this.gbDownloadFile(latest.downloadUrl, latest.name || `gb-${latest.id}.zip`);
+            } catch (e) {
+                console.error('gbUpdateMod download failed', e);
+                t_snack({ vi: `Tải bản mới thất bại: ${e.message}`, en: `Failed to download the update: ${e.message}` }, 'error');
+                return false;
+            } finally {
+                this.dismissDialog('loading-dialog');
+            }
+            // Giải nén vào thư mục tạm (cùng ổ với kho mod để chuyển
+            // sang nhanh). Tên có mốc giờ + số ngẫu nhiên để 2 lần cập
+            // nhật cùng lúc không đụng nhau.
+            const tmpDir = path.join(
+                this.config.modSourcePath,
+                `.gb-tmp-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`
+            );
+            let ok = false;
+            try {
+                ok = await this.extractArchive(file, tmpDir);
+            } catch (e) {
+                console.error('gbUpdateMod extract failed', e);
+                ok = false;
+            }
+            if (!ok) {
+                try { if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_e) { /* bỏ qua */ }
+                return false;
+            }
+            // Thay nội dung: xóa hết trong thư mục mod TRỪ mod.json (giữ
+            // nhân vật/tag/tên), rồi chuyển nội dung mới sang.
+            const modPath = modInfo.location;
+            try {
+                for (const entry of fs.readdirSync(modPath)) {
+                    if (entry === 'mod.json') continue;
+                    fs.rmSync(path.join(modPath, entry), { recursive: true, force: true });
+                }
+                for (const entry of fs.readdirSync(tmpDir)) {
+                    fs.renameSync(path.join(tmpDir, entry), path.join(modPath, entry));
+                }
+            } catch (e) {
+                console.error('gbUpdateMod swap failed', e);
+                t_snack({ vi: 'Thay bản mới thất bại, hãy kiểm tra lại thư mục mod', en: 'Failed to replace the mod files, please check the mod folder' }, 'error');
+                return false;
+            } finally {
+                try { if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_e) { /* bỏ qua */ }
+            }
+            // Ghi mốc file mới + tắt dấu bản mới.
+            modInfo.metaData.set('gbFileId', latest.id, ModMetaDataType.Number);
+            modInfo.metaData.set('gbFileDate', latest.dateAdded, ModMetaDataType.Number);
+            modInfo.saveMetaData();
+            mod.gbHasUpdate = false;
+            EventSystem.trigger(EventType.gbUpdateReady, mod, false);
+            // Ảnh bìa/dung lượng có thể đổi theo bản mới: đuổi ảnh cũ
+            // khỏi bộ nhớ đệm, quét lại dung lượng, thẻ tự đọc lại ảnh
+            // qua modInfoChanged.
+            ImageHelper.evictImage(mod.preview);
+            mod.clearPreviewCache();
+            mod.sizeBytes = -1;
+            ModSizeScanner.scanMissing([mod]);
+            mod.triggerChanged();
+            // Mod đang áp: liên kết trỏ vào thư mục (đường dẫn không
+            // đổi) nên vẫn còn hiệu lực — kiểm tra lại cho chắc, mất
+            // thì tạo lại.
+            if (wasApplied) this.gbEnsureAppliedLink(modInfo);
+            t_snack({ vi: `Đã cập nhật ${mod.name} lên bản mới`, en: `Updated ${mod.name} to the latest version` });
+            return true;
+        } finally {
+            gbUpdatingIds.delete(mod.id);
+        }
+    }
+
+    // Mod đang áp mà liên kết trong thư mục đích mất (vd người dùng xóa
+    // tay lúc đang cập nhật) thì tạo lại — chỉ tạo khi chưa có gì ở đó;
+    // thư mục/file thật thì không đụng vào (theo luật ApplyMods).
+    gbEnsureAppliedLink(modInfo) {
+        if (this.config.ifUseTraditionalApply) return;
+        const target = this.config.modTargetPath;
+        const source = this.config.modSourcePath;
+        if (!target || !source) return;
+        const dest = path.join(target, modInfo.modName);
+        const src = path.join(source, modInfo.modName);
+        try {
+            const stat = fs.lstatSync(dest);
+            if (stat.isSymbolicLink()) return;
+            return;
+        } catch (e) {
+            if (!e || e.code !== 'ENOENT') return;
+        }
+        try {
+            fs.symlinkSync(src, dest, 'junction');
+        } catch (e) {
+            console.error(`gbEnsureAppliedLink: cannot recreate link ${dest}`, e);
+        }
+    }
+
+    // Dọn thư mục tạm của lần cập nhật Banana dở dang (sập giữa chừng):
+    // chỉ xóa thư mục cũ hơn 1 giờ để không đụng lần cập nhật đang chạy
+    // (thư mục của nó còn mới).
+    gbCleanStaleTempDirs() {
+        const dir = this.config.modSourcePath;
+        if (!dir || !fs.existsSync(dir)) return;
+        let entries;
+        try {
+            entries = fs.readdirSync(dir, { withFileTypes: true });
+        } catch (_e) {
+            return;
+        }
+        const now = Date.now();
+        for (const entry of entries) {
+            if (!entry.isDirectory() || !entry.name.startsWith('.gb-tmp-')) continue;
+            const full = path.join(dir, entry.name);
+            try {
+                const stat = fs.statSync(full);
+                if (now - stat.mtimeMs < 60 * 60 * 1000) continue;
+                fs.rmSync(full, { recursive: true, force: true });
+            } catch (_e) {
+                // Xóa không được thì thôi — lần sau dọn tiếp.
+            }
+        }
     }
 
     async setFilter(character) {

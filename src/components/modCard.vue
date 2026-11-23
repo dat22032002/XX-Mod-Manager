@@ -12,6 +12,12 @@
 
         <div slot="headline" id="mod-item-headline">
             <span class="mod-item-name">{{ props.modRef.name }}</span>
+            <!-- Dấu bản mới Banana: bấm để cập nhật thẳng từ thẻ (1.5.25).
+                 Nằm ở hàng tiêu đề nên hiện được cả thẻ thường lẫn thẻ gọn. -->
+            <button v-if="gbHasUpdateRef" class="gb-update-btn" :class="{ updating: gbUpdatingRef }"
+                @click.stop="updateFromBanana" :title="gbUpdateTitle">
+                {{ gbUpdatingRef ? $t('banana.updating') : $t('banana.updateAvailable') }}
+            </button>
             <button class="pin-btn" :class="{ pinned: props.modRef.pinned }" @click.stop="togglePin"
                 :title="pinTitle" aria-label="Pin to top">
                 <svg viewBox="0 0 24 24" width="18" height="18">
@@ -79,6 +85,29 @@ const sizeText = computed(() => formatModSize(sizeBytesRef.value));
 const onModSizeReady = (mod) => {
     if (mod && mod.id === props.modRef.id) {
         sizeBytesRef.value = mod.sizeBytes;
+    }
+};
+
+// Dấu bản mới Banana: kiểm tra nền lúc mở app có thể xong trước khi
+// thẻ gắn vào lưới ảo nên đọc cờ sẵn trên ModData lúc gắn, rồi sự kiện
+// gbUpdateReady cập nhật riêng thẻ này khi kiểm xong sau đó.
+const gbHasUpdateRef = ref(props.modRef.gbHasUpdate ?? false);
+const gbUpdatingRef = ref(false);
+const gbUpdateTitle = computed(() => new TranslatedText(
+    'A new version is available on GameBanana — click to update',
+    'Có bản mới trên Banana — bấm để cập nhật').get());
+const onGbUpdateReady = (mod, hasUpdate) => {
+    if (mod && mod.id === props.modRef.id) {
+        gbHasUpdateRef.value = !!hasUpdate;
+    }
+};
+const updateFromBanana = async () => {
+    if (gbUpdatingRef.value) return;
+    gbUpdatingRef.value = true;
+    try {
+        await iManager.gbUpdateMod(props.modRef);
+    } finally {
+        gbUpdatingRef.value = false;
     }
 };
 
@@ -221,11 +250,13 @@ onMounted(() => {
     // Chi tiết bên phải (modInfo) đã nghe sự kiện này từ trước, thẻ thì chưa.
     EventSystem.on(EventType.modInfoChanged, onModInfoChanged);
     EventSystem.on(EventType.modSizeReady, onModSizeReady);
+    EventSystem.on(EventType.gbUpdateReady, onGbUpdateReady);
 });
 
 onUnmounted(() => {
     EventSystem.off(EventType.modInfoChanged, onModInfoChanged);
     EventSystem.off(EventType.modSizeReady, onModSizeReady);
+    EventSystem.off(EventType.gbUpdateReady, onGbUpdateReady);
     clearHoverFollow();
 });
 
@@ -596,6 +627,29 @@ defineExpose({
 
 .mod-item .pin-btn svg {
     fill: currentColor;
+}
+
+/* Dấu bản mới Banana (1.5.25): viên vàng chữ "Update"/"Bản mới" ở hàng
+   tiêu đề, bấm là cập nhật; đang cập nhật thì mờ đi (bấm nữa cũng bị
+   chặn trong updateFromBanana). */
+.mod-item .gb-update-btn {
+    flex-shrink: 0;
+    height: 26px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 13px;
+    background-color: var(--s-color-primary);
+    color: var(--s-color-on-primary);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 26px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.mod-item .gb-update-btn.updating {
+    opacity: 0.6;
+    cursor: default;
 }
 
 

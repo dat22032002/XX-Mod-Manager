@@ -9,6 +9,7 @@
   "element": {
     "section": {
       "mod": "Mod",
+      "banana": "Banana",
       "help": "Trợ giúp",
       "settings": "Cài đặt",
       "intro": "Giới thiệu",
@@ -69,6 +70,7 @@
     "mod-info-character": "Nhân vật",
     "mod-info-image": "Ảnh bìa MOD",
     "mod-info-hotkeys": "Phím tắt",
+    "mod-info-link": "Link MOD",
     "mod-info-description": "Mô tả MOD",
     "save": "Lưu",
     "cancel": "Hủy",
@@ -276,5 +278,20 @@
   },
   "switchConfig": {
     "noSelection": "Hãy chọn một cấu hình trước"
+  },
+  "banana": {
+    "back": "Quay lại",
+    "home": "Trang chủ",
+    "loading": "Đang mở GameBanana…",
+    "checkUpdates": "Kiểm tra bản mới",
+    "checkingUpdates": "Đang kiểm tra…",
+    "downloadMod": "Tải mod này",
+    "downloading": "Đang tải…",
+    "downloadingPercent": "Đang tải… {percent}%",
+    "chooseFile": "Chọn file để tải",
+    "noFiles": "Không thấy file tải được của mod này",
+    "downloadFailed": "Tải thất bại",
+    "updateAvailable": "Bản mới",
+    "updating": "Đang cập nhật…"
   }
 }

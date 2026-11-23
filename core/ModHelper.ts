@@ -37,6 +37,14 @@ function normalizeDescription(desc: any): string {
     return desc;
 }
 
+// Link mod: các giá trị "chưa có link" ('Unknown' mặc định của mẫu,
+// 'no url' mặc định cũ) đều quy về '' để hộp sửa hiện ô trống và phép
+// so sánh link đổi/không đổi được đúng.
+function normalizeModUrl(url: any): string {
+    if (!url || url === 'Unknown' || url === 'no url') return '';
+    return String(url);
+}
+
 class ModData {
     public name: string;
     public character: string;
@@ -58,6 +66,10 @@ class ModData {
     // Dung lượng thư mục mod (byte) — cộng dồn mọi file trong thư mục.
     // -1 = chưa quét (quét nền xong mới có; lần sau lấy từ bộ nhớ sẵn).
     public sizeBytes: number = -1;
+    // GameBanana: mod này có bản mới trên Banana (chỉ tồn tại trong bộ
+    // nhớ, KHÔNG lưu vào mod.json — lần kiểm tra bản mới sau khi mở app
+    // sẽ đặt lại). Thẻ mod hiện dấu "Bản mới" khi cờ này bật.
+    public gbHasUpdate: boolean = false;
 
     private index = 0; // mod的id
     private static indexCount = 0; // mod的id计数器
@@ -152,7 +164,7 @@ class ModData {
             JSON.parse(JSON.stringify(modInfo.metaData.get('name') || modInfo.modName)),
             JSON.parse(JSON.stringify(modInfo.metaData.get('character') || "Unknown")),
             JSON.parse(JSON.stringify(normalizeDescription(modInfo.metaData.get('description')))),
-            JSON.parse(JSON.stringify(modInfo.metaData.get('url') || "no url")),
+            JSON.parse(JSON.stringify(normalizeModUrl(modInfo.metaData.get('url')))),
             "", // preview will be handled below
             JSON.parse(JSON.stringify(modInfo.metaData.get('hotkeys') || []))
         );
@@ -176,7 +188,7 @@ class ModData {
             modInfo.modName,
             meta.character || "Unknown",
             normalizeDescription(meta.description),
-            meta.url || "no url",
+            normalizeModUrl(meta.url),
             entry.previewPath || "",
             meta.hotkeys || []
         );
@@ -395,9 +407,20 @@ class ModData {
 
         //debug
         console.log(`ModData.saveModInfo: ${this.name}`, this, modInfoJson);
+        // Link đổi (dán link mới / xóa link trong hộp sửa): mã file đã
+        // lưu thuộc về link cũ nên không còn nghĩa — đặt lại 0 để lần
+        // kiểm tra bản mới sau nhận file mới nhất làm mốc, không báo
+        // nhầm bản mới. Đọc link cũ TRƯỚC setMetaDataFromJson (hàm đó
+        // ghi đè link mới vào metaData).
+        const oldUrl = normalizeModUrl(modInfo.metaData.get('url'));
+        const newUrl = normalizeModUrl(this.url);
         // 保存 mod 信息
         const oldLocation = modInfo.location;
         modInfo.setMetaDataFromJson(modInfoJson);
+        if (oldUrl !== newUrl) {
+            modInfo.metaData.set('gbFileId', 0, ModMetaDataType.Number);
+            modInfo.metaData.set('gbFileDate', 0, ModMetaDataType.Number);
+        }
         modInfo.saveMetaData();
         // Đổi tên thư mục thì ảnh bìa cũng dời theo (nó nằm trong thư mục
         // mod) — cập nhật đường dẫn ảnh trong bộ nhớ sang thư mục mới ngay:

@@ -1,6 +1,7 @@
 // main.js
-const { app, BrowserWindow, ipcMain, screen, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, dialog, session } = require('electron');
 const path = require('node:path')
+const { isGbAdUrl } = require('./gbAdBlock');
 require('./fileSystem.js')
 const setMainWindow = require('./fileSystem.js').setMainWindow;
 const setCustomConfigFolder = require('./fileSystem.js').setCustomConfigFolder;
@@ -82,13 +83,15 @@ ipcMain.on("set-custom-config-folder", (event, folder) => {
 
 // Tuỳ chọn chung cho mọi cửa sổ của app: không khung, chạy Node trực tiếp
 // trong renderer (nodeIntegration, không cách ly) nên không cần preload.
+// webviewTag: trang Banana nhúng web GameBanana bằng <webview> (1.5.25).
 function baseWindowOptions() {
   return {
     frame: false,
     webPreferences: {
       sandbox: false,
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      webviewTag: true
     }
   };
 }
@@ -219,6 +222,14 @@ const createWindow = () => {
 // 和创建浏览器窗口的时候调用
 // 部分 API 在 ready 事件触发后才能使用。
 app.whenReady().then(() => {
+  // Chặn quảng cáo trong khung web Banana (1.5.25): chỉ session của
+  // khung Banana (partition persist:gamebanana) — phần khác của app
+  // không bị ảnh hưởng. Đăng ký trước khi tạo cửa sổ để khung web
+  // chưa tải gì đã bị chặn.
+  session.fromPartition('persist:gamebanana').webRequest.onBeforeRequest((details, callback) => {
+    callback({ cancel: isGbAdUrl(details.url) });
+  });
+
   createWindow()
 
   app.on('activate', () => {

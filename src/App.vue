@@ -38,6 +38,9 @@
                     <modCardSection />
                 </div>
                 <div style="width: calc(100vw - 10px);">
+                    <bananaSection :active="currentSection === 'banana'" />
+                </div>
+                <div style="width: calc(100vw - 10px);">
                     <helpSection v-if="loaded" />
                 </div>
                 <div style="width: calc(100vw - 10px);">
@@ -68,6 +71,7 @@
 import { ref} from 'vue';
 
 import modCardSection from './section/modCardSection.vue';
+import bananaSection from './section/bananaSection.vue';
 import sectionSelector from './components/sectionSelector.vue';
 import dialogAddPreset from './dialogs/dialogAddPreset.vue';
 import settingSection from './section/settingSection.vue'; 
@@ -104,7 +108,7 @@ import IManager from '../electron/IManager';
 import { g_temp_vue } from '../electron/IManager';
 const currentMod = g_temp_vue.currentMod;
 
-const sections = ref(['mod', 'help', 'settings']);
+const sections = ref(['mod', 'banana', 'help', 'settings']);
 const currentSection = ref('mod');
 
 const handleSectionChange = (section) => {
