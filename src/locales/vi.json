@@ -112,7 +112,8 @@
     "minimize": "Thu nhỏ",
     "fullscreen": "Toàn màn hình",
     "close": "Đóng",
-    "applyDirty": "Còn {count} mod chưa áp: {names}"
+    "applyDirty": "Còn {count} mod chưa áp: {names}",
+    "viewOptions": "Tùy chọn hiển thị"
   },
   "apply": {
     "progress": "Đang áp dụng mod {done} trên {total}...",
@@ -124,6 +125,9 @@
     "failed": "Thất bại",
     "failedMods": "Mod thất bại",
     "close": "Đóng"
+  },
+  "load": {
+    "progress": "Đang tải mod {done}/{total}..."
   },
   "stats": {
     "line": "{total} mod · {enabled} đang bật · {characters} nhân vật"

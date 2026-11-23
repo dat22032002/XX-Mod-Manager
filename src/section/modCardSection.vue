@@ -59,61 +59,8 @@
 
     <div class="bottom">
         <div class="bottom-left">
-            <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, ở đầu trái
-                 thanh dưới (chỗ nút Refresh cũ — Đạt dặn 20/11). -->
-            <!-- Nút Dọc/Ngang dùng thẳng component nút Mod/Help/Setting
-                 (sectionSelector), chỉ có 2 mục thay vì 3 (Đạt dặn 21/11):
-                 viên vàng + kiểu trượt y hệt nút Mod. -->
-            <sectionSelector id="layout-capsule" :sections="layoutSections" :modelValue="cardLayout" :compact="true"
-                @update:modelValue="handleLayoutClicked" />
-            <s-tooltip>
-                <s-switch class="OO-color-gradient-word" v-model="compactMode" @change="handleCompactButtonClicked"
-                    slot="trigger" />
-                <p> {{ $t('buttons.compactMode') }} </p>
-            </s-tooltip>
-            <s-tooltip>
-                <s-icon-button @click="handleZoomOutClicked" slot="trigger" class="OO-button"
-                    :disabled="!canZoomOut" style="color: var(--s-color-on-surface);">
-                    <s-icon>
-                        <svg viewBox="0 0 24 24">
-                            <path d="M19 13H5v-2h14v2z" />
-                        </svg>
-                    </s-icon>
-                </s-icon-button>
-                <p> {{ $t('buttons.zoomOut') }} </p>
-            </s-tooltip>
-            <span class="zoom-label">{{ zoomPercent }}%</span>
-            <s-tooltip>
-                <s-icon-button @click="handleZoomInClicked" slot="trigger" class="OO-button"
-                    :disabled="!canZoomIn"
-                    style="color: var(--s-color-on-surface);">
-                    <s-icon>
-                        <svg viewBox="0 0 24 24">
-                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                        </svg>
-                    </s-icon>
-                </s-icon-button>
-                <p> {{ $t('buttons.zoomIn') }} </p>
-            </s-tooltip>
-            <!-- Nút chuyển đổi ảnh gốc / ảnh thu nhỏ (Đạt dặn 20/11): bên
-                 phải nút +, nút tròn như nút zoom; đang hiện ảnh gốc thì
-                 nền vàng như nút kiểu thẻ đang chọn. -->
-            <s-tooltip>
-                <button id="full-image-button" class="full-image-button" :class="{ active: cardFullImage }"
-                    @click="handleFullImageClicked" slot="trigger">
-                    <svg viewBox="0 0 24 24">
-                        <path
-                            d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                    </svg>
-                </button>
-                <p> {{ $t('buttons.fullImage') }} </p>
-            </s-tooltip>
-        </div>
-        <div class="bottom-center">
-            <span class="mod-stats">{{ $t('stats.line', { total: statsTotal, enabled: statsEnabled, characters: statsCharacters }) }}</span>
-        </div>
-        <div class="bottom-right">
-            <!-- <s-button @click="handleApplyButtonClicked" /> -->
+            <!-- Bảng thao tác hàng loạt (nút mũi tên xuống) — dời sang
+                 đầu trái thanh dưới (1.5.26). -->
             <s-popup align="top">
                 <s-tooltip slot="trigger" style="position: relative;">
                     <s-icon-button icon="image" class="OO-button"
@@ -182,15 +129,11 @@
                 </s-icon>
                 <p>{{ $t('buttons.refresh') }}</p>
             </s-button>
-            <div v-if="applying" class="apply-progress">
-                <div class="apply-progress-text">{{ $t('apply.progress', { done: applyDone, total: applyTotal }) }}</div>
-                <div class="apply-progress-bar">
-                    <div class="apply-progress-fill" :style="{ width: applyPercent + '%' }"></div>
-                </div>
-            </div>
+
             <!-- Nút hoàn tác lựa chọn kiểu Ctrl+Z (Đạt dặn 21/11), đặt
-                 ngay bên trái nút Apply, cùng kiểu nút dài có chữ như
-                 nút Refresh. Mờ đi khi hết lịch sử hoặc đang áp dụng. -->
+                 trong nhóm nút đầu trái thanh dưới (1.5.26), cùng kiểu
+                 nút dài có chữ như nút Refresh. Mờ đi khi hết lịch sử
+                 hoặc đang áp dụng. -->
             <s-button @click="handleUndoButtonClicked" id="undo-button" :disabled="!canUndoSelection || applying"
                 class="OO-button font-hongmeng">
                 <s-icon slot="start">
@@ -202,6 +145,88 @@
                 </s-icon>
                 <p>{{ $t('buttons.undo') }}</p>
             </s-button>
+
+            <!-- Bảng tùy chọn hiển thị (1.5.26): nút Dọc/Ngang, công tắc
+                 gọn, zoom, ảnh gốc gom vào 1 bảng nổi mở ngang; nút mở
+                 bảng nằm bên phải nút Undo. Bấm nút thì mở/đóng, bấm ra
+                 ngoài thì đóng. -->
+            <div class="view-panel-anchor" ref="viewPanelAnchorRef">
+                <s-tooltip>
+                    <s-icon-button id="view-panel-trigger" slot="trigger" class="OO-button"
+                        style="border: 5px solid var(--s-color-surface-container-high);transform: scale(1);"
+                        @click="handleViewPanelTriggerClicked">
+                        <s-icon>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z" />
+                            </svg>
+                        </s-icon>
+                    </s-icon-button>
+                    <p> {{ $t('buttons.viewOptions') }} </p>
+                </s-tooltip>
+                <div v-show="viewPanelOpen" class="view-panel">
+                    <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, trong
+                         bảng tùy chọn hiển thị (1.5.26). -->
+                    <!-- Nút Dọc/Ngang dùng thẳng component nút Mod/Help/Setting
+                         (sectionSelector), chỉ có 2 mục thay vì 3 (Đạt dặn 21/11):
+                         viên vàng + kiểu trượt y hệt nút Mod. -->
+                    <sectionSelector id="layout-capsule" :sections="layoutSections" :modelValue="cardLayout" :compact="true"
+                        @update:modelValue="handleLayoutClicked" />
+                    <s-tooltip>
+                        <s-switch class="OO-color-gradient-word" v-model="compactMode" @change="handleCompactButtonClicked"
+                            slot="trigger" />
+                        <p> {{ $t('buttons.compactMode') }} </p>
+                    </s-tooltip>
+                    <s-tooltip>
+                        <s-icon-button @click="handleZoomOutClicked" slot="trigger" class="OO-button"
+                            :disabled="!canZoomOut" style="color: var(--s-color-on-surface);">
+                            <s-icon>
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M19 13H5v-2h14v2z" />
+                                </svg>
+                            </s-icon>
+                        </s-icon-button>
+                        <p> {{ $t('buttons.zoomOut') }} </p>
+                    </s-tooltip>
+                    <span class="zoom-label">{{ zoomPercent }}%</span>
+                    <s-tooltip>
+                        <s-icon-button @click="handleZoomInClicked" slot="trigger" class="OO-button"
+                            :disabled="!canZoomIn"
+                            style="color: var(--s-color-on-surface);">
+                            <s-icon>
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                                </svg>
+                            </s-icon>
+                        </s-icon-button>
+                        <p> {{ $t('buttons.zoomIn') }} </p>
+                    </s-tooltip>
+                    <!-- Nút chuyển đổi ảnh gốc / ảnh thu nhỏ (Đạt dặn 20/11): bên
+                         phải nút +, nút tròn như nút zoom; đang hiện ảnh gốc thì
+                         nền vàng như nút kiểu thẻ đang chọn. -->
+                    <s-tooltip>
+                        <button id="full-image-button" class="full-image-button" :class="{ active: cardFullImage }"
+                            @click="handleFullImageClicked" slot="trigger">
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                            </svg>
+                        </button>
+                        <p> {{ $t('buttons.fullImage') }} </p>
+                    </s-tooltip>
+                </div>
+            </div>
+        </div>
+        <div class="bottom-right">
+            <!-- <s-button @click="handleApplyButtonClicked" /> -->
+            <!-- Tiến độ tải mod lúc mở app (1.5.26) hiện đúng chỗ này —
+                 cùng khung với tiến độ Apply: đang áp thì hiện tiến độ
+                 áp, đang tải thì hiện tiến độ tải. -->
+            <div v-if="applying || loadingMods" class="apply-progress">
+                <div class="apply-progress-text">{{ progressText }}</div>
+                <div class="apply-progress-bar">
+                    <div class="apply-progress-fill" :style="{ width: progressPercent + '%' }"></div>
+                </div>
+            </div>
             <s-button @click="handleApplyButtonClicked" id="apply-button" :disabled="applying"
                 :class="{ 'has-unapplied': hasUnappliedChanges && !applying }" :title="applyButtonTitle"
                 class="OO-color-gradient font-hongmeng OO-button" style="color: var(--s-color-surface);">
@@ -593,49 +618,37 @@ function handleFullImageClicked() {
 }
 //#endregion
 
+//-============================= bảng tùy chọn hiển thị ==============================
+// Bảng nổi mở ngang chứa 4 nút xem thẻ (Dọc/Ngang, công tắc gọn, zoom,
+// ảnh gốc) — nút mở bảng nằm bên phải nút Undo (1.5.26). Bấm nút thì
+// mở/đóng; bấm ra ngoài thì đóng (bộ nghe click ở document, đăng ký
+// trong onMounted). Viên vàng của nút Dọc/Ngang tính bằng % thuần CSS
+// nên nằm trong bảng đang ẩn (display:none) vẫn trượt đúng khi mở,
+// không cần đo lại như chipRadioBar.
+const viewPanelOpen = ref(false);
+const viewPanelAnchorRef = useTemplateRef('viewPanelAnchorRef');
+function handleViewPanelTriggerClicked() {
+    viewPanelOpen.value = !viewPanelOpen.value;
+}
+function handleDocumentClickForViewPanel(event) {
+    if (!viewPanelOpen.value) return;
+    const anchor = viewPanelAnchorRef.value;
+    if (anchor && !anchor.contains(event.target)) viewPanelOpen.value = false;
+}
+
 //-============================= thống kê kho mod ==============================
-// Dòng thống kê ở giữa thanh dưới: tổng số mod, số mod đang bật, số nhân
-// vật. modList không phải reactive (chỉ bắn sự kiện modListChanged khi
-// gán lại) nên đọc lại mỗi khi có sự kiện modListChanged / modInfoChanged
-// (đổi nhân vật của mod cũng đổi số nhân vật); số mod đang bật đọc thẳng
-// từ selectedModIdSet (reactive) nên tự cập nhật khi bấm chọn/bỏ chọn.
-// "Unknown" không phải nhân vật nên không tính. Lọc "chỉ mod nghi hỏng"
-// đang bật thì cả 3 số đều theo mod nghi hỏng (Đạt dặn 23/11).
-const statsTotal = ref(0);
-const statsCharacters = ref(0);
-const refreshStats = () => {
-    let list = iManager.data.modList || [];
-    if (g_config_vue.showOnlySuspected.value) {
-        const ids = g_config_vue.fixerSuspectIds.value;
-        if (Array.isArray(ids)) {
-            const suspectSet = new Set(ids);
-            list = list.filter(mod => suspectSet.has(mod.id));
-        }
-    }
-    statsTotal.value = list.length;
-    const characters = new Set(list.map(mod => (mod.character || '').trim()).filter(c => c && c !== 'Unknown'));
-    statsCharacters.value = characters.size;
-};
-// Số mod đang bật trong dòng thống kê: lọc nghi hỏng bật thì chỉ đếm
-// mod đang bật nằm trong danh sách nghi hỏng.
-const statsEnabled = computed(() => {
-    if (!g_config_vue.showOnlySuspected.value) return selectedModIdSet.size;
-    const ids = g_config_vue.fixerSuspectIds.value;
-    if (!Array.isArray(ids)) return selectedModIdSet.size;
-    const suspectSet = new Set(ids);
-    let n = 0;
-    for (const id of selectedModIdSet) if (suspectSet.has(id)) n++;
-    return n;
-});
+// Dòng thống kê (tổng số mod / đang bật / nhân vật) DỜI LÊN HÀNG TRÊN
+// CÙNG, ngang hàng thanh Mod/Banana/Help (1.5.26) — code tính toán nằm
+// ở App.vue, không còn ở đây nữa.
 
 onMounted(() => {
-    refreshStats();
     refreshApplied();
-    EventSystem.on(EventType.modListChanged, refreshStats);
     EventSystem.on(EventType.modListChanged, refreshApplied);
-    EventSystem.on(EventType.modInfoChanged, refreshStats);
-    // Lọc nghi hỏng đổi (bật/tắt, quét lại) thì tính lại thống kê.
-    watch(() => [g_config_vue.showOnlySuspected.value, g_config_vue.fixerSuspectIds.value], refreshStats);
+    // Tiến độ tải mod lúc mở app / làm mới (1.5.26): ModLoader bắn sự
+    // kiện sau mỗi khối 10 mod.
+    EventSystem.on(EventType.loadModsProgress, handleLoadModsProgress);
+    // Bấm ra ngoài bảng tùy chọn hiển thị thì đóng bảng.
+    document.addEventListener('click', handleDocumentClickForViewPanel);
     // Đo rộng khung lưới ngay + theo dõi khi đổi cỡ (để tính số cột,
     // nhãn % thật và nút +/− theo cột).
     measureGridWidth();
@@ -723,6 +736,7 @@ function savePreset() {
 window.addEventListener('beforeunload', flushPresetSave);
 onUnmounted(() => {
     window.removeEventListener('beforeunload', flushPresetSave);
+    document.removeEventListener('click', handleDocumentClickForViewPanel);
     if (gridResizeObserver) gridResizeObserver.disconnect();
 });
 
@@ -757,7 +771,30 @@ const handleFiltersCleared = () => {
 const applying = ref(false);
 const applyDone = ref(0);
 const applyTotal = ref(0);
-const applyPercent = computed(() => applyTotal.value > 0 ? Math.round(applyDone.value / applyTotal.value * 100) : 0);
+
+//-============================= tiến độ tải mod lúc mở app ==============================
+// ModLoader bắn sự kiện loadModsProgress sau mỗi khối 10 mod (xem
+// core/ModLoader.ts): hiện dòng "Đang tải mod X/Y..." ngay chỗ thanh
+// tiến độ lúc Apply. Tải xong (done >= total) thì tự ẩn.
+const loadingMods = ref(false);
+const loadDone = ref(0);
+const loadTotal = ref(0);
+function handleLoadModsProgress({ done, total }) {
+    loadDone.value = done;
+    loadTotal.value = total;
+    loadingMods.value = total > 0 && done < total;
+}
+
+// Khung tiến độ dùng chung cho Apply + tải mod: đang áp thì hiện tiến
+// độ áp, không thì hiện tiến độ tải.
+const progressText = computed(() => applying.value
+    ? t('apply.progress', { done: applyDone.value, total: applyTotal.value })
+    : t('load.progress', { done: loadDone.value, total: loadTotal.value }));
+const progressPercent = computed(() => {
+    const total = applying.value ? applyTotal.value : loadTotal.value;
+    const done = applying.value ? applyDone.value : loadDone.value;
+    return total > 0 ? Math.round(done / total * 100) : 0;
+});
 
 // Tập mod đang thật sự bật trong game (quét thư mục đích — xem
 // IManager.scanAppliedModIds). Khác với lựa chọn hiện tại thì nút Apply
@@ -1000,20 +1037,32 @@ EventSystem.on('toggledMod', (mod) => {
     gap: 8px;
 }
 
-.bottom-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    min-width: 0;
+/* Neo cho bảng tùy chọn hiển thị (1.5.26): bảng mở lên trên, thẳng mép
+   trái nút mở bảng. */
+.view-panel-anchor {
+    position: relative;
+    flex-shrink: 0;
 }
 
-.mod-stats {
-    font-size: 14px;
-    color: var(--s-color-on-surface-variant);
+/* Bảng nổi mở ngang (1.5.26): 4 nút xem thẻ xếp thành 1 hàng ngang,
+   mở lên trên thanh dưới. Nền đen tuyền + viền + bóng như bảng thao
+   tác hàng loạt (Đạt dặn 20/11: không dùng surface-container trong
+   suốt, không dùng surface-container-low trùng màu nút). */
+.view-panel {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #000000;
+    border: 2px solid var(--s-color-outline-variant);
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    z-index: 50;
 }
 
 .bottom-right {
