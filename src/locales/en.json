@@ -108,7 +108,8 @@
     "selected": "Selected",
     "minimize": "Minimize",
     "fullscreen": "Fullscreen",
-    "close": "Close"
+    "close": "Close",
+    "applyDirty": "Unapplied changes ({count}): {names}"
   },
   "apply": {
     "progress": "Applying mod {done} of {total}...",
