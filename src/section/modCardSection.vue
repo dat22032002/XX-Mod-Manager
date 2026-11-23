@@ -467,9 +467,6 @@ async function runBatchSetTag() {
             const ModData = await iManager.getModInfoById(modId);
             if (ModData) {
                 ModData.tag = newTag;
-                // Đặt tag hàng loạt là lựa chọn rõ ràng — thẻ mod không
-                // đoán đè tag này nữa (xem tagExplicit trong ModData).
-                ModData.tagExplicit = true;
                 await ModData.saveModInfo();
                 ModData.triggerChanged();
                 changedCount++;

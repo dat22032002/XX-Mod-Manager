@@ -56,15 +56,6 @@ class ModData {
     // Tag phân loại mod (character/skin/weapon/effect/accessory), lưu
     // trong mod.json. Tag lạ/mất thì đoán theo tiền tố tên thư mục.
     public tag: ModTag = 'character';
-    // Tag này có phải do người dùng đặt rõ (hộp sửa mod / đặt hàng loạt)
-    // hay không — chỉ tồn tại trong bộ nhớ, KHÔNG lưu vào mod.json.
-    // Thẻ mod dùng cờ này để biết có nên đoán tag từ tên file không:
-    // mod.json nào cũng có trường tag (lần tải đầu app đã ghi tag đoán
-    // theo tiền tố vào) nên không thể dựa vào "có trường tag hay không"
-    // để biết người dùng đã đặt chưa. Cờ chỉ bật khi lưu qua hộp sửa
-    // mod hoặc đặt hàng loạt; tag khác hẳn tag tiền tố cũng được coi là
-    // đã đặt (thẻ tự so sánh, không cần cờ).
-    public tagExplicit: boolean = false;
     // Thời gian thêm mod vào kho (ms từ epoch) — dùng để sắp xếp theo thời
     // gian. Lấy theo GIỜ TẠO thư mục (birthtime), không lấy giờ sửa cuối:
     // app tự ghi lại mod.json lúc tải mod (khi file thiếu trường) nên giờ
@@ -270,7 +261,6 @@ class ModData {
         newModData.index = this.index;
         newModData.pinned = this.pinned;
         newModData.tag = this.tag;
-        newModData.tagExplicit = this.tagExplicit;
 
         return newModData;
     }
@@ -372,10 +362,6 @@ class ModData {
         this.preview = newModData.preview;
         this.hotkeys = newModData.hotkeys;
         this.tag = newModData.tag;
-        // Lưu qua hộp sửa mod thì tag là lựa chọn rõ ràng của người
-        // dùng (mod mới bắt buộc phải chọn tag mới lưu được) — thẻ mod
-        // không đoán đè tag này nữa.
-        this.tagExplicit = true;
 
         this.oldPreview = "";
         this.modPreviewBase64WithHeader.clear();
