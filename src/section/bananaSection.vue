@@ -50,9 +50,15 @@
          nguyên lúc mở app), gắn rồi thì giữ nguyên khi chuyển trang
          khác — đăng nhập + vị trí lăn không mất. partition riêng để
          đăng nhập Banana giữ qua các lần mở app (mod người lớn bắt
-         đăng nhập xác minh tuổi mới xem được). -->
+         đăng nhập xác minh tuổi mới xem được).
+         Ẩn khung web khi rời trang (visibility, xem webviewVisible):
+         thanh trượt trang để lại dải 10px của trang trước ở mép trái
+         cửa sổ, khung web vẽ ở lớp riêng không nghe overflow nên dải
+         đó lộ rõ trên trang Help — ẩn khung web thì dải biến mất mà
+         đăng nhập/vị trí lăn vẫn giữ (khung web chỉ không vẽ nữa). -->
     <webview v-if="activated" ref="webviewRef" src="https://gamebanana.com/games/19567"
-      partition="persist:gamebanana" allowpopups :preload="preloadUrl" class="banana-webview"></webview>
+      partition="persist:gamebanana" allowpopups :preload="preloadUrl" class="banana-webview"
+      :style="{ visibility: webviewVisible ? 'visible' : 'hidden' }"></webview>
     <div v-else class="banana-placeholder OO-box">
       <p>{{ $t('banana.loading') }}</p>
     </div>
@@ -60,7 +66,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import IManager from '../../electron/IManager';
 import { snack } from '../../helper/SnackHelper';
@@ -120,6 +126,21 @@ const props = defineProps({
 
 // Khung web chỉ gắn khi mở trang lần đầu — xem chú thích ở template.
 const activated = ref(false);
+// Khung web có đang vẽ không — tắt khi rời trang để dải 10px của nó
+// không tràn sang trang khác (xem chú thích ở template). Chỉ ẩn phần
+// vẽ, khung web vẫn sống nên đăng nhập + vị trí lăn không mất.
+const webviewVisible = ref(true);
+// Hẹn giờ ẩn khung web khi rời trang — đợi hiệu ứng trượt xong (0,3s)
+// rồi mới ẩn để trang Banana trượt ra vẫn thấy nội dung, không bị
+// trống lỗ chỗ giữa chừng.
+let hideWebviewTimer = null;
+const clearHideWebviewTimer = () => {
+  if (hideWebviewTimer !== null) {
+    clearTimeout(hideWebviewTimer);
+    hideWebviewTimer = null;
+  }
+};
+onUnmounted(() => clearHideWebviewTimer());
 const webviewRef = ref(null);
 const currentUrl = ref(GB_ZZZ_URL);
 const canGoBack = ref(false);
@@ -221,10 +242,23 @@ const attachWebviewListeners = () => {
 };
 
 watch(() => props.active, async (isActive) => {
-  if (!isActive || activated.value) return;
-  activated.value = true;
-  await nextTick();
-  attachWebviewListeners();
+  if (isActive) {
+    // Quay lại trang: hiện khung web ngay (để trượt vào đã thấy nội
+    // dung) + hủy hẹn ẩn còn dở (đổi trang nhanh trong 0,4s).
+    clearHideWebviewTimer();
+    webviewVisible.value = true;
+    if (activated.value) return;
+    activated.value = true;
+    await nextTick();
+    attachWebviewListeners();
+    return;
+  }
+  // Rời trang: đợi trượt xong (0,4s) rồi mới ẩn khung web.
+  clearHideWebviewTimer();
+  hideWebviewTimer = setTimeout(() => {
+    hideWebviewTimer = null;
+    if (!props.active) webviewVisible.value = false;
+  }, 400);
 }, { immediate: true });
 
 const goBack = () => {
