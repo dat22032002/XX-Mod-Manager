@@ -1,6 +1,6 @@
 <template>
     <s-card ref="modItemRef" class="mod-item" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id" inWindow="none"
-        :name="props.modRef.name" :character="props.modRef.character" @click="click" :compact="props.compactMode" :data-layout="props.cardLayout"
+        :name="props.modRef.name" :character="props.modRef.character" :data-tag="props.modRef.tag" @click="click" :compact="props.compactMode" :data-layout="props.cardLayout"
         @mouseenter="onCardHoverStart" @mouseleave="onCardHoverEnd"
         @contextmenu.prevent.stop="openEditModDialog">
 
@@ -457,6 +457,11 @@ defineExpose({
     border-radius: 12px;
 }
 
+/* Khung lồng cho ảnh bìa ĐÃ BỎ (Đạt dặn 23/11: quay về bản chưa có
+   khung lồng) — ảnh lại tràn tới sát viền thẻ như trước. Giữ lại:
+   div ảnh rộng 100% (sửa lỗi ảnh chòi 5px mép phải khi chọn) và ảnh
+   dọc kéo dài × 1.0 (Đạt dặn riêng 23/11). */
+
 /* Chọn hàng loạt (Ctrl+bấm): viền xanh biển, riêng với chọn vàng. */
 .mod-item[batch-clicked="true"] {
     border: 5px solid #2196F3;
@@ -510,18 +515,26 @@ defineExpose({
     transition: x, y 0.5s cubic-bezier(.36, -0.64, .34, 1.76);
 
     >div[slot="image"] {
-        width: var(--card-width, 350px);
+        /* Rộng 100% khung chứa, KHÔNG ghi cứng --card-width: thẻ dùng
+           border-box nên viền (1px thường, 5px khi chọn) ăn vào trong
+           — rộng cứng làm div ảnh chòi 5px ra mép phải khi chọn, thẻ
+           cắt mất làm ảnh mất 5px mép phải khi chọn (Đạt bắt được
+           22/11). Rộng 100% thì div vừa đúng khung chứa ở cả 2 trạng
+           thái. */
+        width: 100%;
         height: calc(var(--card-width, 350px) * 0.5);
     }
 }
 
-/* Kiểu dọc: y hệt thông số cũ (thẻ 250×350, ảnh × 0.8). */
+/* Kiểu dọc: y hệt thông số cũ (thẻ 250×350, ảnh × 0.8). Từng kéo ảnh
+   lên × 1.0 (23/11) rồi Đạt dặn thu về: ảnh to làm cả lưới hình ngợp
+   mắt, nên về lại cỡ cũ. */
 .mod-item[data-layout="vertical"] {
     width: var(--card-width, 250px);
     height: calc(var(--card-width, 250px) * 1.4);
 }
 .mod-item[data-layout="vertical"] > div[slot="image"] {
-    width: var(--card-width, 250px);
+    width: 100%;
     height: calc(var(--card-width, 250px) * 0.8);
 }
 
