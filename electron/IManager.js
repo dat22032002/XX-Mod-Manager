@@ -1322,6 +1322,12 @@ class IManager {
             let done = 0;
             for (const mod of prepared.mods) {
                 try {
+                    // Bản gốc biến mất giữa chừng (người dùng/xóa lúc
+                    // cửa sổ Fixer đang mở): báo không sửa được. KHÔNG
+                    // chép về — chép về chỉ có .ini/.buf sẽ hồi sinh
+                    // mod thiếu mod.json/hình (test4 cũng báo 'failed'
+                    // vì chép sao lưu từ thư mục đã mất thì văng lỗi).
+                    if (!fs.existsSync(mod.srcPath)) throw new Error('original folder vanished mid-flow: ' + mod.srcPath);
                     const changed = await this.fixerModChanged(mod);
                     if (!changed) {
                         results.push({ modId: mod.modId, modName: mod.modName, status: 'unchanged' });
@@ -2619,11 +2625,11 @@ class IManager {
     // GET 1 URL, trả về Buffer. Tự đi theo chuyển hướng (tối đa 5 lần —
     // link tải gamebanana.com/dl/<id> chuyển sang CDN), quá 15 giây
     // không có dữ liệu thì ngắt. onProgress (nếu có) nhận (đã nhận,
-    // tổng — tổng = -1 khi máy chủ không báo dung lượng).
-    // GET 1 URL, trả về Buffer. Lỗi mạng thoáng qua (mất gói, wifi chập
-    // chờn, máy chủ ngắt giữa chừng) thì thử lại 1 lần sau 500ms thay vì
-    // bỏ luôn — lỗi HTTP (404/...) thì không thử lại vì thử nữa cũng
-    // lỗi y hệt. Xem _gbFetchBufferOnce để biết chi tiết 1 lần tải.
+    // tổng — tổng = -1 khi máy chủ không báo dung lượng). Lỗi mạng
+    // thoáng qua (mất gói, wifi chập chờn, máy chủ ngắt giữa chừng) thì
+    // thử lại 1 lần sau 500ms thay vì bỏ luôn — lỗi HTTP (404/...) thì
+    // không thử lại vì thử nữa cũng lỗi y hệt. Xem _gbFetchBufferOnce
+    // để biết chi tiết 1 lần tải.
     async gbFetchBuffer(url, onProgress = null, redirectsLeft = 5, retriesLeft = 1) {
         try {
             return await this._gbFetchBufferOnce(url, onProgress, redirectsLeft);
@@ -2964,8 +2970,8 @@ class IManager {
         const dest = path.join(target, modInfo.modName);
         const src = path.join(source, modInfo.modName);
         try {
-            const stat = fs.lstatSync(dest);
-            if (stat.isSymbolicLink()) return;
+            fs.lstatSync(dest);
+            // Đã có gì ở đó (liên kết, thư mục hay file thật): không đụng vào.
             return;
         } catch (e) {
             if (!e || e.code !== 'ENOENT') return;

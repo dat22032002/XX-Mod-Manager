@@ -106,7 +106,10 @@ class ModLoader {
             // loại khỏi danh sách quét (so khớp không phân biệt hoa thường vì
             // Windows không phân biệt). Mục cache cũ của nó cũng bị xóa ở
             // bước dọn cache bên dưới vì không còn nằm trong seenFolders.
-            const modDirs = mods.filter(mod => mod.isDirectory() && mod.name.toLowerCase() !== 'recyclebin');
+            // Thư mục tạm .gb-tmp-* của lần cập nhật Banana dở dang (sập
+            // giữa chừng) cũng không phải mod — loại luôn để không hiện
+            // thành mod ma trong lưới (dọn đĩa do gbCleanStaleTempDirs lo).
+            const modDirs = mods.filter(mod => mod.isDirectory() && mod.name.toLowerCase() !== 'recyclebin' && !mod.name.startsWith('.gb-tmp-'));
             for (let i = 0; i < modDirs.length; i += LOAD_CHUNK_SIZE) {
                 const chunk = modDirs.slice(i, i + LOAD_CHUNK_SIZE);
                 // Validity checks are async disk stats: run them together.

@@ -24,7 +24,7 @@ export interface GbFile {
 // (/mods/download/<id>). Không phải link mod Banana thì trả null.
 export function parseGameBananaModId(url: string): number | null {
     if (!url) return null;
-    const match = url.match(/gamebanana\.com\/mods\/(?:download\/)?(\d+)/);
+    const match = url.match(/(?:^|[\/.])gamebanana\.com\/mods\/(?:download\/)?(\d+)/);
     if (!match) return null;
     const id = Number(match[1]);
     return Number.isFinite(id) && id > 0 ? id : null;

@@ -231,7 +231,7 @@ const attachWebviewListeners = () => {
   wv.addEventListener('will-navigate', (e) => {
     try {
       const host = new URL(e.url).hostname;
-      if (!host.endsWith('gamebanana.com')) {
+      if (host !== 'gamebanana.com' && !host.endsWith('.gamebanana.com')) {
         e.preventDefault();
         iManager.openUrl(e.url);
       }

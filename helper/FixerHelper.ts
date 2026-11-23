@@ -50,10 +50,8 @@ export const fixerState = reactive({
     selectedIds: [] as string[],
     // Bước hiện tại của luồng sửa.
     flowStep: 'idle' as FixerFlowStep,
-    // Tiến độ chép từng mod (lúc chép ra thư mục tạm + lúc chép về):
-    // phase 'out' = đang chép ra, 'back' = đang chép về, '' = không
-    // chép. total = 0 khi chưa bắt đầu (giao diện hiện câu chung).
-    progressPhase: '' as '' | 'out' | 'back',
+    // Tiến độ chép từng mod (lúc chép ra thư mục tạm + lúc chép về).
+    // total = 0 khi chưa bắt đầu (giao diện hiện câu chung).
     progressDone: 0,
     progressTotal: 0,
     // Bản chép tạm đang sửa dở (null khi không sửa).

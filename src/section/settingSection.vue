@@ -393,7 +393,6 @@ const handleFixerStart = async () => {
     }
     fixerState.results = [];
     fixerState.flowStep = 'preparing';
-    fixerState.progressPhase = 'out';
     fixerState.progressDone = 0;
     fixerState.progressTotal = 0;
     let prepared = null;
@@ -406,12 +405,10 @@ const handleFixerStart = async () => {
         console.error('fixerPrepareFix failed', e);
         snack(t('fixer.fixError'), SnackType.error);
         fixerState.flowStep = 'idle';
-        fixerState.progressPhase = '';
         return;
     }
     fixerState.prepared = prepared;
     fixerState.flowStep = 'waiting';
-    fixerState.progressPhase = '';
     fixerState.progressDone = 0;
     fixerState.progressTotal = 0;
     const launched = await iManager.fixerLaunchAndWait();
@@ -423,7 +420,6 @@ const handleFixerStart = async () => {
         return;
     }
     fixerState.flowStep = 'applying';
-    fixerState.progressPhase = 'back';
     fixerState.progressDone = 0;
     fixerState.progressTotal = 0;
     try {
@@ -438,7 +434,6 @@ const handleFixerStart = async () => {
     }
     fixerState.prepared = null;
     fixerState.flowStep = 'done';
-    fixerState.progressPhase = '';
     // Xóa mod đã sửa khỏi danh sách nghi hỏng để không sửa trùng.
     const fixedIds = new Set(fixerState.results.filter((r) => r.status === 'fixed').map((r) => r.modId));
     fixerState.suspects = fixerState.suspects.filter((m) => !fixedIds.has(m.modId));
