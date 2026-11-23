@@ -190,22 +190,43 @@ const arrowLevel = (i) => {
 // Đếm số mod theo nhân vật (giống cách đếm của hàng chip cũ):
 // g_data_vue.modList không đồng bộ nên đếm từ mảng thật; mỗi lần danh
 // sách đổi, sự kiện modListChanged tăng version để tính lại.
+// Khi lọc "chỉ mod nghi hỏng" đang bật thì mọi số đếm đều theo mod nghi
+// hỏng (Đạt dặn 23/11): hàng Tất cả hiện số nghi hỏng, hàng nhân vật
+// không có mod nghi hỏng hiện (0) nhưng vẫn giữ hàng. Lọc tag/tìm kiếm
+// vẫn không ảnh hưởng số đếm (giữ như cũ).
 const modListVersion = ref(0);
 EventSystem.on(EventType.modListChanged, () => { modListVersion.value++; });
-const modCountsByCharacter = computed(() => {
+// Danh sách mod để đếm: lọc nghi hỏng bật thì chỉ lấy mod trong danh
+// sách lần quét gần nhất, không thì lấy toàn bộ kho.
+const countedMods = computed(() => {
     void modListVersion.value;
+    const list = iManager.data.modList;
+    if (!g_config_vue.showOnlySuspected.value) return list;
+    const ids = g_config_vue.fixerSuspectIds.value;
+    if (!Array.isArray(ids)) return list;
+    const suspectSet = new Set(ids);
+    return list.filter(mod => suspectSet.has(mod.id));
+});
+const modCountsByCharacter = computed(() => {
     const counts = {};
-    for (const mod of iManager.data.modList) {
+    for (const mod of countedMods.value) {
         const c = mod.character;
         counts[c] = (counts[c] || 0) + 1;
     }
     return counts;
 });
 
-// Tổng số mod (số trong ngoặc của hàng Tất cả).
-const totalModCount = computed(() => {
-    void modListVersion.value;
-    return iManager.data.modList.length;
+// Tổng số mod (số trong ngoặc của hàng Tất cả) — theo danh sách đếm ở trên.
+const totalModCount = computed(() => countedMods.value.length);
+
+// Số mod đang chọn (số trong ngoặc của hàng Đã chọn): lọc nghi hỏng bật
+// thì chỉ đếm mod đang chọn nằm trong danh sách nghi hỏng.
+const selectedCount = computed(() => {
+    if (!g_config_vue.showOnlySuspected.value) return selectedModIdSet.size;
+    const ids = new Set(countedMods.value.map(mod => mod.id));
+    let n = 0;
+    for (const id of selectedModIdSet) if (ids.has(id)) n++;
+    return n;
 });
 
 // Ô tìm kiếm (dời từ hàng trên xuống đây): gõ thì phát chữ lên
@@ -317,7 +338,7 @@ const translatedSorts = computed(() => SORT_OPTIONS.map(o => t(o.labelKey)));
 const ALL_SELECTED_SECTIONS = ['all', 'selected'];
 const allSelectedLabels = computed(() => [
     { name: t('buttons.all'), count: showChipCounts.value ? `(${totalModCount.value})` : '' },
-    { name: t('buttons.selected'), count: showChipCounts.value ? `(${selectedModIdSet.size})` : '' },
+    { name: t('buttons.selected'), count: showChipCounts.value ? `(${selectedCount.value})` : '' },
 ]);
 
 // Lựa chọn đang bật (để vàng chip tương ứng trong bảng): loại chuẩn hóa
@@ -355,8 +376,9 @@ function handleSortChange(sort) {
 // danh sách dọc hiện thêm số mod trong ngoặc, vd Ellen (24); Tất cả hiện
 // tổng số mod, Đã chọn hiện số mod đang bật vàng. Tắt thì về tên trần
 // như cũ. Lựa chọn lưu trong config nên mở app lại vẫn nhớ.
-// Số đếm theo TOÀN BỘ kho mod (không theo lọc tag/tìm kiếm đang bật)
-// để con số ổn định, đúng nghĩa "nhân vật này có bao nhiêu mod".
+// Số đếm theo toàn bộ kho mod (không theo lọc tag/tìm kiếm đang bật)
+// để con số ổn định — trừ khi lọc "chỉ mod nghi hỏng" đang bật thì số
+// đếm theo mod nghi hỏng (Đạt dặn 23/11).
 function toggleChipCounts() {
     iManager.config.showChipCounts = !g_config_vue.showChipCounts.value;
     saveFilterSettings();
