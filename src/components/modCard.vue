@@ -457,33 +457,10 @@ defineExpose({
     border-radius: 12px;
 }
 
-/* Khung lồng cho ảnh bìa (Đạt chốt 22/11, kiểu card game): ảnh thụt
-   vào như ô ảnh trên lá bài — tấm lót 8px ĐỀU 3 phía trái/trên/phải,
-   KHÔNG đóng khung dưới ảnh (Đạt dặn 23/11) để ảnh chạm thẳng phần
-   thông tin. Không viền vàng, không màu tag (gradient + vạch đáy tạm
-   gạt sang 1 bên). Bóng đổ trong KHÔNG hiện trên <img> (nội dung ảnh
-   đè lên) nên vẽ lên lớp ::after của div chứa ảnh.
-   - Màu lồng = đúng màu mặt thẻ (biến --s-color-surface-container-low,
-     #222222): #262626 cũ lệch 4 tông, nhìn rõ 2 màu ở mép ảnh và phần
-     thông tin (Đạt bắt được 23/11).
-   - Góc VUÔNG (border-radius 0): góc bo 12px cũ để lại vệt ảnh hình
-     lưỡi liềm ở góc — cung bo của lồng nằm trong cung bo của thẻ nên
-     ảnh rò ra ở khe giữa 2 cung (Đạt bắt được 23/11). Góc vuông thì
-     lồng phủ kín góc div ảnh, không còn khe rò; mép ngoài thẻ vẫn bo
-     tròn nhờ thẻ tự cắt phần thừa. */
-.mod-item div[slot="image"] {
-    position: relative;
-}
-
-.mod-item div[slot="image"]::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 0;
-    pointer-events: none;
-    border: 8px solid var(--s-color-surface-container-low);
-    border-bottom: none;
-}
+/* Khung lồng cho ảnh bìa ĐÃ BỎ (Đạt dặn 23/11: quay về bản chưa có
+   khung lồng) — ảnh lại tràn tới sát viền thẻ như trước. Giữ lại:
+   div ảnh rộng 100% (sửa lỗi ảnh chòi 5px mép phải khi chọn) và ảnh
+   dọc kéo dài × 1.0 (Đạt dặn riêng 23/11). */
 
 /* Chọn hàng loạt (Ctrl+bấm): viền xanh biển, riêng với chọn vàng. */
 .mod-item[batch-clicked="true"] {
@@ -541,9 +518,9 @@ defineExpose({
         /* Rộng 100% khung chứa, KHÔNG ghi cứng --card-width: thẻ dùng
            border-box nên viền (1px thường, 5px khi chọn) ăn vào trong
            — rộng cứng làm div ảnh chòi 5px ra mép phải khi chọn, thẻ
-           cắt mất làm lồng phải chỉ còn 1-3px so với 8px bên trái
-           (Đạt bắt được 22/11). Rộng 100% thì div vừa đúng khung chứa
-           ở cả 2 trạng thái, lồng đều 8px 3 phía. */
+           cắt mất làm ảnh mất 5px mép phải khi chọn (Đạt bắt được
+           22/11). Rộng 100% thì div vừa đúng khung chứa ở cả 2 trạng
+           thái. */
         width: 100%;
         height: calc(var(--card-width, 350px) * 0.5);
     }
