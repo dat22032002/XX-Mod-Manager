@@ -1,7 +1,7 @@
 import { SnackType, t_snack } from "../helper/SnackHelper";
 import { TranslatedText } from "../helper/Language";
 import { writeFileAtomicSync } from "../helper/SafeWrite";
-import { tagFromPrefix, isValidTag } from "../helper/ModTag";
+import { tagFromPrefix, isValidTag, migrateTag } from "../helper/ModTag";
 import type { CachedModEntry } from "./ModCache";
 const fs = require('fs');
 const path = require('path');
@@ -148,9 +148,9 @@ class ModInfo {
         const meta = JSON.parse(JSON.stringify(entry.meta || {}));
         // Mod lưu nhớ từ bản chưa có tag: chưa có tag thì đoán theo tiền tố
         // tên thư mục (lần quét mới sau đó sẽ ghi tag vào mod.json).
-        if (!isValidTag(meta['tag'])) {
-            meta['tag'] = tagFromPrefix(entry.modName);
-        }
+        // Tag cũ 'etc' thì chuyển thành 'other'.
+        const migratedCacheTag = migrateTag(meta['tag']);
+        meta['tag'] = migratedCacheTag ?? tagFromPrefix(entry.modName);
         for (const item of ModInfo.modDataTemplate.items) {
             const value = meta[item.key];
             // null means the stored value had the wrong type; keep the
@@ -235,9 +235,11 @@ class ModInfo {
                     }
                     else {
                         // Tag lạ (file sửa tay sai giá trị) thì đoán lại
-                        // theo tiền tố tên thư mục rồi lưu lại.
+                        // theo tiền tố tên thư mục rồi lưu lại. Tag cũ
+                        // 'etc' thì chuyển thành 'other' rồi lưu lại.
                         if (item.key === 'tag' && !isValidTag(value)) {
-                            this.metaData.set(item.key, tagFromPrefix(this.modName), item.type);
+                            const migrated = migrateTag(value);
+                            this.metaData.set(item.key, migrated ?? tagFromPrefix(this.modName), item.type);
                             needSave = true;
                         } else {
                             this.metaData.set(item.key, value, item.type);

@@ -4,18 +4,28 @@
 //
 // Luật bật/tắt theo tag (1 mod/nhân vật): Character, Weapon, Effect
 // mỗi nhân vật chỉ bật 1 (bật mod mới thì mod cũ cùng tag tự tắt);
-// Skin, Accessory và ETC bật bao nhiêu cũng được. ETC dành cho mod
+// Skin, Accessory và Other bật bao nhiêu cũng được. Other dành cho mod
 // linh tinh không thuộc 5 loại kia (mod UI, mod NPC... — Đạt dặn 20/11).
+// Tag này trước đây tên là 'etc', Đạt dặn đổi thành 'other' 22/11 —
+// mod.json và bộ nhớ sẵn cũ còn 'etc' thì tự chuyển thành 'other' lúc
+// đọc (migrateTag), lần lưu sau ghi lại luôn.
 
-export type ModTag = 'character' | 'skin' | 'weapon' | 'effect' | 'accessory' | 'etc';
+export type ModTag = 'character' | 'skin' | 'weapon' | 'effect' | 'accessory' | 'other';
 
-export const MOD_TAGS: ModTag[] = ['character', 'skin', 'weapon', 'effect', 'accessory', 'etc'];
+export const MOD_TAGS: ModTag[] = ['character', 'skin', 'weapon', 'effect', 'accessory', 'other'];
 
 // Tag "độc quyền": mỗi nhân vật chỉ bật 1 mod tag này cùng lúc.
 const EXCLUSIVE_TAGS: ReadonlySet<ModTag> = new Set(['character', 'weapon', 'effect']);
 
 export function isValidTag(value: unknown): value is ModTag {
     return typeof value === 'string' && (MOD_TAGS as string[]).includes(value);
+}
+
+// Chuyển tag cũ thành tag hiện tại: 'etc' thành 'other', tag hợp lệ
+// giữ nguyên, giá trị lạ thì null (bên gọi tự đoán lại theo tiền tố).
+export function migrateTag(value: unknown): ModTag | null {
+    if (value === 'etc') return 'other';
+    return isValidTag(value) ? value : null;
 }
 
 export function isExclusiveTag(tag: ModTag): boolean {
@@ -39,6 +49,7 @@ export function tagFromPrefix(folderName: string): ModTag {
 // cũ trước khi có tag) thành 'character'; giá trị lạ thì về 'all'.
 export function normalizeTypeFilter(value: unknown): string {
     if (value === 'outfit') return 'character';
+    if (value === 'etc') return 'other';
     if (typeof value === 'string' && (['all', ...MOD_TAGS] as string[]).includes(value)) return value;
     return 'all';
 }
