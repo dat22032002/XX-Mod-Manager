@@ -70,11 +70,8 @@ import { formatModSize } from '../../helper/ModSizeScanner';
 const iManager = new IManager();
 const { t } = useI18n();
 
-// CSS giấu khung quảng cáo còn sót lại trên trang Banana (1.5.25):
-// yêu cầu quảng cáo đã bị chặn ở main.js nên khung chỉ còn trống —
-// giấu hẳn cho trang sạch. .AdTagModule là khung quảng cáo riêng của
-// Banana (thấy trong HTML trang thật), còn lại là mẫu chung (khung
-// GPT, iframe quảng cáo/theo dõi).
+// CSS chèn vào khung web Banana mỗi lần tải xong DOM (xem bộ nghe
+// dom-ready dưới): giấu khung quảng cáo + nới rộng khung trang.
 const GB_AD_HIDE_CSS = `
 .AdTagModule,
 [id^="div-gpt-ad"],
@@ -89,6 +86,14 @@ iframe[src*="googlesyndication"],
 #pwAdContainer,
 #pwAdPlaceholder,
 #AdBlockAppealModule { display: none !important; }
+`;
+
+// Nới rộng khung trang (Đạt chọn 23/11, test2): khung ngoài của
+// Banana (#BodyWrapper) giới hạn rộng 1100px nên màn hình lớn thừa
+// 2 bên — gỡ giới hạn để nội dung lấp đầy ngang, giữ nguyên cỡ chữ.
+// Chỉ gỡ giới hạn của khung ngoài, không đụng cỡ chữ hay cỡ thẻ.
+const GB_WIDEN_CSS = `
+#BodyWrapper { max-width: none !important; }
 `;
 
 const props = defineProps({
@@ -154,10 +159,11 @@ const attachWebviewListeners = () => {
   wv.addEventListener('did-navigate', updateNavState);
   wv.addEventListener('did-navigate-in-page', updateNavState);
   wv.addEventListener('did-finish-load', updateNavState);
-  // Mỗi lần tải xong DOM thì chèn CSS giấu khung quảng cáo (chèn lại
-  // mỗi lần sang trang vì CSS chèn mất khi điều hướng).
+  // Mỗi lần tải xong DOM thì chèn CSS giấu khung quảng cáo + nới rộng
+  // khung trang (chèn lại mỗi lần sang trang vì CSS chèn mất khi
+  // điều hướng).
   wv.addEventListener('dom-ready', () => {
-    wv.insertCSS(GB_AD_HIDE_CSS).catch(() => {
+    wv.insertCSS(GB_AD_HIDE_CSS + GB_WIDEN_CSS).catch(() => {
       // Khung đóng trước khi kịp chèn: thôi, lần sang trang sau chèn lại.
     });
   });
@@ -288,7 +294,10 @@ const downloadCurrentMod = async () => {
 .banana-section {
   display: flex;
   flex-direction: column;
-  height: calc(100% - 60px);
+  /* Cao đầy đủ: trang Banana không có thanh dưới như trang Mod nên
+     60px trừ đi trước đây chỉ là khoảng đen chết dưới khung web
+     (Đạt báo 23/11, sửa ở test2). */
+  height: 100%;
   width: 100%;
   gap: 10px;
 }
