@@ -330,6 +330,8 @@
     "fixNoSelection": "Tick at least one mod first",
     "needFixerFirst": "Download Fixer first",
     "fixPreparing": "Copying mods to a temporary folder...",
+    "copyingOut": "Copying mod {done} of {total} to the temporary folder...",
+    "copyingBack": "Copying mod {done} of {total} back...",
     "tempFolderLabel": "Temporary folder:",
     "copyPath": "Copy path",
     "pathCopied": "Path copied",

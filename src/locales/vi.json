@@ -330,6 +330,8 @@
     "fixNoSelection": "Tick chọn ít nhất 1 mod trước",
     "needFixerFirst": "Tải Fixer về trước",
     "fixPreparing": "Đang chép mod ra thư mục tạm...",
+    "copyingOut": "Đang chép mod {done}/{total} ra thư mục tạm...",
+    "copyingBack": "Đang chép mod {done}/{total} về...",
     "tempFolderLabel": "Thư mục tạm:",
     "copyPath": "Chép đường dẫn",
     "pathCopied": "Đã chép đường dẫn",

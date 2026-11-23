@@ -719,6 +719,10 @@ class IManager {
         let endTime = new Date().getTime();
         console.log('✅>> loadConfig done, cost', endTime - startTime, 'ms');
 
+        // Dọn thư mục tạm Fixer còn sót từ lần chạy trước (tắt ngang
+        // giữa chừng) để không rác lại ổ đĩa.
+        try { this.fixerCleanupStaleTempDirs(); } catch (_e) { /* kệ */ }
+
         //-=============== 优先进行页面初始化 ===============-//
         //------ 设置窗口大小 -----
         this.setWindowBounds();
@@ -935,6 +939,95 @@ class IManager {
     // của Fixer) + sửa mod đã chọn trên bản chép tạm rồi chép về.
     // Mọi lần gọi mạng tái dùng gbFetchBuffer/gbFetchJson của Banana
     // (chịu chuyển hướng + thử lại 1 lần + ngắt khi 15s không có dữ liệu).
+    //
+    // CHÉP GỌN (1.5.25-test8, Đạt báo sửa 139 mod chờ rất lâu): Fixer
+    // chỉ đọc/sửa file .ini + .buf nên ra thư mục tạm CHỈ chép 2 loại
+    // đó (giữ đúng cấu trúc thư mục con), file hình KHÔNG chép — vừa
+    // nhanh vừa nhẹ ổ đĩa. Bản dự phòng cũng chỉ 2 loại này (vì chỉ
+    // chúng bị đổi). Lúc chép về chỉ chép file mới/đổi, file .ini/.buf
+    // nào Fixer xóa khỏi bản tạm thì xóa khỏi bản gốc (CHỈ 2 loại này,
+    // không bao giờ xóa file khác).
+
+    // Liệt kê file .ini/.buf trong 1 thư mục mod (đệ quy) — trả Map
+    // đường dẫn tương đối -> đường dẫn tuyệt đối. Fixer chỉ cần 2 loại
+    // này; file hình/mod.json/khác không liệt kê.
+    fixerListIniBufFiles(dir) {
+        const out = new Map();
+        const walk = (d) => {
+            let entries;
+            try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (_e) { return; }
+            for (const e of entries) {
+                const p = path.join(d, e.name);
+                if (e.isDirectory()) walk(p);
+                else if (e.isFile()) {
+                    const ext = path.extname(e.name).toLowerCase();
+                    if (ext === '.ini' || ext === '.buf') out.set(path.relative(dir, p), p);
+                }
+            }
+        };
+        walk(dir);
+        return out;
+    }
+
+    // Liệt kê TẤT CẢ file trong 1 thư mục (đệ quy) — dùng lúc chép về
+    // để thấy cả file Fixer tạo ra (vd sổ theo dõi .zzz-fixer-state.json).
+    fixerListAllFiles(dir) {
+        const out = new Map();
+        const walk = (d) => {
+            let entries;
+            try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (_e) { return; }
+            for (const e of entries) {
+                const p = path.join(d, e.name);
+                if (e.isDirectory()) walk(p);
+                else if (e.isFile()) out.set(path.relative(dir, p), p);
+            }
+        };
+        walk(dir);
+        return out;
+    }
+
+    // Chép các file trong Map (đường dẫn tương đối -> tuyệt đối) sang
+    // thư mục đích, giữ đúng cấu trúc thư mục con.
+    fixerCopyFileMap(fileMap, destDir) {
+        for (const [rel, src] of fileMap) {
+            const dest = path.join(destDir, rel);
+            fs.mkdirSync(path.dirname(dest), { recursive: true });
+            fs.copyFileSync(src, dest);
+        }
+    }
+
+    // Thư mục cha của thư mục Mods — thư mục tạm đặt ở đây (cùng ổ với
+    // Mods, Đạt báo 23/11 ổ C không đủ chỗ). TUYỆT ĐỐI KHÔNG đặt trong
+    // thư mục Mods (app quét thư mục đó tìm mod, để trong sẽ bị nhận
+    // nhầm thành mod). Không lấy được thì dùng thư mục tạm hệ thống.
+    fixerTempParent() {
+        const modsPath = this.config && this.config.modSourcePath;
+        if (modsPath) {
+            try {
+                const parent = path.dirname(path.resolve(modsPath));
+                if (parent && fs.existsSync(parent)) return parent;
+            } catch (_e) { /* dùng tạm hệ thống */ }
+        }
+        return os.tmpdir();
+    }
+
+    // Dọn thư mục tạm Fixer còn sót (lần trước tắt ngang giữa chừng):
+    // mọi thư mục tên bắt đầu xxmm-fixer- nằm cạnh thư mục Mods + trong
+    // thư mục tạm hệ thống (bản cũ để ở đó). Chỉ xóa đúng tiền tố này,
+    // không đụng thư mục khác. Chạy lúc app khởi động.
+    fixerCleanupStaleTempDirs() {
+        const parents = new Set();
+        try { parents.add(this.fixerTempParent()); } catch (_e) { /* kệ */ }
+        parents.add(os.tmpdir());
+        for (const parent of parents) {
+            let entries;
+            try { entries = fs.readdirSync(parent, { withFileTypes: true }); } catch (_e) { continue; }
+            for (const e of entries) {
+                if (!e.isDirectory() || !e.name.startsWith('xxmm-fixer-')) continue;
+                try { fs.rmSync(path.join(parent, e.name), { recursive: true, force: true }); } catch (_e) { /* kệ */ }
+            }
+        }
+    }
 
     // Thư mục chứa file Fixer đã tải về (+ bảng mã cũ lưu đệm + bản dự
     // phòng của mod đã sửa): <userData>/tools/ZZZ-Mod-Fixer/.
@@ -1121,25 +1214,56 @@ class IManager {
     }
 
     // Bước 1 — CHÉP (không cắt) các mod đã chọn ra thư mục tạm để Fixer
-    // sửa trên bản chép. Trả { tempDir, mods: [{ modId, modName, srcPath,
-    // tmpPath }] } — đang sửa dở thì văng lỗi (chống bấm trùng).
-    async fixerPrepareFix(modIds) {
+    // sửa trên bản chép. CHỈ chép file .ini/.buf (Fixer chỉ cần 2 loại
+    // này), giữ đúng cấu trúc thư mục con — file hình không chép nên
+    // nhanh hơn nhiều với mod nặng. Thư mục tạm đặt CẠNH thư mục Mods
+    // (cùng ổ đĩa, Đạt báo ổ C không đủ chỗ; TUYỆT ĐỐI KHÔNG nằm trong
+    // thư mục Mods vì app quét thư mục đó tìm mod). Trả { tempDir,
+    // mods: [{ modId, modName, srcPath, tmpPath, origFiles: [đường dẫn
+    // tương đối các file .ini/.buf lúc chép] }] } — đang sửa dở thì
+    // văng lỗi (chống bấm trùng). onProgress(done, total) báo tiến độ
+    // từng mod; nhường vòng lặp giữa 2 mod để giao diện kịp hiện tiến độ.
+    async fixerPrepareFix(modIds, onProgress) {
         if (fixerFixing) throw new Error('Fix already in progress');
         fixerFixing = true;
+        let tempDir = null;
         try {
             const selected = ModLoader.modsRaw.filter((m) =>
                 modIds.includes(m.id) && m.location && fs.existsSync(m.location));
             if (selected.length === 0) throw new Error('No mods selected');
-            const tempDir = path.join(os.tmpdir(), `xxmm-fixer-${Date.now()}`);
-            fs.mkdirSync(tempDir, { recursive: true });
+            try {
+                tempDir = path.join(this.fixerTempParent(), `xxmm-fixer-temp-${Date.now()}`);
+                fs.mkdirSync(tempDir, { recursive: true });
+            } catch (_e) {
+                // Không tạo được cạnh thư mục Mods (vd không có quyền
+                // ghi): dùng thư mục tạm hệ thống làm dự phòng.
+                tempDir = path.join(os.tmpdir(), `xxmm-fixer-temp-${Date.now()}`);
+                fs.mkdirSync(tempDir, { recursive: true });
+            }
             const mods = [];
+            let done = 0;
             for (const m of selected) {
                 const tmpPath = path.join(tempDir, m.modName);
-                fs.cpSync(m.location, tmpPath, { recursive: true });
-                mods.push({ modId: m.id, modName: m.modName, srcPath: m.location, tmpPath: tmpPath });
+                const files = this.fixerListIniBufFiles(m.location);
+                fs.mkdirSync(tmpPath, { recursive: true });
+                this.fixerCopyFileMap(files, tmpPath);
+                mods.push({ modId: m.id, modName: m.modName, srcPath: m.location, tmpPath: tmpPath,
+                    origFiles: [...files.keys()] });
+                done += 1;
+                if (typeof onProgress === 'function') {
+                    try { onProgress(done, selected.length); } catch (_e) { /* kệ */ }
+                }
+                // Nhường ~1 khung hình (16ms) để giao diện kịp VẼ tiến
+                // độ — setTimeout(0) thì tác vụ chép tiếp theo chạy ngay
+                // nên trình duyệt không có lúc nào vẽ, dòng tiến độ chỉ
+                // nằm trong DOM mà mắt không thấy.
+                await new Promise((r) => setTimeout(r, 16));
             }
             return { tempDir: tempDir, mods: mods };
         } catch (e) {
+            if (tempDir) {
+                try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (_e) { /* kệ */ }
+            }
             fixerFixing = false;
             throw e;
         }
@@ -1177,40 +1301,83 @@ class IManager {
     }
 
     // Bước 3 — kiểm tra bản đã sửa trong thư mục tạm rồi thay bản gốc.
-    // Mỗi mod: có đổi gì thì sao lưu bản gốc rồi thay bằng bản đã sửa;
-    // không đổi gì thì giữ nguyên bản gốc. Lỗi giữa chừng thì khôi phục
-    // bản gốc từ bản sao lưu — không mất mod. Trả mảng kết quả từng mod:
-    // { modId, modName, status: 'fixed' | 'unchanged' | 'failed',
-    //   backupPath? }. Xong thì dọn thư mục tạm + tải lại danh sách mod.
-    async fixerApplyFixed(prepared) {
+    // Mỗi mod: có đổi gì thì sao lưu bản gốc (CHỈ .ini/.buf — vì chỉ 2
+    // loại này bị đổi nên đủ để khôi phục) rồi chép file mới/đổi từ bản
+    // tạm về (kể cả file Fixer tạo ra như sổ theo dõi
+    // .zzz-fixer-state.json); file .ini/.buf nào Fixer xóa khỏi bản tạm
+    // thì xóa khỏi bản gốc (CHỈ 2 loại này, không bao giờ xóa file
+    // khác). File hình không đụng tới nên nguyên vẹn. Không đổi gì thì
+    // giữ nguyên bản gốc. Lỗi giữa chừng thì khôi phục từ bản sao lưu
+    // — không mất mod. Trả mảng kết quả từng mod: { modId, modName,
+    // status: 'fixed' | 'unchanged' | 'failed', backupPath? }. Xong thì
+    // dọn thư mục tạm + tải lại danh sách mod. onProgress(done, total)
+    // báo tiến độ từng mod.
+    async fixerApplyFixed(prepared, onProgress) {
         const results = [];
         try {
             const backupRoot = path.join(this.fixerToolsDir(), 'backup');
+            let done = 0;
             for (const mod of prepared.mods) {
                 try {
-                    const changed = await this.fixerModChanged(mod.srcPath, mod.tmpPath);
+                    const changed = await this.fixerModChanged(mod);
                     if (!changed) {
                         results.push({ modId: mod.modId, modName: mod.modName, status: 'unchanged' });
-                        continue;
+                    } else {
+                        // Sao lưu bản gốc TRƯỚC khi thay — CHỈ .ini/.buf
+                        // (chép, không cắt).
+                        const backupPath = path.join(backupRoot, `${mod.modName}-${Date.now()}`);
+                        fs.mkdirSync(backupRoot, { recursive: true });
+                        const srcFiles = this.fixerListIniBufFiles(mod.srcPath);
+                        this.fixerCopyFileMap(srcFiles, backupPath);
+                        const origSet = new Set(mod.origFiles || [...srcFiles.keys()]);
+                        const tmpFiles = this.fixerListAllFiles(mod.tmpPath);
+                        try {
+                            // Chép file mới/đổi từ bản tạm về: chỉ .ini,
+                            // .buf + sổ theo dõi của Fixer — không chép
+                            // file lạ khác (vd thư mục dự phòng của
+                            // Fixer nếu anh tick trong cửa sổ Fixer).
+                            for (const [rel, tmpFile] of tmpFiles) {
+                                const ext = path.extname(rel).toLowerCase();
+                                if (ext !== '.ini' && ext !== '.buf' && path.basename(rel) !== FIXER_STATE_FILE) continue;
+                                const dest = path.join(mod.srcPath, rel);
+                                fs.mkdirSync(path.dirname(dest), { recursive: true });
+                                fs.copyFileSync(tmpFile, dest);
+                            }
+                            // File .ini/.buf nào Fixer xóa khỏi bản tạm
+                            // thì xóa khỏi bản gốc (CHỈ 2 loại này —
+                            // origSet chỉ chứa .ini/.buf từ lúc chép).
+                            for (const rel of origSet) {
+                                if (!tmpFiles.has(rel)) {
+                                    try { fs.rmSync(path.join(mod.srcPath, rel), { force: true }); } catch (_e) { /* kệ */ }
+                                }
+                            }
+                        } catch (e) {
+                            // Thay thất bại: khôi phục bản gốc từ bản
+                            // sao lưu (chép .ini/.buf về) + xóa file mới
+                            // đã chép dở (file có trong bản tạm mà gốc
+                            // không có).
+                            try { this.fixerCopyFileMap(this.fixerListIniBufFiles(backupPath), mod.srcPath); } catch (_e) { /* kệ */ }
+                            for (const [rel] of tmpFiles) {
+                                if (origSet.has(rel)) continue;
+                                const ext = path.extname(rel).toLowerCase();
+                                if (ext !== '.ini' && ext !== '.buf' && path.basename(rel) !== FIXER_STATE_FILE) continue;
+                                try { fs.rmSync(path.join(mod.srcPath, rel), { force: true }); } catch (_e) { /* kệ */ }
+                            }
+                            throw e;
+                        }
+                        results.push({ modId: mod.modId, modName: mod.modName, status: 'fixed', backupPath: backupPath });
                     }
-                    // Sao lưu bản gốc TRƯỚC khi thay (chép, không cắt).
-                    const backupPath = path.join(backupRoot, `${mod.modName}-${Date.now()}`);
-                    fs.mkdirSync(backupRoot, { recursive: true });
-                    fs.cpSync(mod.srcPath, backupPath, { recursive: true });
-                    try {
-                        fs.rmSync(mod.srcPath, { recursive: true, force: true });
-                        fs.renameSync(mod.tmpPath, mod.srcPath);
-                    } catch (e) {
-                        // Thay thất bại: khôi phục bản gốc từ bản sao lưu.
-                        try { fs.rmSync(mod.srcPath, { recursive: true, force: true }); } catch (_e) { /* kệ */ }
-                        fs.cpSync(backupPath, mod.srcPath, { recursive: true });
-                        throw e;
-                    }
-                    results.push({ modId: mod.modId, modName: mod.modName, status: 'fixed', backupPath: backupPath });
                 } catch (e) {
                     console.error(`fixerApplyFixed(${mod.modName}) failed`, e);
                     results.push({ modId: mod.modId, modName: mod.modName, status: 'failed' });
                 }
+                done += 1;
+                if (typeof onProgress === 'function') {
+                    try { onProgress(done, prepared.mods.length); } catch (_e) { /* kệ */ }
+                }
+                // Nhường ~1 khung hình (16ms) để giao diện kịp VẼ tiến
+                // độ — xem chú thích ở fixerPrepareFix.
+                await new Promise((r) => setTimeout(r, 16));
             }
         } finally {
             try { fs.rmSync(prepared.tempDir, { recursive: true, force: true }); } catch (_e) { /* kệ */ }
@@ -1224,25 +1391,19 @@ class IManager {
     }
 
     // Bản chép tạm có khác bản gốc không: có file trạng thái của Fixer
-    // thì chắc chắn đã sửa; không thì so từng file (kích thước rồi nội
-    // dung qua băm SHA1 theo luồng để không ngốn RAM với file .buf lớn).
-    async fixerModChanged(srcPath, tmpPath) {
+    // thì chắc chắn đã sửa; không thì so CHỈ file .ini/.buf (bản tạm gọn
+    // không có hình nên không so hình). Thêm/bớt file, đổi kích thước
+    // hay đổi nội dung (băm SHA1 theo luồng để không ngốn RAM với file
+    // .buf lớn) đều tính là đã sửa.
+    async fixerModChanged(mod) {
+        const srcPath = mod.srcPath;
+        const tmpPath = mod.tmpPath;
         try {
             if (fs.existsSync(path.join(tmpPath, FIXER_STATE_FILE))) return true;
         } catch (_e) { /* tiếp tục so file */ }
-        const listFiles = (dir, base, out) => {
-            let entries;
-            try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_e) { return out; }
-            for (const e of entries) {
-                const p = path.join(dir, e.name);
-                if (e.isDirectory()) listFiles(p, base, out);
-                else if (e.isFile()) out.set(path.relative(base, p), p);
-            }
-            return out;
-        };
-        const srcFiles = listFiles(srcPath, srcPath, new Map());
-        const tmpFiles = listFiles(tmpPath, tmpPath, new Map());
-        if (srcFiles.size !== tmpFiles.size) return true;
+        const origSet = new Set(mod.origFiles || [...this.fixerListIniBufFiles(srcPath).keys()]);
+        const tmpFiles = this.fixerListIniBufFiles(tmpPath);
+        if (tmpFiles.size !== origSet.size) return true;
         const hashFile = (p) => new Promise((resolve, reject) => {
             const hash = require('crypto').createHash('sha1');
             const stream = fs.createReadStream(p);
@@ -1250,14 +1411,14 @@ class IManager {
             stream.on('data', (d) => hash.update(d));
             stream.on('end', () => resolve(hash.digest('hex')));
         });
-        for (const [rel, srcFile] of srcFiles) {
+        for (const rel of origSet) {
             const tmpFile = tmpFiles.get(rel);
             if (!tmpFile) return true;
             try {
-                const a = fs.statSync(srcFile);
+                const a = fs.statSync(path.join(srcPath, rel));
                 const b = fs.statSync(tmpFile);
                 if (a.size !== b.size) return true;
-                if ((await hashFile(srcFile)) !== (await hashFile(tmpFile))) return true;
+                if ((await hashFile(path.join(srcPath, rel))) !== (await hashFile(tmpFile))) return true;
             } catch (_e) {
                 return true;
             }

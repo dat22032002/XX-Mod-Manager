@@ -99,7 +99,7 @@
                     </template>
                 </div>
                 <div v-if="fixerState.flowStep !== 'idle'" class="OO-setting-bar fixer-block fixer-flow">
-                    <p v-if="fixerState.flowStep === 'preparing'">{{ $t('fixer.fixPreparing') }}</p>
+                    <p v-if="fixerState.flowStep === 'preparing'">{{ fixerState.progressTotal > 0 ? $t('fixer.copyingOut', { done: fixerState.progressDone, total: fixerState.progressTotal }) : $t('fixer.fixPreparing') }}</p>
                     <template v-if="fixerState.flowStep === 'waiting' && fixerState.prepared">
                         <p>{{ fixerState.prepared.mods.map((m) => m.modName).join(', ') }}</p>
                         <p>{{ $t('fixer.tempFolderLabel') }}</p>
@@ -107,7 +107,7 @@
                         <s-button class="OO-button" @click="handleFixerCopyTempPath">{{ $t('fixer.copyPath') }}</s-button>
                         <p>{{ $t('fixer.fixWaiting') }}</p>
                     </template>
-                    <p v-if="fixerState.flowStep === 'applying'">{{ $t('fixer.fixApplying') }}</p>
+                    <p v-if="fixerState.flowStep === 'applying'">{{ fixerState.progressTotal > 0 ? $t('fixer.copyingBack', { done: fixerState.progressDone, total: fixerState.progressTotal }) : $t('fixer.fixApplying') }}</p>
                     <div v-if="fixerState.flowStep === 'done'">
                         <p v-if="fixerDoneCount > 0">{{ $t('fixer.fixDone', { count: fixerDoneCount }) }}</p>
                         <p v-if="fixerUnchangedCount > 0">{{ $t('fixer.fixUnchanged', { count: fixerUnchangedCount }) }}</p>
@@ -465,17 +465,27 @@ const handleFixerStart = async () => {
     }
     fixerState.results = [];
     fixerState.flowStep = 'preparing';
+    fixerState.progressPhase = 'out';
+    fixerState.progressDone = 0;
+    fixerState.progressTotal = 0;
     let prepared = null;
     try {
-        prepared = await iManager.fixerPrepareFix([...fixerState.selectedIds]);
+        prepared = await iManager.fixerPrepareFix([...fixerState.selectedIds], (done, total) => {
+            fixerState.progressDone = done;
+            fixerState.progressTotal = total;
+        });
     } catch (e) {
         console.error('fixerPrepareFix failed', e);
         snack(t('fixer.fixError'), SnackType.error);
         fixerState.flowStep = 'idle';
+        fixerState.progressPhase = '';
         return;
     }
     fixerState.prepared = prepared;
     fixerState.flowStep = 'waiting';
+    fixerState.progressPhase = '';
+    fixerState.progressDone = 0;
+    fixerState.progressTotal = 0;
     const launched = await iManager.fixerLaunchAndWait();
     if (!launched) {
         iManager.fixerAbortFix(prepared);
@@ -485,8 +495,14 @@ const handleFixerStart = async () => {
         return;
     }
     fixerState.flowStep = 'applying';
+    fixerState.progressPhase = 'back';
+    fixerState.progressDone = 0;
+    fixerState.progressTotal = 0;
     try {
-        fixerState.results = await iManager.fixerApplyFixed(prepared);
+        fixerState.results = await iManager.fixerApplyFixed(prepared, (done, total) => {
+            fixerState.progressDone = done;
+            fixerState.progressTotal = total;
+        });
     } catch (e) {
         console.error('fixerApplyFixed failed', e);
         snack(t('fixer.fixError'), SnackType.error);
@@ -494,6 +510,7 @@ const handleFixerStart = async () => {
     }
     fixerState.prepared = null;
     fixerState.flowStep = 'done';
+    fixerState.progressPhase = '';
     // Xóa mod đã sửa khỏi danh sách nghi hỏng để không sửa trùng.
     const fixedIds = new Set(fixerState.results.filter((r) => r.status === 'fixed').map((r) => r.modId));
     fixerState.suspects = fixerState.suspects.filter((m) => !fixedIds.has(m.modId));
