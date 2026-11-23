@@ -71,9 +71,14 @@
                 <div class="OO-setting-bar fixer-block">
                     <h3>{{ $t('fixer.scanTitle') }}</h3>
                     <p>{{ $t('fixer.scanHint') }}</p>
-                    <s-button class="OO-button" :disabled="fixerState.scanning || fixerState.flowStep !== 'idle'" @click="handleFixerScan">
-                        {{ fixerState.scanning ? $t('fixer.scanning') : $t('fixer.scanButton') }}
-                    </s-button>
+                    <div class="fixer-scan-actions">
+                        <s-button class="OO-button" :disabled="fixerState.scanning || fixerState.flowStep !== 'idle'" @click="handleFixerScan">
+                            {{ fixerState.scanning ? $t('fixer.scanning') : $t('fixer.scanButton') }}
+                        </s-button>
+                        <s-button class="OO-button" :disabled="fixerState.scanning || fixerState.flowStep !== 'idle'" @click="handleFixerAutoFix">
+                            {{ $t('fixer.autoFixButton') }}
+                        </s-button>
+                    </div>
                 </div>
                 <div v-if="fixerState.scannedOnce" class="OO-setting-bar fixer-block fixer-scan-list">
                     <p v-if="fixerState.suspects.length === 0">{{ $t('fixer.noBrokenMods') }}</p>
@@ -396,7 +401,7 @@ const handleFixerOpen = () => {
 };
 
 const handleFixerScan = async () => {
-    if (fixerState.scanning || fixerState.flowStep !== 'idle') return;
+    if (fixerState.scanning || fixerState.flowStep !== 'idle') return null;
     fixerState.scanning = true;
     try {
         const suspects = await iManager.fixerScanBrokenMods();
@@ -408,13 +413,36 @@ const handleFixerScan = async () => {
             // vẫn dùng được sau khi đóng app mở lại (Đạt dặn 23/11).
             iManager.config.fixerSuspectIds = suspects.map((m) => m.modId);
             iManager.saveConfig();
+            return suspects;
         }
+        return null;
     } catch (e) {
         console.error('fixerScanBrokenMods failed', e);
         snack(t('fixer.scanFailed'), SnackType.error);
+        return null;
     } finally {
         fixerState.scanning = false;
     }
+};
+
+// Tự sửa hết (Đạt chốt 23/11: bỏ bước kiểm mod trong game): quét rồi
+// sửa hết mod nghi hỏng luôn, dùng lại đúng luồng sửa của nút Sửa
+// (chép tạm -> mở Fixer -> đợi đóng -> chép về), chỉ bỏ bước tick
+// chọn tay. Quét ra 0 mod thì báo, không mở Fixer.
+const handleFixerAutoFix = async () => {
+    if (fixerState.scanning || fixerState.flowStep !== 'idle') return;
+    if (!fixerInstalled.value) {
+        snack(t('fixer.needFixerFirst'), SnackType.error);
+        return;
+    }
+    const suspects = await handleFixerScan();
+    if (!suspects) return; // Quét lỗi: handleFixerScan đã báo lỗi rồi.
+    if (suspects.length === 0) {
+        snack(t('fixer.noBrokenMods'));
+        return;
+    }
+    fixerState.selectedIds = suspects.map((m) => m.modId);
+    await handleFixerStart();
 };
 
 const handleFixerToggle = (modId, event) => {
@@ -835,6 +863,13 @@ onMounted(async () => {
 
 .fixer-actions {
     flex-direction: row;
+    flex-wrap: wrap;
+}
+
+/* Hàng nút Quét + Tự sửa hết trong khối quét. */
+.fixer-scan-actions {
+    display: flex;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
