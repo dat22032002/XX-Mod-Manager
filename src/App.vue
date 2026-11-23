@@ -1,31 +1,28 @@
 <template>
     <div class="main-container" ref="modCardState">
         <div class="head">
-            <div class="window-controls">
-                <s-icon-button class="OO-icon-button window-control-btn" :title="$t('buttons.close')" @click="handleCloseClick">
-                    <s-icon>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                            <path d="M480-424 284-228q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536-480l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-424Z" />
-                        </svg>
-                    </s-icon>
-                </s-icon-button>
-                <s-icon-button class="OO-icon-button window-control-btn" :title="$t('buttons.minimize')" @click="handleMinimizeClick">
-                    <s-icon>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                            <path d="M240-440v-80h480v80H240Z" />
-                        </svg>
-                    </s-icon>
-                </s-icon-button>
-                <s-icon-button class="OO-icon-button window-control-btn" :title="$t('buttons.fullscreen')" @click="handleFullscreenClick">
-                    <s-icon>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-                            <path :d="isFullscreen ? fullscreenExitPath : fullscreenPath" />
-                        </svg>
-                    </s-icon>
-                </s-icon-button>
+            <!-- 3 nút cửa sổ nối thành 1 viên nhộng Zone (Đạt dặn 20/11):
+                 khung là .zzz-mat-pill, nút con là nút thường trong suốt
+                 (không phải Sober) để không cần cắt viền sáng của viên. -->
+            <div class="window-controls zzz-mat-pill">
+                <button type="button" class="window-control-btn" :title="$t('buttons.close')" @click="handleCloseClick">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                        <path d="M480-424 284-228q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536-480l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-424Z" />
+                    </svg>
+                </button>
+                <button type="button" class="window-control-btn" :title="$t('buttons.minimize')" @click="handleMinimizeClick">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                        <path d="M240-440v-80h480v80H240Z" />
+                    </svg>
+                </button>
+                <button type="button" class="window-control-btn" :title="$t('buttons.fullscreen')" @click="handleFullscreenClick">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                        <path :d="isFullscreen ? fullscreenExitPath : fullscreenPath" />
+                    </svg>
+                </button>
             </div>
             <div id="drag-bar" style="flex: 1;height: 100%;app-region: drag;"></div>
-            <sectionSelector :sections="sections" :hover-switch="true" @update:currentSection="handleSectionChange"></sectionSelector>
+            <sectionSelector :sections="sections" :hover-switch="true" size="md" :seg-width="780" surface="black" @update:currentSection="handleSectionChange"></sectionSelector>
         </div>
 
         <div class="section-container">
@@ -182,9 +179,11 @@ waitInitIManager().then((iManager) => {
     height: 50px;
 }
 
-/* 3 nút cửa sổ nối thành 1 viên nhộng (Đạt dặn 20/11): khung cao
-   40px như nút chọn mục MOD/HELP/Setting bên phải, 3 nút con vuông
-   khít nhau bên trong, ngăn cách bằng vạch mờ. */
+/* 3 nút cửa sổ nối thành 1 viên nhộng Zone (Đạt dặn 20/11): khung cao
+   40px như nút chọn mục bên phải, 3 nút con vuông khít nhau bên trong,
+   ngăn cách bằng vạch mờ. Khung là .zzz-mat-pill (viền #333 + viền
+   sáng + nền #090909 + lưới chấm) — KHÔNG đặt overflow: hidden ở đây:
+   viền sáng của viên là ::after thò ra ngoài khung, cắt đi thì mất. */
 .window-controls {
     display: flex;
     align-items: stretch;
@@ -193,28 +192,36 @@ waitInitIManager().then((iManager) => {
     flex-shrink: 0;
     height: 40px;
     box-sizing: border-box;
-    background-color: var(--s-color-surface-container-low);
-    border: 1px solid var(--s-color-outline-variant);
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.2);
 }
 
-/* OO-icon-button mặc định tròn + thu nhỏ 0.83 + margin dọc 10px (tràn
-   khỏi header 50px) — gỡ hết để nút vuông khít viên nhộng, cao bằng
-   khung. */
+/* Nút con: trong suốt, vuông khít viên nhộng, cao bằng khung, hình
+   trắng 24px căn giữa. Không có hiệu ứng hover/nhấn (Zone không có
+   hover; nút đóng vẫn mở hộp xác nhận như cũ). */
 .window-controls .window-control-btn {
     margin: 0;
+    padding: 0;
+    border: 0;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
-    transform: scale(1);
+    color: var(--zzz-color-text-primary);
+    cursor: pointer;
     width: 46px;
     height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.window-controls .window-control-btn svg {
+    display: block;
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
 }
 
 .window-controls .window-control-btn + .window-control-btn {
-    border-left: 1px solid var(--s-color-outline-variant);
+    border-left: 1px solid var(--zzz-color-border-button);
 }
 
 .section-container {

@@ -12,7 +12,7 @@
          view bị cắt mất — scroll view chỉ cao bằng nội dung, phần khung
          ngoài hộp của nó nằm trong vùng lăn chưa cuộn tới nên không
          thấy được (Đạt thấy 22/11: khung mất viền dưới). -->
-    <div id="mod-card-manager" class="OO-box" ref="modCardManagerRef" @mousedown="handleMarqueeMouseDown">
+    <div id="mod-card-manager" class="OO-box zzz-frame zzz-mat-panel" ref="modCardManagerRef" @mousedown="handleMarqueeMouseDown">
         <!-- <chipRadioBar class="characterFilter" :items="characters" @itemChange="handleFilterChange"
             :translatedItems="translateCharacters" ref="characterFilterRef" /> -->
         <!-- Giao diện lọc (tìm kiếm + nút "Bộ lọc" + bảng overlay + Tất
@@ -32,9 +32,9 @@
                      nút không kéo khung bôi đen của lưới. -->
                 <div v-if="modsLoaded && filteredMods.length === 0" id="empty-state" class="empty-state" @mousedown.stop>
                     <div class="empty-state-text">{{ $t('filter.empty') }}</div>
-                    <s-button id="clear-filters-button" @click="clearAllFilters" class="OO-button font-hongmeng">
-                        {{ $t('filter.clearFilters') }}
-                    </s-button>
+                    <button type="button" id="clear-filters-button" @click="clearAllFilters" class="zzz-button zzz-mat-pill zzz-pressable zzz-focusable zzz-button--md zzz-button--w-auto">
+                        <span class="zzz-button__label"><span class="zzz-button__text zzz-text-button zzz-italic">{{ $t('filter.clearFilters') }}</span></span>
+                    </button>
                 </div>
             </div>
         </s-scroll-view>
@@ -801,8 +801,10 @@ const marqueeBoxStyle = computed(() => ({
 let marqueePending = null; // { x, y } điểm nhấn chuột, chờ kéo quá ngưỡng
 let marqueeHighlighted = []; // thẻ đang tô viền xem trước
 let marqueeSuppressClick = false;
-// Độ dày viền khung ngoài (.OO-box: 3px) — đọc lúc nhấn chuột, dùng
-// cho mọi tọa độ trong lần kéo đó (xem marqueeFramePoint).
+// Độ dày viền khung ngoài — đọc lúc nhấn chuột, dùng cho mọi tọa độ
+// trong lần kéo đó (xem marqueeFramePoint). Zone phase 1 bỏ viền thật
+// của khung (viền panel vẽ bằng bóng ngoài) nên đọc ra 0 — toán vẫn
+// đúng vì hộp bôi đen neo vào padding box, giờ trùng border box.
 let marqueeBorderL = 0, marqueeBorderT = 0;
 
 // Đổi tọa độ chuột sang tọa độ trong khung lưới: gốc là MÉP TRONG của
@@ -987,7 +989,7 @@ defineExpose({
 }
 
 .empty-state-text {
-    color: var(--s-color-on-surface-variant);
+    color: var(--zzz-color-text-muted);
     font-size: 1rem;
 }
 
@@ -1016,7 +1018,12 @@ defineExpose({
     justify-content: flex-start;
     min-width: 250px;
     flex: 2;
-    height: 100%;
+    /* Cao calc(100% - 20px) — KHỚP với quy tắc cùng tên trong
+       modCardSection.vue (cả 2 cùng (1,1,0) scoped, trước đây chỗ này
+       là 100% nên ai thắng tùy thứ tự tải; giờ 2 bên đồng ý thì thứ tự
+       tải không còn quan trọng). Đệm 10px×2 + không viền = tổng cao
+       đúng 100% khung chứa, đáy thẳng với 2 cột còn lại. */
+    height: calc(100% - 20px);
     flex-wrap: nowrap;
     /* Khung bôi đen (#marquee-box) neo tuyệt đối vào khung này nên
        khung phải có position (xem chú thích đầu file). */

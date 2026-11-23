@@ -6,7 +6,7 @@
      nhân vật đó. Hàng đang chọn nền vàng. Số trong ngoặc là số mod của
      nhân vật (theo công tắc "Hiện số lượng mod" trong bảng lọc). -->
 <template>
-    <div class="character-list OO-box">
+    <div class="character-list OO-box zzz-frame zzz-mat-panel">
         <!-- Khối đầu cố định (không lăn): tiêu đề + hàng tìm kiếm/Bộ lọc
              + hàng Tất cả/Đã chọn. Bảng lọc neo theo hàng tìm kiếm
              (position relative ở .character-list-searchrow), bung ra
@@ -31,22 +31,19 @@
                     </s-icon>
                     <input id="search-input" type="text" v-model="searchInput" @input="handleSearchInput" />
                 </div>
-                <!-- Nút Bộ lọc: bấm vào thì bảng lọc hiện ra dưới dạng
-                     overlay phủ lên danh sách + lưới mod (không đẩy nội
-                     dung xuống). Nút vàng lên khi bảng đang mở hoặc đang
-                     có lọc/xếp khác mặc định — nhìn là biết lưới đang bị
-                     lọc dù bảng đã đóng. -->
-                <div id="filter-toggle-chip" class="filter-toggle" :class="{ active: hasActiveFilter, open: panelOpen }" @click="panelOpen = !panelOpen">
-                    <div class="filter-toggle-inner">
-                        <s-icon>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                                <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"></path>
-                            </svg>
-                        </s-icon>
-                        <span>{{ $t('filter.button') }}</span>
-                        <span class="filter-toggle-chevron">▼</span>
-                    </div>
-                </div>
+                <!-- Nút Bộ lọc Zone (sm, có mũ icon): bấm vào thì bảng lọc
+                     hiện ra dưới dạng overlay phủ lên danh sách + lưới mod
+                     (không đẩy nội dung xuống). Nút vàng nhấn lên khi bảng
+                     đang mở hoặc đang có lọc/xếp khác mặc định — nhìn là
+                     biết lưới đang bị lọc dù bảng đã đóng. -->
+                <button type="button" id="filter-toggle-chip" class="zzz-button zzz-mat-pill zzz-pressable zzz-focusable zzz-button--sm zzz-button--w-auto zzz-button--capped" :class="{ 'zzz-accent-fill': hasActiveFilter || panelOpen, active: hasActiveFilter, open: panelOpen }" data-icon-tone="plain" @click="panelOpen = !panelOpen">
+                    <span class="zzz-button__cap"><span class="zzz-button__glyph">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"></path>
+                        </svg>
+                    </span></span>
+                    <span class="zzz-button__label"><span class="zzz-button__text zzz-text-button zzz-italic">{{ $t('filter.button') }} <span class="filter-toggle-chevron">▼</span></span></span>
+                </button>
             <!-- Bảng lọc xếp dọc, hẹp (Đạt dặn 21/11): neo ngay dưới
                  hàng tìm kiếm/Bộ lọc (cách đáy nút Bộ lọc ~14px thay vì
                  ~48px như trước — trước đây neo dưới cả khối đầu nên
@@ -55,7 +52,13 @@
                  sách, mép trái/phải thẳng khung cột. Hàng đầu mỗi nhóm
                  1 chip full hàng (All types / Default — dài nhất), 3
                  hàng dưới 2 chip 1 hàng (2 nút dưới cùng Other /
-                 Smallest first dài như mấy nút kia). Bấm chip thì bảng
+                 Smallest dài như mấy nút kia). Nhãn xếp tiếng Anh rút
+                 gọn "Newest"/"Oldest"/"Largest"/"Smallest" (Zone phase
+                 1 — chữ Hongmeng 900 giãn 110% của chip Zone làm
+                 "Smallest first" rộng 107px, không vừa chip 97px; rộng
+                 bảng và giãn hàng đều là điều Đạt đã dặn không đổi nên
+                 rút chữ là cách duy nhất; nhãn Việt đã ngắn sẵn nên
+                 giữ nguyên). Bấm chip thì bảng
                  ở lại mở để chọn tiếp nhóm còn lại; bấm nút, bấm ra
                  ngoài, hoặc rê chuột ra khỏi bảng thì đóng (Đạt dặn
                  21/11: tự đóng khi rê chuột ra khỏi bảng). Dùng v-show
@@ -67,14 +70,14 @@
                  hiệu ứng đóng rồi mới ẩn). Bấm chip giữa lúc bảng đang mở
                  vẫn ăn vì bảng đã ở vị trí cuối từ đầu, chỉ độ mờ chạy. -->
             <Transition name="filter-panel">
-            <div class="filter-panel" v-show="panelOpen" @mouseleave="panelOpen = false">
+            <div class="filter-panel zzz-mat-panel" v-show="panelOpen" @mouseleave="panelOpen = false">
                 <div class="filter-grid">
                     <div class="filter-group">
                         <div class="filter-group-label">{{ $t('filter.typeGroup') }}</div>
                         <div class="filter-chips">
                             <div v-for="row in CHIP_ROWS" :key="'t' + row[0]" class="filter-chip-row">
-                                <div v-for="i in row" :key="typeItems[i]" class="filter-chip"
-                                    :class="{ active: currentType === typeItems[i] }" @click="handleTypeChange(typeItems[i])">{{ translatedTypes[i] }}</div>
+                                <button v-for="i in row" :key="typeItems[i]" type="button" class="filter-chip zzz-chip zzz-pressable zzz-focusable"
+                                    :class="{ active: currentType === typeItems[i] }" :data-selected="currentType === typeItems[i] ? '' : undefined" @click="handleTypeChange(typeItems[i])"><span class="zzz-chip__label zzz-text-label">{{ translatedTypes[i] }}</span></button>
                             </div>
                         </div>
                     </div>
@@ -82,8 +85,8 @@
                         <div class="filter-group-label">{{ $t('filter.sortGroup') }}</div>
                         <div class="filter-chips">
                             <div v-for="row in CHIP_ROWS" :key="'s' + row[0]" class="filter-chip-row">
-                                <div v-for="i in row" :key="sortItems[i]" class="filter-chip"
-                                    :class="{ active: currentSort === sortItems[i] }" @click="handleSortChange(sortItems[i])">{{ translatedSorts[i] }}</div>
+                                <button v-for="i in row" :key="sortItems[i]" type="button" class="filter-chip zzz-chip zzz-pressable zzz-focusable"
+                                    :class="{ active: currentSort === sortItems[i] }" :data-selected="currentSort === sortItems[i] ? '' : undefined" @click="handleSortChange(sortItems[i])"><span class="zzz-chip__label zzz-text-label">{{ translatedSorts[i] }}</span></button>
                             </div>
                         </div>
                     </div>
@@ -98,7 +101,9 @@
                      thẳng vào ref, file config không đổi theo). -->
                 <div class="counts-wrap">
                     <span class="counts-label">{{ $t('filter.showCounts') }}</span>
-                    <s-switch id="chip-counts-switch" :checked="showChipCounts" @change="toggleChipCounts"></s-switch>
+                    <button type="button" id="chip-counts-switch" class="zzz-switch zzz-focusable" role="switch" :aria-checked="showChipCounts" @click="toggleChipCounts">
+                        <span class="zzz-switch__track"><span class="zzz-switch__knob"></span></span>
+                    </button>
                 </div>
                 <!-- Chỉ hiện mod nghi hỏng (Đạt dặn 23/11): bật thì lưới
                      Mod chỉ hiện mod trong danh sách lần quét Fixer gần
@@ -106,7 +111,9 @@
                      quét bao giờ thì công tắc mờ đi + nhắc quét trước. -->
                 <div class="counts-wrap" :class="{ disabled: !hasScannedOnce }">
                     <span class="counts-label">{{ $t('filter.onlySuspected') }}</span>
-                    <s-switch id="suspect-only-switch" :checked="showOnlySuspected" :disabled="!hasScannedOnce" @change="toggleOnlySuspected"></s-switch>
+                    <button type="button" id="suspect-only-switch" class="zzz-switch zzz-focusable" role="switch" :aria-checked="showOnlySuspected" :disabled="!hasScannedOnce" @click="toggleOnlySuspected">
+                        <span class="zzz-switch__track"><span class="zzz-switch__knob"></span></span>
+                    </button>
                 </div>
                 <p v-if="!hasScannedOnce" class="suspect-hint">{{ $t('filter.scanFirstHint') }}</p>
             </div>
@@ -124,14 +131,14 @@
                  định trên cùng ngoài khung lăn nên không trôi đi khi lăn
                  danh sách. -->
             <div class="character-list-fixed">
-                <sectionSelector id="all-selected-slider" :sections="ALL_SELECTED_SECTIONS" :labels="allSelectedLabels" :modelValue="currentCharacter || 'all'" :compact="true" @update:modelValue="selectCharacter" />
+                <sectionSelector id="all-selected-slider" :sections="ALL_SELECTED_SECTIONS" :labels="allSelectedLabels" :modelValue="currentCharacter || 'all'" size="sm" seg-width="fill" surface="mesh" tight @update:modelValue="selectCharacter" />
             </div>
             <!-- Lớp bắt bấm trong suốt phủ cả màn hình khi bảng đang mở:
                  bấm ra ngoài bảng thì đóng bảng. Nằm dưới nút và bảng
                  (z-index) nên không chặn 2 cái đó. -->
             <div class="filter-backdrop" v-show="panelOpen" @click="panelOpen = false"></div>
         </div>
-        <div class="character-list-rows" @mouseleave="hoveredIndex = null">
+        <div class="character-list-rows zzz-scrollbar" @mouseleave="hoveredIndex = null">
             <div v-for="(name, i) in characterList" :key="name" class="character-row"
                 :class="{ active: currentCharacter === name }" :data-arrow="arrowLevel(i)" @click="selectCharacter(name)"
                 @mouseenter="hoveredIndex = i">
@@ -321,7 +328,7 @@ const SORT_VALUES = SORT_OPTIONS.map(o => o.value);
 
 // Hàng chip trong bảng lọc dọc: hàng đầu mỗi nhóm 1 chip full hàng
 // (All types / Default — lựa chọn mặc định, dài nhất), 3 hàng dưới
-// 2 chip 1 hàng (Đạt dặn 21/11: 2 nút dưới cùng Other / Smallest first
+// 2 chip 1 hàng (Đạt dặn 21/11: 2 nút dưới cùng Other / Smallest
 // để dài như mấy nút kia, không giãn full hàng).
 const CHIP_ROWS = [[0], [1, 2], [3, 4], [5, 6]];
 
@@ -414,9 +421,9 @@ defineExpose({ clearSearchInput });
     min-height: 0;
     display: flex;
     flex-direction: column;
-    /* Khung giống hệt khung preset (OO-box: viền 3px + đệm 10px +
-       bo 20px). border-box để tổng rộng = đúng rộng cột 226px, không
-       lòi sang phải như khung preset từng bị. Đệm của OO-box thay cho
+    /* Khung panel Zone (nền đen + viền vẽ bằng bóng ngoài, bo trong
+       24u). border-box để tổng rộng = đúng rộng cột 226px, không lòi
+       sang phải như khung preset từng bị. Đệm của OO-box thay cho
        padding riêng; vạch ngăn cũ bỏ vì đã có khung. */
     box-sizing: border-box;
     margin-top: 8px;
@@ -441,7 +448,7 @@ defineExpose({ clearSearchInput });
 .character-list-title {
     flex-shrink: 0;
     font-weight: bolder;
-    color: var(--s-color-on-surface-variant);
+    color: var(--zzz-color-text-secondary);
     padding: 0 2px;
     font-size: 16px;
 }
@@ -458,8 +465,8 @@ defineExpose({ clearSearchInput });
     position: relative;
 }
 
-/* Ô tìm kiếm: thẳng (không nghiêng như ô cũ ở hàng trên), cùng kiểu
-   với hàng nhân vật (nền surface-container-low, bo 8px). */
+/* Ô tìm kiếm: thẳng (không nghiêng như ô cũ ở hàng trên), nền chip
+   Zone #1B1B1B, bo 8u, viền nhấn khi đang gõ. */
 .character-search {
     flex: 1;
     min-width: 0;
@@ -469,13 +476,13 @@ defineExpose({ clearSearchInput });
     gap: 4px;
     box-sizing: border-box;
     padding: 0 6px;
-    border-radius: 8px;
-    background-color: var(--s-color-surface-container-low);
-    color: var(--s-color-on-surface);
+    border-radius: var(--zzz-radius-card-art);
+    background-color: var(--zzz-color-surface-chip);
+    color: var(--zzz-color-text-primary);
 }
 
 .character-search:focus-within {
-    outline: 1px solid var(--s-color-primary);
+    outline: 1px solid var(--zzz-accent);
 }
 
 .character-search s-icon {
@@ -490,57 +497,18 @@ defineExpose({ clearSearchInput });
     background: transparent;
     border: none;
     outline: none;
-    color: var(--s-color-on-surface);
+    color: var(--zzz-color-text-primary);
     font-size: 14px;
     padding: 0;
 }
 
-/* Nút Bộ lọc: thẳng như ô tìm kiếm (không nghiêng -20° như nút cũ ở
-   hàng trên), cao 32px cho ngang ô tìm kiếm. */
-.filter-toggle {
-    flex-shrink: 0;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-    padding: 0 8px;
-    border-radius: 8px;
-    background-color: var(--s-color-surface-container-low);
-    border: 1px solid var(--s-color-outline-variant);
-    color: var(--s-color-on-surface);
-    cursor: pointer;
-    user-select: none;
-    /* Nổi trên lớp bắt bấm (z-index 40) để bấm nút vẫn tắt/bật được
-       bảng khi bảng đang mở. */
+/* Nút Bộ lọc là nút Zone sm (xem template); chỉ giữ cho nút nổi trên
+   lớp bắt bấm (z-index 40) và bảng (50) để bấm nút vẫn tắt/bật được
+   bảng khi bảng đang mở. Trạng thái vàng do .zzz-accent-fill lo
+   (active = đang lọc, open = bảng đang mở). */
+#filter-toggle-chip {
     position: relative;
     z-index: 60;
-}
-
-/* Đang có lọc/xếp khác mặc định thì nút vàng như chip đang chọn. */
-.filter-toggle.active {
-    background-color: var(--s-color-primary);
-    border-color: var(--s-color-primary);
-    color: var(--s-color-on-primary);
-}
-
-/* Bảng đang mở thì nút cũng vàng lên như chip đang chọn (Đạt muốn
-   nút đổi màu vàng thay vì hiệu ứng phát sáng — 19/11). Phân biệt
-   với nút vàng do đang lọc bằng mũi tên: ▲ là bảng đang mở. */
-.filter-toggle.open {
-    background-color: var(--s-color-primary);
-    border-color: var(--s-color-primary);
-    color: var(--s-color-on-primary);
-}
-
-.filter-toggle-inner {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-}
-
-.filter-toggle-inner s-icon {
-    flex-shrink: 0;
 }
 
 /* Mũi tên xoay ngược khi bảng lọc đang bung ra. */
@@ -549,7 +517,7 @@ defineExpose({ clearSearchInput });
     transition: transform 0.2s ease-in-out;
 }
 
-.filter-toggle.open .filter-toggle-chevron {
+#filter-toggle-chip.open .filter-toggle-chevron {
     transform: rotate(180deg);
 }
 
@@ -565,17 +533,22 @@ defineExpose({ clearSearchInput });
 
 /* Bảng lọc overlay: thả xuống từ hàng tìm kiếm/Bộ lọc, phủ lên hàng
    Tất cả/Đã chọn + danh sách chứ không đẩy nội dung. Rộng 226px =
-   đúng rộng cột danh sách; left: -13px để mép trái/phải thẳng khung
-   cột (khung lùi vào 13px do viền 3px + đệm 10px). Chip 2 cái 1 hàng
-   (nội dung 206px, chip ~100px — nhãn dài nhất "Newest first" ~73px
-   vẫn vừa). Cao ~378px (2 preset: đáy ~746; 3 preset: đáy ~788, vừa
-   màn hình 800). max-height + lăn dọc chỉ là lưới an toàn cho cửa sổ
-   thấp hơn 800 (mặc định app đã là 800, không có min-height): cửa sổ
-   800 thì max-height 380px không siết bảng 378px. */
+   đúng rộng cột danh sách; left: -10px để mép trái/phải thẳng khung
+   cột (khung lùi vào 10px do đệm — viền OO-box 3px đã bỏ ở Zone nên
+   không còn -13px). Khung là panel Zone (nền đen + viền #333 vẽ bằng
+   bóng ngoài): chip #1B1B1B + viền #2C2C2C tách rõ trên nền đen.
+   Chip 2 cái 1 hàng (nội dung 206px, chip ~97px — nhãn dài nhất
+   "Character"/"Accessory" 80px đo thật, vừa nhờ đệm chip rút xuống
+   6u; 4 nhãn xếp "…first" dài tới 107px nên đã rút gọn trong en.json).
+   Cao ~378px (2 preset: đáy ~746;
+   3 preset: đáy ~788, vừa màn hình 800). max-height + lăn dọc chỉ là
+   lưới an toàn cho cửa sổ thấp hơn 800 (mặc định app đã là 800,
+   không có min-height): cửa sổ 800 thì max-height 380px không siết
+   bảng 378px. */
 .filter-panel {
     position: absolute;
     top: calc(100% + 8px);
-    left: -13px;
+    left: -10px;
     width: 226px;
     max-width: calc(100vw - 23px);
     max-height: calc(100vh - 420px);
@@ -586,14 +559,6 @@ defineExpose({ clearSearchInput });
     gap: 2px;
     padding: 8px 10px;
     box-sizing: border-box;
-    /* Bậc 4 của thang xám (#3d3d3d, Đạt dặn 21/11): bảng lọc là bảng
-       bật lên nên sáng hơn nền thẻ (#222222) để tách khỏi lưới phía
-       sau. Giá trị trực tiếp ở đây, không dùng biến chung để khỏi kéo
-       theo chỗ khác. */
-    background-color: #3d3d3d;
-    border: 1px solid var(--s-color-outline-variant);
-    border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
 /* Hiệu ứng mở/đóng bảng lọc (Đạt duyệt 21/11): mờ dần + trượt xuống
@@ -625,7 +590,7 @@ defineExpose({ clearSearchInput });
 .filter-group-label {
     font-size: 13px;
     font-weight: bolder;
-    color: var(--s-color-on-surface-variant);
+    color: var(--zzz-color-text-muted);
     padding: 2px 2px 6px;
 }
 
@@ -643,39 +608,16 @@ defineExpose({ clearSearchInput });
     gap: 6px;
 }
 
-/* Chip trong bảng: thẳng (không nghiêng như chip trượt cũ), cùng kiểu
-   với hàng nhân vật — chip đang chọn nền vàng. Nền chip dùng
-   surface-container-low (#222222) — phương án D Đạt chọn 22/11: chip
-   tối hơn nền bảng (#3d3d3d) thì tách rõ (chênh 27 mức); trước đây
-   dùng lowest (#323232) chỉ chênh nền 11 mức nên nút chìm vào nền
-   (Đạt chê mờ 22/11). Theme tối của app đặt tên ngược với Material —
-   "lowest" mới là màu sáng nhất.
-   Chip chia đều hàng (flex: 1 1 0, min-width: 0): nhãn dài nhất
-   "Newest first" (~73px) vừa ô ~100px khi cỡ chữ 0.8125rem + đệm
-   ngang 6px (đo thật: 0.875rem thì chữ chạm đúng mép ô, máy Đạt vẽ
-   chữ rộng hơn chút là tràn) — KHÔNG tăng đệm hay cỡ chữ nếu chưa đo
-   lại, và KHÔNG thêm font-weight cho chip đang chọn (chữ đậm rộng hơn
-   sẽ tràn ô; nền vàng đã đủ báo đang chọn). Đệm dọc 5px (chip cao
-   28px thay vì 30px) để bảng dọc 14 hàng chip vừa màn hình 800 kể cả
-   khi có 3 preset. */
-.filter-chip {
-    flex: 1 1 0;
-    min-width: 0;
-    padding: 5px 6px;
-    border-radius: 8px;
-    background-color: var(--s-color-surface-container-low);
-    color: var(--s-color-on-surface);
-    font-size: 0.8125rem;
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-    text-align: center;
-}
-
-.filter-chip.active {
-    background-color: var(--s-color-primary);
-    color: var(--s-color-on-primary);
-}
+/* Chip trong bảng là chip Zone (xem template + src/zone-app.css):
+   nền #1B1B1B, viền #2C2C2C, chữ 12.25px; chip đang chọn nền vàng nhấn
+   + chữ đen qua [data-selected]. Rộng linh hoạt theo hàng (adapter
+   gỡ rộng cố định 262u của Zone + rút đệm ngang 16u xuống 6u):
+   chip chia đều hàng, nhãn dài nhất "Character"/"Accessory" 80px đo
+   thật vừa ô 97px (đệm Zone 16u làm nhãn bị cắt "Charac…" — đã đo).
+   KHÔNG tăng đệm hay cỡ chữ nếu chưa đo lại, và KHÔNG thêm
+   font-weight cho chip đang chọn (chữ đậm rộng hơn sẽ tràn ô; nền
+   vàng đã đủ báo đang chọn). Class .active giữ lại làm móc, không
+   cần quy tắc. */
 
 /* Hàng công tắc ẩn/hiện số lượng trong bảng lọc: nhãn trái, công tắc
    phải, cách hàng xếp phía trên 1 khoảng. */
@@ -697,7 +639,7 @@ defineExpose({ clearSearchInput });
 
 .counts-label {
     font-size: 0.875rem;
-    color: var(--s-color-on-surface);
+    color: var(--zzz-color-text-primary);
     white-space: nowrap;
 }
 
@@ -705,7 +647,7 @@ defineExpose({ clearSearchInput });
    xuống dòng tự do (khác nhãn công tắc 1 dòng). */
 .suspect-hint {
     font-size: 0.75rem;
-    color: var(--s-color-on-surface-variant);
+    color: var(--zzz-color-text-muted);
     margin: 2px 4px 0;
     line-height: 1.4;
 }
@@ -722,51 +664,26 @@ defineExpose({ clearSearchInput });
     gap: 4px;
     padding-bottom: 6px;
     margin-bottom: 6px;
-    border-bottom: 1px solid var(--s-color-outline-variant);
+    border-bottom: 1px solid var(--zzz-color-border-rule);
 }
 
 /* Nút trượt Tất cả/Đã chọn (Đạt dặn 23/11): dùng thẳng component
-   sectionSelector như nút Dọc/Ngang — kiểu viên vàng + khung nằm trong
-   component, chỗ này chỉ chỉnh RIÊNG cho khung hẹp 200px: khung tràn 2
-   bên đệm của panel (margin -10px, rộng 220px) để nhãn + số đếm đủ chỗ
-   ("Selected (0)" ở rộng 200px thì cắt mất chữ); đệm mục thu lại; chữ
-   tên 14px + số đếm 13px mờ (thang chữ S/XS); tên cắt … khi dài, số đếm
-   không bao giờ cắt (giống hàng nút cũ). */
+   sectionSelector như nút Dọc/Ngang — kiểu viên nhấn + khung nằm trong
+   component (Zone SegmentedTabs), chỗ này chỉ chỉnh RIÊNG cho khung
+   hẹp: khung tràn 2 bên đệm của panel (margin -10px, rộng 220px) để
+   nhãn + số đếm đủ chỗ ("Selected (0)" ở rộng 200px thì cắt mất chữ);
+   chữ tên 14px + số đếm 13px mờ (thang chữ S/XS); tên cắt … khi dài,
+   số đếm không bao giờ cắt (giống hàng nút cũ — flex + cắt nằm trong
+   component, chỗ này chỉ chỉnh cỡ chữ). */
 .character-list-fixed :deep(#all-selected-slider) {
-    /* Rộng 100% = 200px NỘI DUNG + đệm 10px mỗi bên của khung chứa =
-       tổng 220px (tràn 10px mỗi bên đệm panel, vừa tới mép trong của
-       viền khung trái). KHÔNG dùng border-box ở đây: khung chứa đặt
-       height: 20px, border-box sẽ hiểu 20px là tổng cao (cả đệm 26px)
-       làm khung sập còn 20px, viên + chữ bị cắt — bẫy gặp khi thử. */
     width: 100%;
     margin: 0 -10px;
     flex: none;
 }
-/* Khung nút phải lấp đầy khung chứa (mặc định nó chỉ rộng vừa nội dung
-   nên 2 mục hẹp lại, viên vàng 100px không khớp mục 71px). */
-.character-list-fixed :deep(#all-selected-slider .section-selector) {
-    width: 100%;
-}
-.character-list-fixed :deep(#all-selected-slider .section-item) {
-    padding: 10px 4px;
-    gap: 4px;
-}
-.character-list-fixed :deep(#all-selected-slider .section-item p) {
+.character-list-fixed :deep(#all-selected-slider .section-label-name) {
     font-size: 14px;
-    /* Tên co lại + cắt … khi nhãn dài hơn nửa khung (số đếm giữ
-       nguyên): flex: 0 1 auto = không phình khi ngắn, co khi dài;
-       min-width: 0 cho co dưới cỡ chữ. Ghi đè flex: none của bản
-       compact trong component (chỉ cho nút này, nút Dọc/Ngang giữ
-       nguyên). */
-    flex: 0 1 auto;
-    width: auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 .character-list-fixed :deep(#all-selected-slider .section-label-count) {
-    flex: none;
     font-size: 13px;
     opacity: 0.75;
 }
@@ -793,16 +710,16 @@ defineExpose({ clearSearchInput });
     min-height: 36px;
     padding: 6px 12px;
     box-sizing: border-box;
-    border-radius: 8px;
-    background-color: var(--s-color-surface-container-low);
-    color: var(--s-color-on-surface);
+    border-radius: var(--zzz-radius-card-art);
+    background-color: var(--zzz-color-surface-stat-row);
+    color: var(--zzz-color-text-primary);
     cursor: pointer;
     user-select: none;
 }
 
 .character-row.active {
-    background-color: var(--s-color-primary);
-    color: var(--s-color-on-primary);
+    background-color: var(--zzz-accent);
+    color: var(--zzz-color-text-on-accent);
     font-weight: bolder;
 }
 

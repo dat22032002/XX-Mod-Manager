@@ -515,37 +515,53 @@ defineExpose({
     display: none;
 }
 
-.mod-item[clicked="true"] {
-    perspective: 500px;
-    background-color: var(--s-color-surface-container-low);
-    border: 5px solid transparent;
-    background-clip: padding-box, border-box;
-    background-origin: padding-box, border-box;
-    background-image: linear-gradient(to right, var(--s-color-surface-container-low), var(--s-color-surface-container-low)), linear-gradient(90deg, var(--s-color-primary), var(--s-color-secondary));
-    box-sizing: border-box;
-    transform: rotate3d(1, 1, 0, 0deg);
-    border-radius: 12px;
+/* Thẻ mod kiểu Zone (phase 1): nền đen (card surface), bo 14u, viền
+   xám 4u #404040 vẽ bằng ::before NẰM TRÊN ảnh bìa (giống ItemCard
+   của Zone: viền tile vẽ trên art) — ::before là pseudo của host nên
+   không bị shadow DOM của s-card cắt. */
+.mod-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border: calc(4 * var(--zzz-px)) solid var(--zzz-color-border-card);
+    border-radius: inherit;
+    pointer-events: none;
 }
 
-.mod-item[clicked="false"] {
-    perspective: 500px;
-    background-color: var(--s-color-surface-container-low);
-    border: 1px solid transparent;
-    border: "";
-    transform: rotate3d(1, 1, 0, 0deg);
-    border-radius: 12px;
+/* Chọn Áp Dụng: viền nhấn 7u THAY viền xám (vẽ trong, inset 0) — Zone
+   vẽ viền chọn NGOÀI viền xám, nhưng khe lưới app chỉ 12px nên viền
+   ngoài của các thẻ kề sẽ chồng thành mảng vàng khi chọn nhiều thẻ
+   cùng hàng; vẽ trong thì mỗi thẻ vẫn tách rõ, đúng ngôn ngữ viền
+   trong vốn có của app. */
+.mod-item[clicked="true"]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border: calc(7 * var(--zzz-px)) solid var(--zzz-accent);
+    border-radius: inherit;
+    pointer-events: none;
 }
 
-/* Khung lồng cho ảnh bìa ĐÃ BỎ (Đạt dặn 23/11: quay về bản chưa có
-   khung lồng) — ảnh lại tràn tới sát viền thẻ như trước. Giữ lại:
-   div ảnh rộng 100% (sửa lỗi ảnh chòi 5px mép phải khi chọn) và ảnh
-   dọc kéo dài × 1.0 (Đạt dặn riêng 23/11). */
+/* Chọn hàng loạt (Ctrl+bấm): viền xanh biển 7u, riêng với chọn vàng. */
+.mod-item[batch-clicked="true"]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border: calc(7 * var(--zzz-px)) solid #2196F3;
+    border-radius: inherit;
+    pointer-events: none;
+}
 
-/* Chọn hàng loạt (Ctrl+bấm): viền xanh biển, riêng với chọn vàng. */
-.mod-item[batch-clicked="true"] {
-    border: 5px solid #2196F3;
-    box-sizing: border-box;
-    border-radius: 12px;
+/* Cả 2 loại chọn: 1 viền đỏ duy nhất (Đạt dặn 20/11) — thay cho kiểu
+   cũ viền vàng + vòng xanh chồng nhau. */
+.mod-item[clicked="true"][batch-clicked="true"] {
+    outline: none;
+}
+.mod-item[clicked="true"][batch-clicked="true"]::after {
+    border-color: #F44336;
 }
 
 /* Xem trước lúc bôi đen: viền nét đứt ngoài thẻ (không đè lên viền
@@ -559,16 +575,6 @@ defineExpose({
     outline-offset: 2px;
 }
 
-/* Cả 2 loại chọn: 1 viền đỏ duy nhất (Đạt dặn 20/11) — thay cho kiểu
-   cũ viền vàng + vòng xanh chồng nhau. background-image: none để tắt
-   vệt vàng gradient của trạng thái chọn vàng (nền tối của thẻ vẫn giữ
-   nguyên nhờ background-color). */
-.mod-item[clicked="true"][batch-clicked="true"] {
-    border: 5px solid #F44336;
-    background-image: none;
-    outline: none;
-}
-
 /* Kéo file ảnh rê qua thẻ (1.5.25 test3): viền vàng ngoài thẻ cho biết
    thả vào đây sẽ đổi bìa mod này (dạng outline để không đè lên viền
    chọn như kiểu xem trước lúc bôi đen). */
@@ -579,6 +585,16 @@ defineExpose({
 
 .mod-item {
     perspective: 500px;
+    /* Nền đen Zone (card surface) đặt trên HOST — nhìn xuyên được qua
+       shadow container trong suốt của Sober như nền #222 cũ. Không
+       viền thật: viền xám/chọn vẽ bằng ::before/::after ở trên. Bo
+       14u Zone (thay 12px cũ). position: relative để 2 pseudo neo vào
+       đúng thẻ. */
+    position: relative;
+    background-color: #000000;
+    border: none;
+    border-radius: var(--zzz-radius-card);
+    box-sizing: border-box;
     /* Kích thước theo mức phóng to: biến --card-width đặt trên
        #mod-container (mặc định 350px); ngang: cao = rộng × 280/350,
        ảnh = rộng × 0.5 (thẻ 350×280 — Đạt dặn 20/11); dọc thì xem
@@ -741,7 +757,7 @@ defineExpose({
     line-height: 20px;
     text-align: left;
     font-size: 14px;
-    color: var(--s-color-on-surface-variant);
+    color: var(--zzz-color-text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

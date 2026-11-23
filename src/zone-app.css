@@ -1,0 +1,138 @@
+/* ==========================================================================
+ * Zone UI kit — APP ADAPTER (phase 1).
+ *
+ * The Zone styles themselves live VERBATIM in src/zone/ (MIT, see the header
+ * of each file). This file is the ONLY place where Zone meets the app:
+ *
+ *   1. Font alias: the app already ships Zone's exact display face — Inpin
+ *      Hongmeng — as src/fonts/zzz-chs.ttf (registered as "hongmengti").
+ *      This alias lets Zone's UI stack ("Inpin Hongmeng", ...) resolve to it,
+ *      so NO Mona Sans download is needed.
+ *   2. Typography baseline + border-box for Zone elements ONLY. Zone normally
+ *      gets these from .zzz-theme on the app root — NOT used here, because its
+ *      global `box-sizing: border-box` would break the app frames' content-box
+ *      geometry (e.g. the 200px preset frame, the calc(100% - 20px) heights).
+ *      .zzz-mat-panel frames are DELIBERATELY excluded from border-box.
+ *   3. .zzz-frame: kills the old .OO-box 3px border on frames that now wear
+ *      .zzz-mat-panel (the Zone ring is drawn by outer box-shadows).
+ *   4. Small overrides the app needs (glyph SVG sizing, filter-chip width,
+ *      progress-bar fill). Component-specific Zone tweaks live in the Vue
+ *      components' own scoped styles, not here.
+ *
+ * Import order (src/main.js): style.css -> zone/tokens.css -> zone/base.css
+ * -> zone components -> THIS file last, so adapter rules win same-
+ * specificity ties against the vendored Zone CSS.
+ * ========================================================================== */
+
+/* ── 1. Font alias ─────────────────────────────────────────────────────── */
+/* Same file as "hongmengti" — the browser reuses the loaded font resource. */
+@font-face {
+  font-family: "Inpin Hongmeng";
+  src: url(./fonts/zzz-chs.ttf) format("truetype");
+  font-weight: 900;
+}
+
+/* ── 2. Border-box for Zone controls (NOT .zzz-mat-panel frames) ─────────── */
+/* Zone's widths are outer ring boxes; without border-box the fixed widths
+ * (282u Apply, 47u stepper, ...) would grow by padding + border. */
+.zzz-button,
+.zzz-button *,
+.zzz-icon-button,
+.zzz-icon-button *,
+.zzz-segmented-tabs,
+.zzz-segmented-tabs *,
+.zzz-switch,
+.zzz-switch *,
+.zzz-chip,
+.zzz-chip *,
+.zzz-xp-bar,
+.zzz-xp-bar * {
+  box-sizing: border-box;
+}
+
+/* ── 2b. Typography baseline (mirrors .zzz-theme, Zone elements only) ───── */
+.zzz-button,
+.zzz-icon-button,
+.zzz-segmented-tabs,
+.zzz-switch,
+.zzz-chip {
+  font-family: var(--zzz-font-family-ui);
+  font-weight: 900;
+  font-stretch: var(--zzz-font-stretch-ui);
+  font-size-adjust: cap-height 0.84;
+  word-spacing: var(--zzz-font-word-spacing-ui);
+  letter-spacing: 0;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  color: var(--zzz-color-text-primary);
+}
+
+/* Tab buttons are <button> elements (UA font, not inherited) — give them the
+ * Zone type directly. font-size is NOT touched here: Zone's rule sets it per
+ * size (--zzz-seg-font). */
+.zzz-segmented-tabs__tab {
+  font-family: var(--zzz-font-family-ui);
+  font-weight: 900;
+  font-stretch: var(--zzz-font-stretch-ui);
+  font-size-adjust: cap-height 0.84;
+  word-spacing: var(--zzz-font-word-spacing-ui);
+  letter-spacing: 0;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── 3. App frames in Zone panel material ────────────────────────────────── */
+/* (0,2,0) beats .OO-box (0,1,0). The frame keeps content-box, so the
+ * calc(100% - 20px) height math in the components still holds. */
+.zzz-frame.OO-box {
+  border: 0;
+}
+
+/* ── 4a. Glyph SVGs fill the Zone glyph box (1em = the kit's glyph size) ─── */
+.zzz-button__glyph svg,
+.zzz-icon-button__glyph svg {
+  display: block;
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+}
+
+/* ── 4b. Filter chips: the app's chips are ~100px; Zone's fixed 262u width
+ * does not fit the 226px filter panel. Fluid + equal share instead.
+ * Padding 16u -> 6u: Zone's 11.2px side padding leaves only ~71px for
+ * the label in a 97px chip, and "Character"/"Accessory" need 80px
+ * (measured) — they truncated ("Charac…"). 6u leaves ~84px: fits.
+ * The 4 long sort labels ("…first", up to 107px) cannot fit any
+ * padding — they were shortened to "Newest"/"Oldest"/"Largest"/
+ * "Smallest" in en.json instead (panel width 226px and the 2-per-row
+ * layout are Đạt's explicit instructions, 21/11 — not to be changed).
+ * ────────────────────────────────────────────────────────────────────── */
+.filter-chip.zzz-chip {
+  width: auto;
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: calc(6 * var(--zzz-chip-u));
+}
+
+/* ── 4d. Narrow 2-tab SegmentedTabs (layout capsule, All/Selected):
+ * Zone's fill overlaps the neighbour by 33u — fine on wide bars, but
+ * these bars are ~103–112px/tab with long labels, so the slant cap
+ * covered the neighbour's first letter (measured: the "H" of
+ * "Horizontal"). 12u keeps the fill over the whole selected tab +
+ * the Zone slant cap, with ~9px clearance to the neighbour label.
+ * The top bar (4 wide tabs) keeps Zone's exact 33u. ────────────────── */
+.zzz-segmented-tabs.zzz-segmented-tabs--tight {
+  --zzz-seg-fill-w: calc(var(--zzz-seg-width) / var(--zzz-seg-count) + 12 * var(--zzz-seg-u));
+}
+
+/* ── 4c. Apply / loading progress: Zone XpBar, full slot width, accent fill
+ * (Zone's XP blue is for XP bars, not generic progress). Keeps the old
+ * 0.15s width ease. ──────────────────────────────────────────────────────── */
+.apply-progress .zzz-xp-bar {
+  width: 100%;
+}
+
+.apply-progress .zzz-xp-bar__fill {
+  background: var(--zzz-accent);
+  transition: width 0.15s;
+}

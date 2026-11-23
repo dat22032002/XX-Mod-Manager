@@ -1,5 +1,18 @@
 import { createApp, watch } from 'vue'
 import './style.css'
+// Zone UI kit (phase 1): vendored verbatim in src/zone/, adapter last so its
+// rules win same-specificity ties. See src/zone-app.css for why there is no
+// .zzz-theme on the app root.
+import './zone/tokens.css'
+import './zone/base.css'
+import './zone/button.css'
+import './zone/icon-button.css'
+import './zone/segmented-tabs.css'
+import './zone/switch.css'
+import './zone/chip.css'
+import './zone/progress.css'
+import './zone/scrollbar.css'
+import './zone-app.css'
 import App from './App.vue'
 import 'sober'
 //npm

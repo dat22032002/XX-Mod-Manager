@@ -6,8 +6,8 @@
         <!-- Khung trên: tên + ảnh + tag. Tag nằm DƯỚI hình, nền xám
              giống ô tìm kiếm; phím tắt ở khung dưới riêng nên không
              đè lên tag. -->
-        <div class="mod-panel-top OO-box">
-            <div class="mod-title">{{ props.mod ? props.mod.name : $t('modInfo.emptyTitle') }}</div>
+        <div class="mod-panel-top OO-box zzz-frame zzz-mat-panel">
+            <div class="mod-title font-hongmeng">{{ props.mod ? props.mod.name : $t('modInfo.emptyTitle') }}</div>
             <div class="mod-image" @click="openShowcase" style="cursor: pointer;">
                 <img style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: cover;"
                     :alt="t('mod-image')" :src="img" />
@@ -23,7 +23,7 @@
              (Đạt dặn 20/11 — bỏ phần mô tả khỏi khung phải; mô tả vẫn
              sửa được trong hộp Sửa thông tin). Tiêu đề cố định trên,
              danh sách lăn ở giữa, nút cố định dưới. -->
-        <div class="mod-panel-bottom OO-box">
+        <div class="mod-panel-bottom OO-box zzz-frame zzz-mat-panel">
             <h4 v-if="props.mod && props.mod.hotkeys && props.mod.hotkeys.length > 0"> {{ $t('modInfo.hotkeys') }}</h4>
             <s-scroll-view class="mod-info-content">
                 <div id="hotkey-container" class="OO-colunm-center">
@@ -44,27 +44,27 @@
 
             <div class="buttons">
                 <s-tooltip>
-                    <s-button slot="trigger" @click="editMod" class="edit-button OO-button">
-                        <s-icon>
+                    <button type="button" slot="trigger" @click="editMod" class="edit-button zzz-icon-button zzz-mat-pill zzz-pressable zzz-focusable zzz-icon-button--md">
+                        <span class="zzz-icon-button__glyph">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
                                 <path
                                     d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z">
                                 </path>
                             </svg>
-                        </s-icon>
-                    </s-button>
+                        </span>
+                    </button>
                     <p>{{ $t('modInfo.edit') }}</p>
                 </s-tooltip>
 
                 <s-tooltip>
-                    <s-button slot="trigger" @click="openModFolder" class="open-dir-button OO-button font-hongmeng">
-                        <s-icon slot="start">
+                    <button type="button" slot="trigger" @click="openModFolder" class="open-dir-button zzz-button zzz-mat-pill zzz-pressable zzz-focusable zzz-button--md zzz-button--w-auto zzz-button--capped" data-icon-tone="plain">
+                        <span class="zzz-button__cap"><span class="zzz-button__glyph">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
       <path d="m256-240-56-56 384-384H240v-80h480v480h-80v-344L256-240Z"></path>
     </svg>
-                        </s-icon>
-                        <p>{{ $t('modInfo.openFolder') }}</p>
-                    </s-button>
+                        </span></span>
+                        <span class="zzz-button__label"><span class="zzz-button__text zzz-text-button zzz-italic">{{ $t('modInfo.openFolder') }}</span></span>
+                    </button>
                     <p>{{ $t('modInfo.openFolder') }}</p>
                 </s-tooltip>
             </div>
@@ -170,7 +170,7 @@ h4 {
     font-weight: bolder;
     margin-bottom: -7px;
     margin-left: 17px;
-    color: var(--s-color-on-surface-variant);
+    color: var(--zzz-color-text-muted);
 }
 
 /* Vùng lăn phím tắt: căng hết khung dưới (flex), không tính cao bằng
@@ -186,12 +186,10 @@ s-scroll-view {
     position: relative;
     width: 250px;
     margin-right: 10px;
-    /* Cao bằng khung lưới chính (Đạt báo lệch 20/11 — đo ra khung phải
-       ngắn hơn khung lưới 26px): khung lưới cao 100% + viền OO-box
-       3px×2 (box-sizing content-box nên viền cộng thêm ra ngoài, tổng
-       100%+6px); khung bọc không có viền nên cộng 6px vào chiều cao
-       thì mép dưới mới bằng nhau ở mọi cỡ cửa sổ. */
-    height: calc(100% + 6px);
+    /* Cao 100% khung chứa: viền panel Zone vẽ bằng bóng ngoài, không
+       chiếm chỗ trong layout nên không cần bù +6px như thời viền 3px
+       (bù cũ làm đáy khung phải thấp hơn đáy lưới 6px). */
+    height: 100%;
     text-align: center;
     /* Khung bọc trơn (không viền, không nền): 2 khung xếp dọc — khung
        trên (tên + ảnh + tag), khung dưới (phím tắt + 2 nút ở đáy). */
@@ -235,19 +233,18 @@ s-scroll-view {
 
 
 /* Hình trong khung trên: lấp đầy chiều rộng trong của khung (không còn
-   tràn ra mép khung ngoài như bố cục 1 khung trước đây). */
+   tràn ra mép khung ngoài như bố cục 1 khung trước đây). Bo 8u Zone. */
 .mod-image {
     width: 100%;
     height: 200px;
-    border-radius: 8px;
+    border-radius: var(--zzz-radius-card-art);
     background-size: cover;
     margin: 0;
 }
 
-/* Viên con nhộng tag: 2 nhãn chung 1 nền xám GIỐNG Ô TÌM KIẾM
-   (surface-container-low #222222 — Đạt dặn 20/11), viền cùng kiểu ô
-   tìm kiếm. Nằm DƯỚI hình trong khung trên, căn giữa; phím tắt ở
-   khung dưới riêng nên không bao giờ đè lên tag. */
+/* Viên con nhộng tag: 2 nhãn chung 1 nền chip Zone #1B1B1B + viền
+   #2C2C2C (giống chip lọc), chữ trắng. Nằm DƯỚI hình trong khung trên,
+   căn giữa; phím tắt ở khung dưới riêng nên không bao giờ đè lên tag. */
 .mod-tag-capsule {
     display: flex;
     align-items: center;
@@ -256,8 +253,8 @@ s-scroll-view {
     width: fit-content;
     max-width: 100%;
     margin: 10px auto 0;
-    background-color: var(--s-color-surface-container-low);
-    border: 1px solid var(--s-color-outline-variant);
+    background-color: var(--zzz-color-surface-chip);
+    border: calc(3 * var(--zzz-px)) solid var(--zzz-color-border-chip);
     border-radius: 20px;
     padding: 4px 14px;
     font-size: 14px;
@@ -295,8 +292,14 @@ s-scroll-view {
     border-radius: 8px;
 }
 
+/* Hàng phím tắt: nền hàng thống kê Zone #161616, bo 8u, bỏ bóng nổi
+   trong của OO-setting-bar/OO-shade-box (ghi đè ở đây vì class toàn
+   cục vẫn gắn trên hàng). */
 .hotkey {
     height: 40px;
+    background-color: var(--zzz-color-surface-stat-row);
+    border-radius: var(--zzz-radius-card-art);
+    box-shadow: none;
 }
 
 /* Đường kẻ phân cách giữa các hàng phím tắt (Đạt dặn 21/11 — hàng
@@ -308,7 +311,7 @@ s-scroll-view {
 .hotkey-divider {
     height: 1px;
     width: 100%;
-    background-color: #303030;
+    background-color: var(--zzz-color-border-rule);
     border-radius: 0;
     flex: none;
 }
@@ -327,13 +330,14 @@ s-scroll-view {
     margin: 8px 0 0 7px;
     text-align: left;
     font-size: 14px;
-    color: var(--s-color-on-surface-variant);
+    color: var(--zzz-color-text-muted);
 }
 
 /* 2 nút Sửa + Mở Thư Mục ở đáy khung dưới (Đạt dặn 20/11): cố định
    dưới danh sách lăn, cách danh sách 10px. Không còn đặt tuyệt đối
-   đè lên khung — nút không che dòng phím tắt nào. Cao 50px = cao nút
-   thật (khung chứa cũ cao 30px mà nút cao 50px nên nút tràn ra ngoài). */
+   đè lên khung — nút không che dòng phím tắt nào. Cao 40px = cao nút
+   Zone md (Sửa tròn 40px + Mở Thư Mục dài ~183px, vừa 230px nội
+   dung khung). Kiểu nút do Zone lo, không còn CSS riêng ở đây. */
 .buttons {
     flex-shrink: 0;
     display: flex;
@@ -341,24 +345,7 @@ s-scroll-view {
     margin-top: 10px;
     background-color: #00000000;
     border-radius: 20px;
-    height: 50px;
-}
-
-.edit-button {
-    border-radius: 20px;
-    padding: 0;
-    height: 50px;
-    width: 50px;
-    min-width: 0px;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-}
-
-.open-dir-button {
-    height: 50px;
-    border-radius: 20px;
-    padding: 10px 20px;
+    height: 40px;
 }
 
 .a-little-left {

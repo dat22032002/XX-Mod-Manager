@@ -3,7 +3,7 @@
 
         <div class="left-column">
         <leftMenu :tabs="presets" :translatedTabs="translatedPresets" @tabChange="handlePresetChange"
-            ref="presetSelectorRef" fit-content>
+            ref="presetSelectorRef" fit-content zone>
             <template #up-button>
                 <!-- Nhãn khung preset (Đạt dặn 21/11: để chữ Preset
                      thay mũi tên lên — mũi tên vốn chỉ trang trí,
@@ -14,9 +14,13 @@
                 <!-- Lề phải chừa 80px cho 2 nút bên phải (xóa + thêm),
                      mỗi nút rộng 40px. -->
                 <s-tooltip style="margin-right: calc(100% - 80px);">
-                    <s-icon-button slot="trigger" @click="handlePresetManageButtonClicked">
-                        <s-icon type="menu"></s-icon>
-                    </s-icon-button>
+                    <button type="button" class="zzz-icon-button zzz-mat-pill zzz-pressable zzz-focusable zzz-icon-button--sm" slot="trigger" @click="handlePresetManageButtonClicked">
+                        <span class="zzz-icon-button__glyph">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                                <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z" />
+                            </svg>
+                        </span>
+                    </button>
 
                     <p> {{ $t('buttons.managePreset') }} </p>
                 </s-tooltip>
@@ -27,23 +31,27 @@
                      bằng opacity chứ không dùng disabled (nút disabled
                      của Sober biến mất hẳn, nhìn như thiếu nút). -->
                 <s-tooltip>
-                    <s-icon-button slot="trigger" @click="handlePresetDeleteButtonClicked"
+                    <button type="button" class="zzz-icon-button zzz-mat-pill zzz-pressable zzz-focusable zzz-icon-button--sm" slot="trigger" @click="handlePresetDeleteButtonClicked"
                         :style="currentPreset === 'default' ? 'opacity: 0.35' : ''">
-                        <!-- Sober không có sẵn icon 'delete' (type lạ thì
-                             vẽ rỗng) nên dùng SVG thùng rác inline. -->
-                        <s-icon>
+                        <span class="zzz-icon-button__glyph">
+                            <!-- Sober không có sẵn icon 'delete' (type lạ thì
+                                 vẽ rỗng) nên dùng SVG thùng rác inline. -->
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
                                 <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-600v520-520Z" />
                             </svg>
-                        </s-icon>
-                    </s-icon-button>
+                        </span>
+                    </button>
                     <p> {{ $t('buttons.deletePreset') }} </p>
                 </s-tooltip>
 
                 <s-tooltip>
-                    <s-icon-button slot="trigger" @click="handlePresetAddButtonClicked">
-                        <s-icon type="add"></s-icon>
-                    </s-icon-button>
+                    <button type="button" class="zzz-icon-button zzz-mat-pill zzz-pressable zzz-focusable zzz-icon-button--sm" slot="trigger" @click="handlePresetAddButtonClicked">
+                        <span class="zzz-icon-button__glyph">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                                <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z" />
+                            </svg>
+                        </span>
+                    </button>
                     <p> {{ $t('buttons.addPreset') }} </p>
                 </s-tooltip>
             </template>
@@ -63,11 +71,14 @@
                  đầu trái thanh dưới (1.5.26). -->
             <s-popup align="top">
                 <s-tooltip slot="trigger" style="position: relative;">
-                    <s-icon-button icon="image" class="OO-button"
-                        style="border: 5px solid var(--s-color-surface-container-high);transform: scale(1);"
+                    <button type="button" id="batch-trigger-button" class="zzz-icon-button zzz-mat-pill zzz-pressable zzz-focusable zzz-icon-button--md"
                         slot="trigger" @click="syncBatchTagBar">
-                        <s-icon type="chevron_down"></s-icon>
-                    </s-icon-button>
+                        <span class="zzz-icon-button__glyph">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+                                <path d="M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z" />
+                            </svg>
+                        </span>
+                    </button>
 
                     <p style="line-height: 1.2;">
                         {{ $t('editDialog.batch-operation') }} </p>
@@ -118,33 +129,33 @@
             </s-popup>
 
             <!-- Nút Refresh dạng dài có chữ, giống nút Open Folder ở khung
-                 chi tiết (Đạt dặn 20/11): s-button + icon ở đầu + chữ. -->
-            <s-button @click="handleRefreshButtonClicked" id="refresh-button" class="OO-button font-hongmeng">
-                <s-icon slot="start">
+                 chi tiết (Đạt dặn 20/11): nút Zone có mũ icon ở đầu + chữ. -->
+            <button type="button" @click="handleRefreshButtonClicked" id="refresh-button" class="zzz-button zzz-mat-pill zzz-pressable zzz-focusable zzz-button--md zzz-button--w-auto zzz-button--capped" data-icon-tone="plain">
+                <span class="zzz-button__cap"><span class="zzz-button__glyph">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
                         <path
                             d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z">
                         </path>
                     </svg>
-                </s-icon>
-                <p>{{ $t('buttons.refresh') }}</p>
-            </s-button>
+                </span></span>
+                <span class="zzz-button__label"><span class="zzz-button__text zzz-text-button zzz-italic">{{ $t('buttons.refresh') }}</span></span>
+            </button>
 
             <!-- Nút hoàn tác lựa chọn kiểu Ctrl+Z (Đạt dặn 21/11), đặt
                  trong nhóm nút đầu trái thanh dưới (1.5.26), cùng kiểu
                  nút dài có chữ như nút Refresh. Mờ đi khi hết lịch sử
                  hoặc đang áp dụng. -->
-            <s-button @click="handleUndoButtonClicked" id="undo-button" :disabled="!canUndoSelection || applying"
-                class="OO-button font-hongmeng">
-                <s-icon slot="start">
+            <button type="button" @click="handleUndoButtonClicked" id="undo-button" :disabled="!canUndoSelection || applying"
+                class="zzz-button zzz-mat-pill zzz-pressable zzz-focusable zzz-button--md zzz-button--w-auto zzz-button--capped" data-icon-tone="plain">
+                <span class="zzz-button__cap"><span class="zzz-button__glyph">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                         <path
                             d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z">
                         </path>
                     </svg>
-                </s-icon>
-                <p>{{ $t('buttons.undo') }}</p>
-            </s-button>
+                </span></span>
+                <span class="zzz-button__label"><span class="zzz-button__text zzz-text-button zzz-italic">{{ $t('buttons.undo') }}</span></span>
+            </button>
 
             <!-- Bảng tùy chọn hiển thị (1.5.26): nút Dọc/Ngang, công tắc
                  gọn, zoom, ảnh gốc gom vào 1 bảng mở ngang; nút mở bảng
@@ -154,64 +165,71 @@
                  trồi lên che khung thẻ mod như bản đầu). -->
             <div class="view-panel-anchor" ref="viewPanelAnchorRef">
                 <s-tooltip>
-                    <s-icon-button id="view-panel-trigger" slot="trigger" class="OO-button"
-                        style="border: 5px solid var(--s-color-surface-container-high);transform: scale(1);"
+                    <button type="button" id="view-panel-trigger" slot="trigger" class="zzz-icon-button zzz-mat-pill zzz-pressable zzz-focusable zzz-icon-button--md"
                         @click="handleViewPanelTriggerClicked">
-                        <s-icon>
+                        <span class="zzz-icon-button__glyph">
                             <svg viewBox="0 0 24 24">
                                 <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z" />
                             </svg>
-                        </s-icon>
-                    </s-icon-button>
+                        </span>
+                    </button>
                     <p> {{ $t('buttons.viewOptions') }} </p>
                 </s-tooltip>
-                <div class="view-panel" :class="{ open: viewPanelOpen, 'no-transition': viewPanelNoTransition }">
+                <div class="view-panel zzz-mat-panel" :class="{ open: viewPanelOpen, 'no-transition': viewPanelNoTransition }">
                     <!-- Viên con nhộng chuyển kiểu thẻ: Dọc / Ngang, trong
                          bảng tùy chọn hiển thị (1.5.26). -->
                     <!-- Nút Dọc/Ngang dùng thẳng component nút Mod/Help/Setting
                          (sectionSelector), chỉ có 2 mục thay vì 3 (Đạt dặn 21/11):
-                         viên vàng + kiểu trượt y hệt nút Mod. -->
-                    <sectionSelector id="layout-capsule" :sections="layoutSections" :modelValue="cardLayout" :compact="true"
+                         viên nhấn + kiểu nảy y hệt nút Mod (Zone phase 1). -->
+                    <sectionSelector id="layout-capsule" :sections="layoutSections" :modelValue="cardLayout" size="md" :seg-width="380" surface="mesh" tight
                         @update:modelValue="handleLayoutClicked" />
                     <s-tooltip>
-                        <s-switch class="OO-color-gradient-word" v-model="compactMode" @change="handleCompactButtonClicked"
-                            slot="trigger" />
+                        <!-- Công tắc gọn Zone: nút thật, trạng thái qua
+                             aria-checked (handleCompactButtonClicked tự
+                             đảo compactMode — s-switch cũ cũng không
+                             dùng v-model được vì Sober không bắn
+                             update:modelValue). -->
+                        <button type="button" class="zzz-switch zzz-focusable" role="switch" :aria-checked="compactMode"
+                            @click="handleCompactButtonClicked" slot="trigger">
+                            <span class="zzz-switch__track"><span class="zzz-switch__knob"></span></span>
+                        </button>
                         <p> {{ $t('buttons.compactMode') }} </p>
                     </s-tooltip>
                     <s-tooltip>
-                        <s-icon-button @click="handleZoomOutClicked" slot="trigger" class="OO-button"
-                            :disabled="!canZoomOut" style="color: var(--s-color-on-surface);">
-                            <s-icon>
+                        <button type="button" @click="handleZoomOutClicked" slot="trigger" class="zzz-icon-button zzz-mat-pill zzz-pressable zzz-focusable zzz-icon-button--stepper"
+                            :disabled="!canZoomOut">
+                            <span class="zzz-icon-button__glyph">
                                 <svg viewBox="0 0 24 24">
                                     <path d="M19 13H5v-2h14v2z" />
                                 </svg>
-                            </s-icon>
-                        </s-icon-button>
+                            </span>
+                        </button>
                         <p> {{ $t('buttons.zoomOut') }} </p>
                     </s-tooltip>
                     <span class="zoom-label">{{ zoomPercent }}%</span>
                     <s-tooltip>
-                        <s-icon-button @click="handleZoomInClicked" slot="trigger" class="OO-button"
-                            :disabled="!canZoomIn"
-                            style="color: var(--s-color-on-surface);">
-                            <s-icon>
+                        <button type="button" @click="handleZoomInClicked" slot="trigger" class="zzz-icon-button zzz-mat-pill zzz-pressable zzz-focusable zzz-icon-button--stepper"
+                            :disabled="!canZoomIn">
+                            <span class="zzz-icon-button__glyph">
                                 <svg viewBox="0 0 24 24">
                                     <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                                 </svg>
-                            </s-icon>
-                        </s-icon-button>
+                            </span>
+                        </button>
                         <p> {{ $t('buttons.zoomIn') }} </p>
                     </s-tooltip>
                     <!-- Nút chuyển đổi ảnh gốc / ảnh thu nhỏ (Đạt dặn 20/11): bên
                          phải nút +, nút tròn như nút zoom; đang hiện ảnh gốc thì
-                         nền vàng như nút kiểu thẻ đang chọn. -->
+                         nền vàng nhấn (accent-fill) như nút kiểu thẻ đang chọn. -->
                     <s-tooltip>
-                        <button id="full-image-button" class="full-image-button" :class="{ active: cardFullImage }"
+                        <button type="button" id="full-image-button" class="zzz-icon-button zzz-mat-pill zzz-pressable zzz-focusable zzz-icon-button--md full-image-button" :class="{ 'zzz-accent-fill': cardFullImage, active: cardFullImage }"
                             @click="handleFullImageClicked" slot="trigger">
-                            <svg viewBox="0 0 24 24">
-                                <path
-                                    d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                            </svg>
+                            <span class="zzz-icon-button__glyph">
+                                <svg viewBox="0 0 24 24">
+                                    <path
+                                        d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                                </svg>
+                            </span>
                         </button>
                         <p> {{ $t('buttons.fullImage') }} </p>
                     </s-tooltip>
@@ -232,15 +250,15 @@
                  áp, đang tải thì hiện tiến độ tải. -->
             <div v-if="applying || loadingMods" class="apply-progress">
                 <div class="apply-progress-text">{{ progressText }}</div>
-                <div class="apply-progress-bar">
-                    <div class="apply-progress-fill" :style="{ width: progressPercent + '%' }"></div>
+                <div class="zzz-xp-bar" :style="{ '--zzz-xp-pct': progressPercent + '%' }">
+                    <div class="zzz-xp-bar__fill"></div>
                 </div>
             </div>
-            <s-button @click="handleApplyButtonClicked" id="apply-button" :disabled="applying"
+            <button type="button" @click="handleApplyButtonClicked" id="apply-button" :disabled="applying"
                 :class="{ 'has-unapplied': hasUnappliedChanges && !applying }" :title="applyButtonTitle"
-                class="OO-color-gradient font-hongmeng OO-button" style="color: var(--s-color-surface);">
-                {{ $t('buttons.apply') }}
-            </s-button>
+                class="zzz-button zzz-mat-pill zzz-pressable zzz-focusable zzz-button--md zzz-button--w-wide zzz-accent-fill">
+                <span class="zzz-button__label"><span class="zzz-button__text zzz-text-button zzz-italic">{{ $t('buttons.apply') }}</span></span>
+            </button>
         </div>
     </div>
 
@@ -1012,17 +1030,6 @@ EventSystem.on('toggledMod', (mod) => {
     justify-content: flex-start;
 }
 
-/* Cột trái: khung preset ngắn (vừa đủ số preset) + danh sách nhân vật
-   dọc chiếm phần còn lại. */
-/* Cột trái: 226px = đúng tổng rộng khung preset (rộng 200 + đệm
-   10px mỗi bên + viền 3px mỗi bên của OO-box). Để 200px thì khung
-   preset lòi ra 26px sang phải, đụng vào khung lưới mod (Đạt báo
-   21/11 trên bản test6). Cao calc(100% + 6px) để đáy khung danh sách
-   thẳng đáy khung lưới: khung lưới (manager) cao hơn khung chứa 6px
-   vì viền 3px×2 của nó lòi ra ngoài (height:100% content-box của app
-   gốc) — để 100% thì đáy danh sách vẫn cao hơn đáy lưới 6px.
-   Để calc(100% - 20px) như khung preset gốc thì đáy danh sách cao
-   hơn đáy lưới tới 26px, trông lệch khung (Đạt báo 21/11). */
 /* Nhãn "Preset" trên đầu khung preset (thay mũi tên trang trí):
    chữ đậm, cỡ như tiêu đề "Characters" của danh sách nhân vật. */
 .preset-title {
@@ -1030,28 +1037,26 @@ EventSystem.on('toggledMod', (mod) => {
     font-size: 16px;
 }
 
+/* Cột trái: 226px = đúng tổng rộng khung preset (rộng 206 + đệm
+   10px mỗi bên của OO-box; Zone phase 1 bỏ viền 3px×2 của khung nên
+   rộng nội dung tăng 200 -> 206 để tổng vẫn 226). Cao 100%: viền
+   panel Zone vẽ bằng bóng ngoài, không chiếm chỗ trong layout nên
+   không cần bù +6px như thời viền 3px (bù cũ làm đáy cột trái thấp
+   hơn đáy lưới 6px). */
 .left-column {
     display: flex;
     flex-direction: column;
     width: 226px;
     flex-shrink: 0;
-    height: calc(100% + 6px);
+    height: 100%;
 }
 
 .zoom-label {
     min-width: 44px;
     text-align: center;
-    color: var(--s-color-on-surface-variant);
+    color: var(--zzz-color-text-muted);
     font-size: 14px;
     align-self: center;
-}
-
-/* Chữ nút Refresh/Undo về bậc S (14px): chữ trong nút đang là 16px
-   của Sober × 0.93em của .font-hongmeng = 14.88px. Nút Undo chưa có
-   trong nhánh này (PR #92) nhưng ghi sẵn selector để gộp vào là đúng
-   thang luôn. */
-#refresh-button p, #undo-button p {
-    font-size: 14px;
 }
 
 /* Viên con nhộng chuyển kiểu thẻ (Dọc/Ngang), ở đầu trái thanh dưới
@@ -1063,33 +1068,15 @@ EventSystem.on('toggledMod', (mod) => {
     flex-shrink: 0;
 }
 
-/* Nút chuyển đổi ảnh gốc / ảnh thu nhỏ: tròn 40px như nút zoom, đang
-   hiện ảnh gốc thì nền vàng như nút kiểu thẻ đang chọn. */
-.full-image-button {
-    width: 40px;
-    height: 40px;
-    box-sizing: border-box;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    background-color: var(--s-color-surface-container-low);
-    border: 1px solid var(--s-color-outline-variant);
-    border-radius: 50%;
-    color: var(--s-color-on-surface);
-    cursor: pointer;
-}
-.full-image-button.active {
-    background-color: var(--s-color-primary);
-    color: var(--s-color-on-primary);
-}
-.full-image-button svg {
-    width: 24px;
-    height: 24px;
-    fill: currentColor;
-}
+/* Nút chuyển đổi ảnh gốc / ảnh thu nhỏ là nút tròn Zone (IconButton
+   md); đang hiện ảnh gốc thì có thêm .zzz-accent-fill (nền vàng nhấn)
+   — không còn CSS riêng ở đây. Class .active giữ lại làm móc cho
+   probe, không cần quy tắc. */
 
+/* Thanh dưới giữ TRONG SUỐT (không nền đen Zone, không vạch ngăn):
+   nền app vốn đã đen ở phía dưới, thêm nền đen thì không khác gì mà
+   lại đè lên viền panel của các khung phía trên (thanh nằm sau khung
+   trong DOM). Chất Zone của thanh nằm ở chính các nút Zone trong nó. */
 .bottom {
     position: absolute;
     height: 60px;
@@ -1119,23 +1106,17 @@ EventSystem.on('toggledMod', (mod) => {
 /* Bảng mở ngang (1.5.26): 4 nút xem thẻ xếp thành 1 hàng ngang, nằm
    GỌN TRONG hàng thanh dưới (cao 60px) — đóng thì co về rộng 0, mở thì
    dài sang phải từ nút mở bảng, KHÔNG trồi lên chạm khung thẻ mod
-   (Đạt sửa 23/11). Đệm dọc chỉ 2px để bảng (~54px) vừa trong thanh
-   dưới. Nền đen tuyền + viền + bóng như bảng thao tác hàng loạt
-   (Đạt dặn 20/11: không dùng surface-container trong suốt, không dùng
-   surface-container-low trùng màu nút). Nút trong bảng flex-shrink: 0
-   để lúc thu/phóng nút bị cắt dần chứ không bị bóp méo. Đóng thì đệm
-   ngang + viền cũng về 0 (chỉ max-width: 0 vẫn để lại 28px đệm+viền —
-   probe 23/11 đo ra), min-width: 0 để mục flex co hết được. */
+   (Đạt sửa 23/11). Khung là panel Zone (.zzz-mat-panel: nền đen, viền
+   #333 + viền đen vẽ bằng bóng ngoài) — viền bóng không chiếm chỗ nên
+   lúc đóng chỉ cần max-width 0 + opacity 0 là bảng biến hẳn (không còn
+   chuyện đệm+viền để lại 28px như bản viền thật). Nút trong bảng
+   flex-shrink: 0 để lúc thu/phóng nút bị cắt dần chứ không bị bóp méo.
+   Đệm dọc chỉ 2px để bảng (~54px) vừa trong thanh dưới. */
 .view-panel {
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: #000000;
-    border: 2px solid var(--s-color-outline-variant);
-    border-radius: 12px;
     padding: 2px 0;
-    border-width: 0;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     box-sizing: border-box;
     white-space: nowrap;
     flex-shrink: 0;
@@ -1144,7 +1125,7 @@ EventSystem.on('toggledMod', (mod) => {
     opacity: 0;
     overflow: hidden;
     pointer-events: none;
-    transition: max-width 0.25s ease, opacity 0.2s ease, padding 0.25s ease, border-width 0.25s ease;
+    transition: max-width 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
 }
 
 .view-panel.open {
@@ -1152,7 +1133,6 @@ EventSystem.on('toggledMod', (mod) => {
     opacity: 1;
     pointer-events: auto;
     padding: 2px 12px;
-    border-width: 2px;
 }
 
 /* Đóng tức thì khi dòng tiến độ hiện (xem watcher): bảng biến mất
@@ -1175,7 +1155,7 @@ EventSystem.on('toggledMod', (mod) => {
 
 .mod-stats {
     font-size: 14px;
-    color: var(--s-color-on-surface-variant);
+    color: var(--zzz-color-text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1191,27 +1171,27 @@ EventSystem.on('toggledMod', (mod) => {
     gap: 8px;
 }
 
+/* Nút Apply là nút Zone w-wide (197px) + accent-fill; chỉ giữ
+   margin ngang 40px như cũ. Rộng/chữ/màu do Zone lo. */
 #apply-button {
-    padding: 0 60px;
     margin: 0 40px;
-    font-size: 20px;
-
-    color: var(--s-color-dark-surface);
 }
 
 /* Nút Apply nhấp nháy nhẹ khi còn thay đổi chưa áp (Đạt dặn 22/11):
    sáng lên + hào quang vàng rồi dịu xuống trong 2 giây, lặp lại. Bản
    đầu chỉ sáng 1.22 Đạt chê không khác lúc thường mấy nên tăng lên 1.3
-   + thêm hào quang cho thấy rõ, vẫn giữ nhịp chậm 2 giây cho nhẹ. */
+   + thêm hào quang cho thấy rõ, vẫn giữ nhịp chậm 2 giây cho nhẹ.
+   Keyframes PHẢI giữ viền đen (keyline) của viên Zone trong
+   box-shadow — không thì lúc nháy, bóng của animation đè mất viền. */
 @keyframes apply-pulse {
     0%, 100% {
         filter: brightness(1);
-        box-shadow: 0 0 0 rgba(242, 217, 0, 0);
+        box-shadow: var(--zzz-shadow-keyline), 0 0 0 rgba(242, 217, 0, 0);
     }
 
     50% {
         filter: brightness(1.3);
-        box-shadow: 0 0 18px rgba(242, 217, 0, 0.75);
+        box-shadow: var(--zzz-shadow-keyline), 0 0 18px rgba(242, 217, 0, 0.75);
     }
 }
 
@@ -1229,23 +1209,13 @@ EventSystem.on('toggledMod', (mod) => {
 
 .apply-progress-text {
     font-size: 14px;
-    color: var(--s-color-on-surface);
+    color: var(--zzz-color-text-primary);
     margin-bottom: 6px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.apply-progress-bar {
-    height: 6px;
-    background: var(--s-color-surface-container-high);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.apply-progress-fill {
-    height: 100%;
-    background: var(--s-color-primary);
-    transition: width 0.15s;
-}
+/* Thanh tiến độ là XpBar của Zone (xem src/zone-app.css): rộng 100%
+   khung 260px, nền #1A1A1A, phần chạy màu nhấn, giữ nhịp 0.15s. */
 </style>

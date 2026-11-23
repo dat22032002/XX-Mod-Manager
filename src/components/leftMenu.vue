@@ -23,8 +23,8 @@
 </div> -->
 
 <template>
-    <div class="left-menu OO-box" :class="{ 'fit-content': fitContent }">
-        <div class="OO-button-box" id="up-button">
+    <div class="left-menu OO-box" :class="{ 'fit-content': fitContent, 'zzz-frame': zone, 'zzz-mat-panel': zone }">
+        <div class="OO-button-box" :class="{ 'zzz-mat-textured': zone }" id="up-button">
             <slot name="up-button">
                 <s-icon type="arrow_drop_up"></s-icon>
             </slot>
@@ -36,12 +36,12 @@
                 <p> {{ translatedTabs[index] || tab }} </p>
                 <s-ripple attached="true"></s-ripple>
             </div>
-            <div class="slider OO-color-gradient" :style="sliderStyle"></div>
+            <div class="slider" :class="{ 'OO-color-gradient': !zone }" :style="sliderStyle"></div>
         </div>
 
         <div class="placeholder"></div>
 
-        <div class="OO-button-box" id="down-button">
+        <div class="OO-button-box" :class="{ 'zzz-mat-textured': zone }" id="down-button">
             <slot name="down-button">
                 <s-icon type="arrow_drop_down"></s-icon>
             </slot>
@@ -65,6 +65,13 @@ const props = defineProps({
     // danh sách tab lăn khi quá 3 hàng. Tab Mod dùng để chừa chỗ cho danh
     // sách nhân vật dọc ở dưới; Help/Setting giữ nguyên căng hết.
     fitContent: {
+        type: Boolean,
+        default: false
+    },
+    // zone: khoác vỏ panel Zone (phase 1) thay cho viền OO-box — chỉ
+    // bật cho khung preset ở trang Mod. Help/Setting không truyền thì
+    // giữ nguyên như cũ (đợt sau mới đổi).
+    zone: {
         type: Boolean,
         default: false
     }
@@ -218,6 +225,25 @@ s-ripple {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Bản Zone (chỉ khung preset trang Mod): rộng nội dung 206px thay vì
+   200px — viền OO-box 3px×2 đã bỏ nên phải tăng rộng để tổng vẫn 226px
+   như cột trái. Viên trượt dùng màu nhấn Zone (đồng hồ CSS) thay cho
+   viên vàng JS (class OO-color-gradient đã gỡ ở template). Hàng nút
+   trên/dưới là chất liệu đầu panel Zone (#222 + lưới chấm), bỏ bóng
+   nổi trong của OO-button-box. */
+.left-menu.zzz-frame {
+    width: 206px;
+    max-width: 206px;
+}
+
+.left-menu.zzz-frame .slider {
+    background: var(--zzz-accent);
+}
+
+.left-menu.zzz-frame .OO-button-box {
+    box-shadow: none;
 }
 
 #up-button {
