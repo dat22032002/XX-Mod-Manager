@@ -7,13 +7,16 @@
      nhân vật (theo công tắc "Hiện số lượng mod" trong bảng lọc). -->
 <template>
     <div class="character-list OO-box">
-        <!-- Khối đầu cố định (không lăn): hàng tìm kiếm/Bộ lọc + hàng
-             Tất cả/Đã chọn. Tiêu đề "Characters" đã bỏ (1.5.29, Đạt
-             chọn gọn cột trái) — nhìn danh sách là biết nhân vật.
-             Bảng lọc neo theo hàng tìm kiếm (position relative ở
+        <!-- Khối đầu cố định (không lăn): tiêu đề + hàng tìm kiếm/Bộ lọc
+             + hàng Tất cả/Đã chọn. Tiêu đề "Characters" đã bỏ ở 1.5.29
+             rồi trả lại ở 1.5.30 (Đạt dặn 24/11: khung này nên có tiêu
+             đề). Bảng lọc neo theo hàng tìm kiếm (position relative ở
              .character-list-searchrow), bung ra ngay dưới nút Bộ lọc,
              phủ lên hàng Tất cả/Đã chọn. -->
         <div class="character-list-top">
+            <div class="character-list-header">
+                <div class="character-list-title">{{ $t('filter.characters') }}</div>
+            </div>
             <!-- Hàng tìm kiếm + Bộ lọc: ô tìm kiếm bên trái, nút Bộ lọc
                  bên phải (Đạt dặn 21/11). 4 món (tìm kiếm + Bộ lọc +
                  Tất cả + Đã chọn) chung 1 hàng thì ô tìm kiếm còn ~40px,
@@ -428,9 +431,23 @@ defineExpose({ clearSearchInput });
     flex-shrink: 0;
 }
 
-/* Hàng tiêu đề "Characters" đã bỏ (1.5.29, Đạt chọn gọn cột trái):
-   xóa luôn cả CSS của nó (.character-list-header / .character-list-title)
-   cùng khóa i18n filter.characters. */
+/* Hàng tiêu đề: chỉ còn chữ Characters (ô tìm kiếm đã xuống hàng dưới,
+   cạnh nút Bộ lọc). Đã bỏ ở 1.5.29 rồi trả lại ở 1.5.30 (Đạt dặn 24/11:
+   khung này nên có tiêu đề). */
+.character-list-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 6px;
+}
+
+.character-list-title {
+    flex-shrink: 0;
+    font-weight: bolder;
+    color: var(--s-color-on-surface-variant);
+    padding: 0 2px;
+    font-size: 16px;
+}
 
 /* Hàng tìm kiếm + Bộ lọc: ô tìm kiếm chiếm phần còn lại, nút Bộ lọc
    rộng vừa chữ. Đệm dưới 4px (thay 6px) cho khối đầu gọn lại. */

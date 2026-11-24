@@ -50,6 +50,9 @@ let fixerChecking = false;
 let fixerDownloading = false;
 let fixerScanning = false;
 let fixerFixing = false;
+// Cờ chống tải chồng cho XXMI Launcher (trình setup 1.5.30) — cấp module
+// như fixerDownloading.
+let xxmiDownloading = false;
 
 // 导入 libarchivejs
 let Archive = window.Archive;
@@ -91,6 +94,7 @@ import { parseGameBananaModId, pickLatestGbFile, GB_API_BASE, GB_USER_AGENT } fr
 // + đọc mã hash trong file .ini của mod (để quét mod nghi hỏng).
 import { FIXER_API_LATEST, FIXER_PYDATA_API, FIXER_PYDATA_RAW_BASE, FIXER_STATE_FILE, normalizeFixerRelease, parseFixerOldHashes } from '../helper/ModFixer';
 import fixerOldHashesBundled from '../helper/fixer-old-hashes.json';
+import { XXMI_API_LATEST, normalizeXxmiRelease } from '../helper/SetupDetect';
 import { extractModHashes } from '../helper/ConflictCheck';
 import ModSizeScanner from '../helper/ModSizeScanner';
 import { ImageHelper } from '../helper/ImageHelper';
@@ -141,6 +145,8 @@ let g_config = {
     modSortBy: 'default',
     fixerVersion: null, // Bản Fixer đã tải về (tag release, vd zzz-mod-fixer-v2.3.0)
     fixerFileName: null, // Tên file .exe Fixer đã tải về
+    xxmiVersion: null, // Bản XXMI Launcher đã tải về (tag release, vd v2.5.0)
+    xxmiInstallerFileName: null, // Tên file MSI XXMI Launcher đã tải về
     fixerSuspectIds: null, // id các mod nghi hỏng từ lần quét Fixer gần nhất (null = chưa quét bao giờ)
     showOnlySuspected: false, // Lưới Mod chỉ hiện mod nghi hỏng (công tắc trong bảng lọc — Đạt dặn 23/11)
     showConflictWarning: false, // Hiện hộp cảnh báo mod trùng nhau khi bấm Apply — mặc định TẮT, Đạt bật khi cần (23/11)
@@ -194,6 +200,8 @@ const g_config_vue = {
     modSortBy: ref('default'),
     fixerVersion: ref(null),
     fixerFileName: ref(null),
+    xxmiVersion: ref(null),
+    xxmiInstallerFileName: ref(null),
     fixerSuspectIds: ref(null),
     showOnlySuspected: ref(false),
     showConflictWarning: ref(false),
@@ -301,6 +309,8 @@ class IManager {
         modSortBy: 'default', // Sắp xếp mod: default/name-asc/name-desc/time-desc/time-asc
         fixerVersion: null, // Bản Fixer đã tải về (tag release, vd zzz-mod-fixer-v2.3.0)
         fixerFileName: null, // Tên file .exe Fixer đã tải về
+    xxmiVersion: null, // Bản XXMI Launcher đã tải về (tag release, vd v2.5.0)
+    xxmiInstallerFileName: null, // Tên file MSI XXMI Launcher đã tải về
         fixerSuspectIds: null, // id các mod nghi hỏng từ lần quét Fixer gần nhất (null = chưa quét bao giờ)
         showOnlySuspected: false, // Lưới Mod chỉ hiện mod nghi hỏng (công tắc trong bảng lọc — Đạt dặn 23/11)
         showConflictWarning: false, // Hiện hộp cảnh báo mod trùng nhau khi bấm Apply — mặc định TẮT, Đạt bật khi cần (23/11)
@@ -1126,6 +1136,88 @@ class IManager {
             return true;
         } catch (e) {
             console.error('openFixer failed', e);
+            return false;
+        }
+    }
+
+    //-==================== Tải XXMI Launcher (trình setup 1.5.30) ====================//
+    // Trình setup cho người mới (Đạt duyệt hướng A 24/11): chưa có XXMI
+    // Launcher thì tải file cài đặt MSI chính thức từ repo SpectrumQT
+    // (bản mới nhất đã kiểm chứng 24/11: v2.5.0, file MSI trực tiếp
+    // ~99MB, không bọc zip) rồi mở trình cài đặt cho người dùng bấm
+    // theo. Mẫu theo đúng downloadFixer: tải qua gbFetchBuffer (chịu
+    // chuyển hướng + thử lại), ghi file tạm rồi đổi tên.
+    // Trạng thái tải nằm ở module-level như fixerDownloading (tránh 2
+    // lần tải chồng lên nhau khi người dùng bấm nút 2 lần).
+
+    // Thư mục chứa file MSI đã tải: <userData>/tools/XXMI-Launcher/.
+    xxmiToolsDir() {
+        const dir = path.join(XXMMCore.getDataPathSync(), 'tools', 'XXMI-Launcher');
+        try { fs.mkdirSync(dir, { recursive: true }); } catch (_e) { /* lần sau thử lại */ }
+        return dir;
+    }
+
+    // Đường dẫn file MSI đã tải về — chưa tải (hoặc file bị xóa tay)
+    // thì null.
+    xxmiInstallerPath() {
+        const fileName = this.config.xxmiInstallerFileName;
+        if (!fileName) return null;
+        const msiPath = path.join(this.xxmiToolsDir(), fileName);
+        return fs.existsSync(msiPath) ? msiPath : null;
+    }
+
+    // Bản mới nhất của XXMI Launcher trên GitHub (kèm file MSI) — lỗi
+    // mạng hay không có file MSI thì văng lỗi, nơi gọi tự bắt và báo.
+    async fetchXxmiRelease() {
+        const release = normalizeXxmiRelease(await this.gbFetchJson(XXMI_API_LATEST));
+        if (!release || !release.asset) throw new Error('No XXMI release found');
+        return release;
+    }
+
+    // Tải file MSI của bản mới nhất về thư mục tools. onProgress nhận
+    // (đã tải, tổng) để hiện %. Trả đường dẫn file — lỗi thì văng lỗi.
+    // Đã tải rồi (đúng tên file bản mới nhất) thì dùng lại, không tải nữa.
+    async downloadXxmiInstaller(onProgress = null) {
+        if (xxmiDownloading) return null;
+        xxmiDownloading = true;
+        try {
+            const release = await this.fetchXxmiRelease();
+            const existing = this.xxmiInstallerPath();
+            if (existing && this.config.xxmiInstallerFileName === release.asset.name) {
+                return existing;
+            }
+            const buf = await this.gbFetchBuffer(release.asset.downloadUrl, onProgress);
+            if (!buf || buf.length === 0) throw new Error('Empty download');
+            const dir = this.xxmiToolsDir();
+            const tmpPath = path.join(dir, release.asset.name + '.download');
+            const finalPath = path.join(dir, release.asset.name);
+            fs.writeFileSync(tmpPath, buf);
+            fs.renameSync(tmpPath, finalPath);
+            // Xóa file MSI cũ (tên khác bản mới) để không còn 2 bản.
+            if (this.config.xxmiInstallerFileName && this.config.xxmiInstallerFileName !== release.asset.name) {
+                try { fs.unlinkSync(path.join(dir, this.config.xxmiInstallerFileName)); } catch (_e) { /* kệ */ }
+            }
+            this.config.xxmiVersion = release.tag;
+            this.config.xxmiInstallerFileName = release.asset.name;
+            this.saveConfig();
+            return finalPath;
+        } finally {
+            xxmiDownloading = false;
+        }
+    }
+
+    // Mở trình cài đặt MSI (không đợi đóng) — dùng cho nút "Mở trình cài
+    // đặt". Trả false khi chưa tải MSI về hoặc mở lỗi.
+    openXxmiInstaller() {
+        const msiPath = this.xxmiInstallerPath();
+        if (!msiPath) return false;
+        try {
+            const { spawn } = require('child_process');
+            const child = spawn('msiexec.exe', ['/i', msiPath], { detached: true, stdio: 'ignore' });
+            child.unref();
+            return true;
+        } catch (e) {
+            console.error('openXxmiInstaller failed', e);
             return false;
         }
     }

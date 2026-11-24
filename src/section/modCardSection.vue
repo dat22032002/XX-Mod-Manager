@@ -226,7 +226,7 @@
                  hiện dạng rút gọn (tổng + đang bật, vừa ~100px cả khi
                  kho ~500 mod), rê chuột vào vẫn thấy dòng đầy đủ.
                  Đóng bảng thì dòng đầy đủ trở lại. (1.5.29) -->
-            <span class="mod-stats" :title="statsFullLine">{{ statsLine }}</span>
+            <span class="mod-stats" :title="statsLine">{{ statsLine }}</span>
         </div>
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
@@ -698,14 +698,12 @@ const statsEnabled = computed(() => {
     for (const id of selectedModIdSet) if (suspectSet.has(id)) n++;
     return n;
 });
-// Dòng thống kê đầy đủ + dạng rút gọn (1.5.29): bảng trượt mở thì
-// thanh dưới chỉ còn ~112px ở màn 1280, dòng đầy đủ (232px) bị cắt
-// dở — lúc đó hiện dạng rút gọn (tổng + đang bật, ~84px với 46 mod,
-// ~100px với kho ~500 mod). Số nhân vật trở lại khi đóng bảng.
-const statsFullLine = computed(() => t('stats.line', { total: statsTotal.value, enabled: statsEnabled.value, characters: statsCharacters.value }));
-const statsLine = computed(() => viewPanelOpen.value
-    ? t('stats.compact', { total: statsTotal.value, enabled: statsEnabled.value })
-    : statsFullLine.value);
+// Dòng thống kê: luôn hiện dạng đầy đủ (1.5.30 test2, Đạt dặn 24/11:
+// cứ để nguyên chữ, không đổi ngắn/dài khi mở bảng). Dạng rút gọn
+// (1.5.29) đã bỏ: hồi đó bảng trượt nằm trong luồng nên mở ra làm
+// khung giữa co còn ~112px, dòng đầy đủ bị cắt dở; giờ bảng là lớp
+// nổi không đẩy bố cục nữa nên không cần rút gọn.
+const statsLine = computed(() => t('stats.line', { total: statsTotal.value, enabled: statsEnabled.value, characters: statsCharacters.value }));
 
 onMounted(() => {
     refreshStats();
@@ -1128,18 +1126,26 @@ EventSystem.on('toggledMod', (mod) => {
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+    /* Neo cho bảng lớp nổi (position absolute của .view-panel). */
+    position: relative;
 }
 
 /* Bảng mở ngang (1.5.26): 4 nút xem thẻ xếp thành 1 hàng ngang, nằm
-   GỌN TRONG hàng thanh dưới (cao 60px) — đóng thì co về rộng 0, mở thì
-   dài sang phải từ nút mở bảng, KHÔNG trồi lên chạm khung thẻ mod
-   (Đạt sửa 23/11). Đệm dọc chỉ 2px để bảng (~54px) vừa trong thanh
-   dưới. Nền đen tuyền + viền + bóng như bảng thao tác hàng loạt
-   (Đạt dặn 20/11: không dùng surface-container trong suốt, không dùng
+   GỌN TRONG hàng thanh dưới (cao 60px), KHÔNG trồi lên chạm khung thẻ
+   mod (Đạt sửa 23/11). Từ 1.5.30 test2 bảng là LỚP NỔI THẬT SỰ
+   (position absolute, Đạt chọn 24/11): mở ra không đẩy bố cục thanh
+   dưới nữa nên dòng số liệu đứng yên đúng giữa mọi lúc — trước đây
+   bảng nằm trong luồng (in-flow) nên mở ra làm khung giữa co lại,
+   số liệu nhảy ~265px sang phải ở màn 1280. Bảng neo vào nút mở
+   (left = mép phải nút + 8px), căn giữa dọc theo nút. z-index 10:
+   cao hơn dòng số liệu (5) nên màn hẹp bảng phủ lên số liệu lúc mở
+   (Đạt đã biết và chấp nhận khi chọn kiểu này); màn rộng bảng không
+   chạm tới số liệu. Đóng thì co về rộng 0 + đệm ngang/viền về 0 (chỉ
+   max-width: 0 vẫn để lại 28px đệm+viền — probe 23/11 đo ra).
+   Nền đen tuyền + viền + bóng như bảng thao tác hàng loạt (Đạt dặn
+   20/11: không dùng surface-container trong suốt, không dùng
    surface-container-low trùng màu nút). Nút trong bảng flex-shrink: 0
-   để lúc thu/phóng nút bị cắt dần chứ không bị bóp méo. Đóng thì đệm
-   ngang + viền cũng về 0 (chỉ max-width: 0 vẫn để lại 28px đệm+viền —
-   probe 23/11 đo ra), min-width: 0 để mục flex co hết được. */
+   để lúc thu/phóng nút bị cắt dần chứ không bị bóp méo. */
 .view-panel {
     display: flex;
     align-items: center;
@@ -1158,6 +1164,12 @@ EventSystem.on('toggledMod', (mod) => {
     opacity: 0;
     overflow: hidden;
     pointer-events: none;
+    /* Lớp nổi: ra khỏi luồng bố cục, neo vào nút mở bảng. */
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
     transition: max-width 0.25s ease, opacity 0.2s ease, padding 0.25s ease, border-width 0.25s ease;
 }
 
@@ -1187,12 +1199,26 @@ EventSystem.on('toggledMod', (mod) => {
     min-width: 0;
 }
 
+/* Dòng số liệu neo tuyệt đối vào giữa thanh dưới (1.5.30 test2, Đạt
+   dặn 24/11: để ở giữa và giữ nguyên, không bị ảnh hưởng bởi lớp nổi
+   của bảng tùy chọn). Bảng giờ là lớp nổi thật sự (position absolute,
+   ra khỏi luồng bố cục) nên mở/đóng bảng không làm bố cục thanh đổi —
+   số liệu đứng yên đúng giữa mọi lúc, mọi cỡ màn hình. Chữ luôn là
+   dạng đầy đủ, không đổi khi mở/đóng bảng (Đạt dặn 24/11: cứ để
+   nguyên chữ). z-index 5: thấp
+   hơn bảng (10) nên màn hẹp bảng phủ lên số liệu lúc mở (Đạt đã biết
+   và chấp nhận khi chọn kiểu lớp nổi). */
 .mod-stats {
     font-size: 14px;
     color: var(--s-color-on-surface-variant);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
 }
 
 .bottom-right {
