@@ -350,7 +350,14 @@
     "fixUnchanged": "{count} mod(s) unchanged — originals kept",
     "fixFailed": "{count} mod(s) could not be fixed — originals kept",
     "fixError": "Something went wrong, originals kept",
-    "backupNote": "Originals are kept as backup in the Fixer tools folder until you delete them."
+    "backupNote": "Originals are kept as backup in the Fixer tools folder until you delete them.",
+    "backupTitle": "Backups",
+    "noBackups": "No backups yet.",
+    "backupInfo": "{count} backups · {size}",
+    "cleanupButton": "Clean up backups",
+    "cleanupTitle": "Clean up backups",
+    "cleanupConfirm": "Delete all {count} backups ({size})? Deleted backups cannot be restored.",
+    "cleanupDone": "Deleted {count} backups."
   },
   "setup": {
     "welcomeTitle": "Welcome to XX Mod Manager",

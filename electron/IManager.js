@@ -1051,6 +1051,55 @@ class IManager {
         return dir;
     }
 
+    // Thư mục bản sao lưu của Fixer: mỗi mod đã sửa có 1 thư mục con
+    // <tên mod>-<thời gian> chứa file .ini/.buf gốc (xem fixerApplyFixed).
+    fixerBackupRoot() {
+        return path.join(this.fixerToolsDir(), 'backup');
+    }
+
+    // Đếm bản sao lưu + tổng dung lượng (đệ quy từng thư mục con).
+    // Thư mục chưa có (chưa sửa mod nào) thì 0/0. Lỗi đọc đâu thì bỏ
+    // qua chỗ đó — không văng lỗi ra giao diện.
+    fixerBackupInfo() {
+        const root = this.fixerBackupRoot();
+        let count = 0;
+        let bytes = 0;
+        try {
+            if (!fs.existsSync(root)) return { count: 0, bytes: 0 };
+            const walk = (dir) => {
+                for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+                    const full = path.join(dir, e.name);
+                    try {
+                        if (e.isDirectory()) walk(full);
+                        else if (e.isFile()) bytes += fs.statSync(full).size;
+                    } catch (_e) { /* kệ */ }
+                }
+            };
+            for (const e of fs.readdirSync(root, { withFileTypes: true })) {
+                if (!e.isDirectory()) continue;
+                count += 1;
+                walk(path.join(root, e.name));
+            }
+        } catch (_e) { /* kệ */ }
+        return { count, bytes };
+    }
+
+    // Xóa HẾT bản sao lưu (cả thư mục backup gốc). Chỉ xóa trong đúng
+    // thư mục này — không đụng file Fixer hay mod. Trả số thư mục đã
+    // xóa (đếm trước khi xóa).
+    fixerDeleteBackups() {
+        const root = this.fixerBackupRoot();
+        let deleted = 0;
+        try {
+            if (!fs.existsSync(root)) return { deleted: 0 };
+            for (const e of fs.readdirSync(root, { withFileTypes: true })) {
+                if (e.isDirectory()) deleted += 1;
+            }
+            fs.rmSync(root, { recursive: true, force: true });
+        } catch (_e) { /* kệ */ }
+        return { deleted };
+    }
+
     // Đường dẫn file .exe Fixer đã tải về — chưa tải (hoặc file bị xóa
     // tay) thì null.
     fixerExePath() {
@@ -1411,7 +1460,7 @@ class IManager {
     async fixerApplyFixed(prepared, onProgress) {
         const results = [];
         try {
-            const backupRoot = path.join(this.fixerToolsDir(), 'backup');
+            const backupRoot = this.fixerBackupRoot();
             let done = 0;
             for (const mod of prepared.mods) {
                 try {
