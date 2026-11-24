@@ -5,6 +5,8 @@ import ModCache from './ModCache';
 import type { ModCacheFile } from './ModCache';
 import { EventSystem, EventType } from '../helper/EventSystem';
 import ModSizeScanner from '../helper/ModSizeScanner';
+import { SnackType, t_snack } from "../helper/SnackHelper";
+import { TranslatedText } from "../helper/Language";
 
 const fs = require('fs');
 const path = require('path');
@@ -123,6 +125,9 @@ class ModLoader {
         let cacheDirty = forceRescan;
         let cachedCount = 0;
         let freshCount = 0;
+        // Số mod bị trùng id đã sửa trong lần tải này (báo 1 dòng tóm
+        // tắt cho người dùng ở cuối, thay vì snack từng mod).
+        let dedupCount = 0;
 
         // Tiến độ tải (1.5.26): báo ra ngoài sau mỗi lần đọc xong 1 thư
         // mục mod + sau mỗi khối 10 mod để giao diện hiện "Đang tải mod
@@ -175,6 +180,11 @@ class ModLoader {
                     if (valid && entry) {
                         // 文件夹和 mod.json 都没动过：直接用缓存，不读盘。
                         let modInfo = ModInfo.fromCache(modPath, entry);
+                        // Khử trùng id TRƯỚC khi đưa vào chỉ mục + dựng
+                        // ModData (xem dedupeModId): ModData sao chép id,
+                        // handlePreview tra vị trí theo id.
+                        const deduped = this.dedupeModId(modInfo);
+                        if (deduped) dedupCount++;
                         this.modsRaw.push(modInfo);
                         this.addToIdIndex(modInfo);
                         const modData = ModData.fromCache(modInfo, entry).setModSourcePath(folder);
@@ -183,12 +193,18 @@ class ModLoader {
                         modData.addedMs = birthtimeMs || entry.folderMtimeMs || 0;
                         this.mods.push(modData);
                         cachedCount++;
+                        // Đã đổi id thì mục cache còn giữ id cũ — ghi lại
+                        // luôn để lần tải sau khỏi quét mới lại mod này.
+                        if (deduped && this.updateCacheEntry(cache, folder, mod.name, modInfo, modData)) {
+                            cacheDirty = true;
+                        }
                         continue;
                     }
                     // 新 mod，或者改过：完整加载一次，然后记进缓存。
                     // modInfo must be indexed before fromModInfo: handlePreview
                     // looks the mod up by id (getModByID).
                     let modInfo = new ModInfo(modPath);
+                    if (this.dedupeModId(modInfo)) dedupCount++;
                     this.modsRaw.push(modInfo);
                     this.addToIdIndex(modInfo);
                     let modData = ModData.fromModInfo(modInfo).setModSourcePath(folder);
@@ -227,6 +243,16 @@ class ModLoader {
 
         if (cacheDirty) {
             ModCache.save(cache);
+        }
+
+        // Có mod trùng id vừa được sửa thì báo 1 dòng tóm tắt để người
+        // dùng biết app đã tự sửa kho của họ (mod gốc không đổi gì, chỉ
+        // bản copy được cấp mã mới).
+        if (dedupCount > 0) {
+            t_snack(new TranslatedText(
+                `Fixed ${dedupCount} duplicated mod ID(s) — copied mod folders shared the same ID, which made the grid glitch.`,
+                `Đã sửa ${dedupCount} mod trùng mã số — thư mục mod nhân đôi xài chung 1 mã làm lưới bị nhảy.`),
+                SnackType.info);
         }
 
         // 触发回调函数
@@ -284,6 +310,9 @@ class ModLoader {
             throw new Error(`ModLoader.loadMod: modPath is not a directory: ${modPath}`);
         }
         let modInfo = new ModInfo(modPath);
+        // Mod mới nhập cũng có thể mang id trùng (nhập thư mục từng nhân
+        // đôi) — khử trùng trước khi đưa vào chỉ mục như lúc tải hàng loạt.
+        this.dedupeModId(modInfo);
         this.modsRaw.push(modInfo);
         this.addToIdIndex(modInfo);
         const folder = path.dirname(modPath);
@@ -312,6 +341,42 @@ class ModLoader {
         if (modInfo.id && !this.modsById.has(modInfo.id)) {
             this.modsById.set(modInfo.id, modInfo);
         }
+    }
+
+    // Khử trùng id lúc tải (lỗi glitch lưới 22/11 + 24/11): nhân đôi thư
+    // mục mod ngoài Explorer làm 2 mod xài chung 1 id trong mod.json
+    // (ModInfo.init tin id trong file nguyên văn, chỉ sinh mới khi id
+    // trống). Lưới vẽ từng phần dùng :key="mod.id" nên Vue vá nhầm nút
+    // DOM → thẻ nhảy theo bội số hàng, thẻ ma rò rỉ không bao giờ được
+    // dọn, bấm thẻ này chọn sang mod kia; handlePreview cũng tra nhầm
+    // thư mục của mod trùng id. Mod ĐẦU TIÊN giữ nguyên id (preset vẫn
+    // khớp nó); mod trùng sau sinh lại id theo đường dẫn thư mục (như
+    // lúc quét mới) + ghi lại mod.json. Gọi TRƯỚC addToIdIndex + dựng
+    // ModData để mọi bản sao id sau đó đều thấy id mới. Trả true khi đã
+    // đổi id.
+    private static dedupeModId(modInfo: ModInfo): boolean {
+        if (!modInfo.id || !this.modsById.has(modInfo.id)) return false;
+        const oldId = modInfo.id;
+        modInfo.generateID(); // md5(đường dẫn thư mục) — duy nhất theo thư mục
+        // Hiếm: id sinh ra vẫn trùng (thư mục từng đổi chỗ) → thêm hậu
+        // tố cho tới khi duy nhất.
+        let attempt = 1;
+        while (this.modsById.has(modInfo.id)) {
+            const crypto = require('crypto');
+            const hash = crypto.createHash('md5');
+            hash.update(`${modInfo.location}#${attempt}`);
+            modInfo.id = hash.digest('hex');
+            attempt++;
+        }
+        try {
+            modInfo.saveMetaData();
+        } catch (e) {
+            console.error(`ModLoader.dedupeModId: cannot rewrite mod.json for ${modInfo.location}`, e);
+            // Vẫn giữ id mới trong bộ nhớ — lưới hết glitch ngay lần
+            // chạy này; lần tải sau đọc lại mod.json cũ thì khử trùng lại.
+        }
+        console.log(`ModLoader.dedupeModId: duplicate id ${oldId} at ${modInfo.location} -> new id ${modInfo.id}`);
+        return true;
     }
 
     // Gỡ 1 mod khỏi danh sách gốc theo tên thư mục (khi xóa/hủy mod mà

@@ -1,5 +1,5 @@
 <template>
-    <s-card ref="modItemRef" class="mod-item" :class="{ 'cover-drop-hover': coverDropOver }" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id" inWindow="none"
+    <s-card ref="modItemRef" class="mod-item" :class="{ 'cover-drop-hover': coverDropOver }" :clicked=clicked :batch-clicked=batchClicked clickable="true" :id="props.modRef.id + '|' + props.modRef.name" inWindow="none"
         :name="props.modRef.name" :character="props.modRef.character" :data-tag="props.modRef.tag" @click="click" :compact="props.compactMode" :data-layout="props.cardLayout"
         @mouseenter="onCardHoverStart" @mouseleave="onCardHoverEnd"
         @dragenter="onCoverDragEnter" @dragover="onCoverDragOver" @dragleave="onCoverDragLeave" @drop="onCoverDrop"
