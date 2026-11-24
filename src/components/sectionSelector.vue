@@ -148,9 +148,16 @@ const sliderStyle = computed(() => {
     const transform = props.compact
         ? `translateX(${shift}%)`
         : `translateX(${shift}%) skew(-20deg)`;
+    // Bản thu gọn trừ phần đệm ngang của khung chứa (20px) chia đều cho
+    // mỗi mục: mục rộng (W-20)/N = W/N - 20/N, nên viên rộng đúng
+    // calc(100/N% - 20/N px) thì translateX(index*100%) đậu đúng từng
+    // mục với mọi N (N=2 ra calc(50% - 10px) như cũ — nút Dọc/Ngang và
+    // Tất cả/Đã chọn không đổi; N=5 ra calc(20% - 4px) cho tab trình
+    // setup — công thức cũ trừ cố định 10px làm viên hẹp hơn mục 6px và
+    // lệch dần tới 24px ở tab cuối).
     const style = {
         width: props.compact
-            ? `calc(${100 / props.sections.length}% - 10px)`
+            ? `calc(${100 / props.sections.length}% - ${20 / props.sections.length}px)`
             : `${100 / props.sections.length}%`,
         transform
     };

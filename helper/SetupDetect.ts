@@ -120,6 +120,25 @@ function readLauncherConfig(launcherDir) {
     return out;
 }
 
+// Suy ra thư mục launcher + ZZMI từ thư mục đích đã lưu trong cài đặt
+// cũ (máy từng cài app, hoặc launcher nằm ở chỗ tự chọn không phải chỗ
+// mặc định — vd máy Đạt: E:\Games\Mod\ModLaucher\ZZMI\Mods). Đi ngược:
+// Mods -> thư mục chứa nó (ZZMI, phải có d3dx.ini) -> thư mục cha
+// (launcher, phải có dấu hiệu launcher). Trả { launcherDir, modsDir,
+// importerDir } — launcherDir có thể null nếu thư mục cha không có dấu
+// hiệu launcher (lúc đó vẫn có modsDir để bước Kiểm tra tính ZZMI).
+function deriveFromTarget(targetPath) {
+    const out = { launcherDir: null, modsDir: null, importerDir: null };
+    if (!targetPath || !isDir(targetPath)) return out;
+    const importerDir = path.dirname(targetPath);
+    if (!isFile(path.join(importerDir, 'd3dx.ini'))) return out;
+    out.modsDir = targetPath;
+    out.importerDir = importerDir;
+    const launcherDir = path.dirname(importerDir);
+    if (isLauncherDir(launcherDir)) out.launcherDir = launcherDir;
+    return out;
+}
+
 // Tìm thư mục Mods của ZZMI dưới 1 thư mục launcher. Thứ tự:
 // 1. đường dẫn trong file cấu hình launcher (tin cậy nhất),
 // 2. <launcher>\ZZMI\Mods (bố cục chuẩn đã kiểm chứng),
@@ -255,9 +274,11 @@ export {
     windowsGameRoots,
     windowsLauncherRoots,
     findGameExe,
+    isDir,
     isLauncherDir,
     findLauncherDir,
     findLauncherExe,
+    deriveFromTarget,
     readLauncherConfig,
     findZzmiMods,
     countModFolders,

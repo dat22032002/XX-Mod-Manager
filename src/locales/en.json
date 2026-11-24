@@ -140,6 +140,7 @@
   },
   "filter": {
     "button": "Filter",
+    "characters": "Characters",
     "preset": "Preset",
     "typeGroup": "Type",
     "sortGroup": "Sort",
@@ -380,6 +381,8 @@
     "openLauncher": "Open XXMI Launcher",
     "launcherNotFound": "XXMI Launcher wasn't found on this PC.",
     "launcherDownloadHint": "Press download to get the official installer from XXMI's GitHub (about 100MB).",
+    "pickLauncherFolder": "I already have it — pick the folder",
+    "launcherWrongFolder": "That folder doesn't look like an XXMI Launcher folder (no ZZMI inside). Please pick the folder that contains ZZMI.",
     "download": "Download XXMI Launcher",
     "downloaded": "Downloaded",
     "downloading": "Downloading... {pct}%",

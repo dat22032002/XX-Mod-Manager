@@ -140,6 +140,7 @@
   },
   "filter": {
     "button": "Bộ lọc",
+    "characters": "Nhân vật",
     "preset": "Preset",
     "typeGroup": "Loại",
     "sortGroup": "Xếp",
@@ -380,6 +381,8 @@
     "openLauncher": "Mở XXMI Launcher",
     "launcherNotFound": "Chưa thấy XXMI Launcher trên máy.",
     "launcherDownloadHint": "Bấm tải về để lấy file cài đặt chính thức từ GitHub của XXMI (khoảng 100MB).",
+    "pickLauncherFolder": "Tôi đã có rồi — chọn thư mục",
+    "launcherWrongFolder": "Thư mục này không giống thư mục XXMI Launcher (không có ZZMI bên trong). Hãy chọn thư mục chứa ZZMI.",
     "download": "Tải XXMI Launcher",
     "downloaded": "Đã tải xong",
     "downloading": "Đang tải... {pct}%",

@@ -226,7 +226,7 @@
                  hiện dạng rút gọn (tổng + đang bật, vừa ~100px cả khi
                  kho ~500 mod), rê chuột vào vẫn thấy dòng đầy đủ.
                  Đóng bảng thì dòng đầy đủ trở lại. (1.5.29) -->
-            <span class="mod-stats" :title="statsFullLine">{{ statsLine }}</span>
+            <span class="mod-stats" :class="{ 'panel-open': viewPanelOpen }" :title="statsFullLine">{{ statsLine }}</span>
         </div>
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
@@ -1187,12 +1187,35 @@ EventSystem.on('toggledMod', (mod) => {
     min-width: 0;
 }
 
+/* Dòng số liệu neo tuyệt đối vào giữa thanh dưới (1.5.30 test2, Đạt
+   dặn 24/11: để ở giữa và giữ nguyên khi bấm nút tùy chọn hiển thị).
+   Trước đây số liệu căn giữa trong .bottom-center (flex:1) nên bảng mở
+   ra làm khung này co lại, số liệu nhảy ~265px sang phải ở màn 1280
+   (đo thật: tâm 694 -> 959). Neo vào giữa cả thanh thì bảng mở/đóng
+   không làm số liệu nhúc nhích. Khi bảng mở, left dùng max(50%,
+   961px): màn đủ rộng thì vẫn đúng giữa (màn 1920 chỉ lệch 1px);
+   màn hẹp thì số liệu dời phải vừa đủ để bảng (mép phải ~893px tính
+   từ mép trái thanh, đo thật) không che mất — 961 = 893 + nửa rộng
+   dòng rút gọn (~60px) + khe 8px. Màn hẹp không có chỗ nào vừa giữa
+   vừa thấy được khi bảng mở, nên dời phải là đánh đổi bắt buộc. */
 .mod-stats {
     font-size: 14px;
     color: var(--s-color-on-surface-variant);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    /* Trượt mượt theo bảng (0,25s như bảng): màn hẹp mở bảng thì số
+       liệu lướt sang phải cùng lúc bảng trượt ra, không nhảy cục. */
+    transition: left 0.25s ease;
+}
+
+.mod-stats.panel-open {
+    left: max(50%, 961px);
 }
 
 .bottom-right {

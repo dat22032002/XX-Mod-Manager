@@ -7,7 +7,12 @@
 
     <div class="main-container">
         <div class="head">
-            <sectionSelector :sections="sections" :modelValue="currentSection"
+            <!-- Tab trình setup dùng kiểu thu gọn (compact): công thức viên
+                 nghiêng gốc chỉ đúng cho 3 tab, với 5 tab thì viên lệch
+                 trái che mất đuôi chữ tab trước (Đạt báo 24/11: chữ
+                 "Welcome" bị viên vàng che ở bản tiếng Anh). Viên thu gọn
+                 căn đúng từng tab với mọi số tab. -->
+            <sectionSelector :sections="sections" :modelValue="currentSection" :compact="true"
                 @update:currentSection="handleSectionChange" @update:modelValue="currentSection = $event"
                 id="section-selector" ref="section-selector">
             </sectionSelector>
@@ -100,6 +105,9 @@
                         <template v-else>
                             <p class="alert">{{ $t('setup.launcherNotFound') }}</p>
                             <p>{{ $t('setup.launcherDownloadHint') }}</p>
+                            <s-button class="OO-button-box" @click="pickLauncherManually">
+                                {{ $t('setup.pickLauncherFolder') }}
+                            </s-button>
                             <s-button class="OO-button-box" @click="downloadXxmi"
                                 :disabled="msiState === 'downloading'">
                                 {{ msiState === 'ready' ? $t('setup.downloaded') : $t('setup.download') }}
@@ -255,7 +263,7 @@ import getData from '../src/section/settingSectionData.js';
 import {
     findGameExe, windowsGameRoots,
     findLauncherDir, findLauncherExe, windowsLauncherRoots,
-    findZzmiMods, readLauncherConfig,
+    findZzmiMods, readLauncherConfig, deriveFromTarget, isDir,
     countModFolders, looksLikeModLibrary, ensureDir, moveModFolders,
     defaultLibraryDir, defaultPresetDir,
 } from '../helper/SetupDetect';
@@ -359,9 +367,21 @@ const pickGameManually = async () => {
 const scanLauncher = () => {
     launcherBusy.value = true;
     try {
-        const dir = findLauncherDir(windowsLauncherRoots());
+        let dir = findLauncherDir(windowsLauncherRoots());
+        let found = dir ? findZzmiMods(dir) : null;
+        // Không thấy ở chỗ mặc định thì suy ra từ thư mục đích đã lưu
+        // trong cài đặt cũ (máy từng cài app / launcher ở chỗ tự chọn —
+        // vd máy Đạt: E:\Games\Mod\ModLaucher\ZZMI\Mods). Suy ra được cả
+        // khi thư mục cha không có dấu hiệu launcher (lúc đó vẫn có
+        // modsDir để bước Kiểm tra tính ZZMI).
+        if (!found && modTargetPath.value) {
+            const derived = deriveFromTarget(modTargetPath.value);
+            if (derived.modsDir) {
+                if (derived.launcherDir) dir = derived.launcherDir;
+                found = { modsDir: derived.modsDir, importerDir: derived.importerDir, via: 'target' };
+            }
+        }
         launcherDir.value = dir || '';
-        const found = dir ? findZzmiMods(dir) : null;
         modsDir.value = found ? found.modsDir : '';
         // Tìm thấy thư mục Mods thì điền sẵn làm thư mục đích.
         if (modsDir.value) {
@@ -372,6 +392,25 @@ const scanLauncher = () => {
         launcherScanned.value = true;
         launcherBusy.value = false;
     }
+};
+
+// Chọn thư mục launcher bằng tay (khi trình không tìm thấy mà người
+// dùng biết chắc máy đã có launcher — vd cài ở chỗ lạ). Thư mục chọn
+// phải có dấu hiệu launcher HOẶC chứa ZZMI (d3dx.ini + Mods), không
+// thì báo sai và không nhận.
+const pickLauncherManually = async () => {
+    const picked = await iManager.getFilePath('XXMI Launcher', 'directory');
+    if (!picked) return;
+    const found = findZzmiMods(picked);
+    if (!found) {
+        alert(t('setup.launcherWrongFolder'));
+        return;
+    }
+    launcherDir.value = picked;
+    modsDir.value = found.modsDir;
+    modTargetPath.value = found.modsDir;
+    modsInTarget.value = countModFolders(found.modsDir);
+    launcherScanned.value = true;
 };
 
 const downloadXxmi = async () => {
@@ -464,8 +503,13 @@ const moveModsNow = () => {
 // --- Bước 5: kiểm tra + hoàn tất ---
 const checkItems = computed(() => [
     { key: 'game', label: t('setup.checkGame'), ok: !!gameExe.value, goTo: 'game' },
-    { key: 'launcher', label: t('setup.checkLauncher'), ok: !!launcherDir.value, goTo: 'launcher' },
-    { key: 'zzmi', label: t('setup.checkZzmi'), ok: !!modsDir.value, goTo: 'launcher' },
+    // Có thư mục Mods của ZZMI thì coi như đã có bộ nạp (ZZMI chỉ tồn
+    // tại khi đã cài bộ nạp) — tránh kẹt Hoàn tất khi trình không tìm
+    // ra thư mục launcher mà bộ nạp vẫn có thật (máy Đạt 24/11).
+    { key: 'launcher', label: t('setup.checkLauncher'), ok: !!(launcherDir.value || modsDir.value), goTo: 'launcher' },
+    // ZZMI tính là đạt khi tìm thấy qua launcher HOẶC thư mục đích đã
+    // có sẵn và có thật (máy từng cài app: đích chính là Mods của ZZMI).
+    { key: 'zzmi', label: t('setup.checkZzmi'), ok: !!(modsDir.value || (modTargetPath.value.trim() && isDir(modTargetPath.value.trim()))), goTo: 'launcher' },
     { key: 'target', label: t('setup.checkTarget'), ok: !!modTargetPath.value.trim(), goTo: 'folders' },
     { key: 'source', label: t('setup.checkSource'), ok: !!modSourcePath.value.trim(), goTo: 'folders' },
     { key: 'preset', label: t('setup.checkPreset'), ok: !!presetPath.value.trim(), goTo: 'folders' },
