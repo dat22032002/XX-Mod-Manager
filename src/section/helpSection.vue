@@ -25,14 +25,10 @@
         <!-- -故障排除 -->
         <div v-if="currentTab === 'help-trouble'">
           <Markdown :content="troubleContentVi">
-            <div class="OO-setting-bar" style="height: 50px !important;">
-              <h3> Nhóm QQ </h3>
-              <p> 877012859 </p>
-            </div>
             <div class="OO-setting-bar">
-              <h3> Discord </h3>
-              <s-button class="OO-button-box" @click="iManager.openUrl('https://discord.gg/4RbjKJuVKS')">
-                join Discord
+              <h3> GitHub Issues </h3>
+              <s-button class="OO-button-box" @click="iManager.openUrl('https://github.com/dat22032002/XX-Mod-Manager/issues')">
+                Báo lỗi / Góp ý
               </s-button>
             </div>
           </Markdown>
@@ -65,14 +61,10 @@
         <!-- -Troubleshooting -->
         <div v-if="currentTab === 'help-trouble'">
           <Markdown :content="troubleContentEn">
-            <div class="OO-setting-bar" style="height: 50px !important;">
-              <h3> QQ Group </h3>
-              <p> 877012859 </p>
-            </div>
             <div class="OO-setting-bar">
-              <h3> Discord </h3>
-              <s-button class="OO-button-box" @click="iManager.openUrl('https://discord.gg/4RbjKJuVKS')">
-                join Discord
+              <h3> GitHub Issues </h3>
+              <s-button class="OO-button-box" @click="iManager.openUrl('https://github.com/dat22032002/XX-Mod-Manager/issues')">
+                Report an issue
               </s-button>
             </div>
           </Markdown>
@@ -99,7 +91,7 @@ import img_description3 from '../assets/description3.png';
 
 const explainContentVi =
   `# Điều kiện tiên quyết
-Hãy đảm bảo bạn đã cài đặt 3dmigoto hoặc trình tải mod khác và chạy thành công. Nếu chưa cài đặt 3dmigoto, hãy cài đặt 3dmigoto trước. Nếu bạn không hiểu 3dmigoto là gì, hãy tự tìm hiểu.
+Hãy đảm bảo bạn đã cài đặt 3dmigoto hoặc trình tải mod khác và chạy thành công. Nếu chưa có trình tải mod, hãy mở trình hướng dẫn cho người mới (Cài đặt → Hướng dẫn người mới): chương trình sẽ tự tìm trình tải mod trên máy của bạn, hoặc tải và cài đặt giúp bạn.
 Lưu ý rằng chương trình này chỉ là trình quản lý mod, không phải trình tải mod. Nó cần dựa vào 3dmigoto hoặc trình tải mod khác để tải mod.
 
 Trước tiên, bạn cần hiểu chương trình này quản lý mod như thế nào:
@@ -126,13 +118,12 @@ Giả sử chúng ta muốn mặc cho Klee bộ "Quần áo mới của Hoàng �
 # Thư mục đích mod
 Đây là thư mục mà trình tải mod của bạn thực sự tải:
 - Với ZZMI, đó là thư mục Mods của ZZMI;
-- Với XXMI, đó là thư mục nội bộ của XXMI /zzz/Mods
+- Với XXMI Launcher, đó là thư mục Mods trong thư mục ZZMI của Launcher (ví dụ: XXMI Launcher\\ZZMI\\Mods);
 Chương trình này tải mod bằng cách thay thế thư mục Mods, và điều chỉnh động các file bên trong thư mục mod để tải mod, vì vậy đừng thêm bất kỳ file nào vào thư mục đích mod! Chỉ cần thêm mod của bạn vào thư mục nguồn mod.
 # Thư mục nguồn mod
 Đây là thư mục mà chương trình này đọc mod, và cũng là thư mục bạn nên dùng để lưu mod. Nó nên được đặt thành một thư mục trống ở bất kỳ đâu, sau đó bạn cần thêm mod của mình vào thư mục này
 # Thư mục preset
 Đây là thư mục mà chương trình này dùng để lưu preset mod. Chương trình sẽ lưu một nhóm cấu hình mod tại đây. Sau khi cấu hình, bạn sẽ nhanh chóng chuyển đổi giữa các tổ hợp mod khác nhau qua chức năng preset. Nó nên được đặt thành một thư mục trống ở bất kỳ đâu
-# Về chương trình này
 # Nguyên lý hoạt động
 Chương trình này tải mod bằng cách thay thế thư mục Mods, và điều chỉnh động các file bên trong thư mục mod để tải mod.
   <img src="${img_description}" alt="description" style="width: 50%;height: auto;">
@@ -140,10 +131,11 @@ Chương trình này tải mod bằng cách thay thế thư mục Mods, và đi�
 
 const importContentVi =
   `# Nhập mod
-Có ba cách để nhập mod:
+Có bốn cách để nhập mod:
 1. Thêm thư mục mod vào thư mục nguồn mod, chương trình sẽ đọc thư mục mod từ thư mục nguồn.
 2. Kéo thư mục mod đã giải nén vào chương trình, chương trình sẽ tự động thêm thư mục mod vào thư mục nguồn mod.
 3. Kéo file nén vào chương trình, chương trình sẽ tự động giải nén và thêm thư mục mod vào thư mục nguồn mod. Nếu file nén có mật khẩu, chương trình sẽ yêu cầu bạn nhập mật khẩu, rồi tự động giải nén và thêm thư mục mod vào thư mục nguồn mod.
+4. Tải mod từ GameBanana ngay trong chương trình (trang Banana): tìm mod rồi bấm tải, chương trình sẽ tự tải về và thêm vào thư mục nguồn mod. Mod tải từ Banana sẽ nhớ link gốc của nó — khi có bản mới, chương trình sẽ báo cho bạn và bạn bấm để cập nhật (chương trình không tự cập nhật). Bạn có thể xem hoặc sửa link gốc ở hàng 'Link mod' trong cửa sổ chỉnh sửa thông tin mod.
 
 Tất cả các cách về bản chất đều là thêm thư mục mod vào thư mục nguồn mod, vì vậy bạn cần cấu hình đường dẫn của thư mục nguồn mod trước.
 # Sau khi nhập
@@ -167,15 +159,13 @@ Chương trình này chỉ là trình quản lý mod, bạn cần tải thêm m�
 Đây là các trình tải mod chưa đóng gói, mà tôi rất khuyên dùng. Ưu điểm của chúng là: cơ bản, ít lỗi nhất, phản hồi nhanh và không có tính năng thừa.
 
 Bạn cũng có thể tìm các trình tải mod 3dmigoto đã tùy chỉnh cho từng game, ví dụ:
--
 [ZZMI - Zenless Zone Zero Model Importer GitHub](https://github.com/leotorrez/ZZ-Model-Importer)
 [SRMI - Honkai: Star Rail Model Importer GitHub](https://github.com/SilentNightSound/SR-Model-Importer)
 [GIMI - Genshin Impact Model Importer GitHub](https://github.com/SilentNightSound/GI-Model-Importer)
 [WWMI - Wuthering Waves Model Importer GitHub](https://github.com/SpectrumQT/WWMI)
 v.v.
--
 
-Để dùng chương trình này với các trình tải mod này, bạn chỉ cần đặt thư mục nguồn mod thành thư mục Mods của trình tải mod.
+Để dùng chương trình này với các trình tải mod này, bạn chỉ cần đặt thư mục đích mod thành thư mục Mods của trình tải mod.
 Nếu bạn muốn dùng tính năng 【Tự động mở game và trình tải mod】, bạn cần đặt đường dẫn file exe của trình tải mod thành đường dẫn trình tải mod.
 ---
 # XXMI
@@ -188,7 +178,6 @@ Vì chương trình này thực ra chỉ thay thế thư mục Mods và điều 
 2. Chọn game
 3. Bấm vào cài đặt (biểu tượng bánh răng)
 4. Trong cài đặt nâng cao, bật run pre-launch, và đặt pre-launch path thành đường dẫn của chương trình này, nhớ thêm dấu ngoặc kép và bỏ tích tùy chọn wait
-5. Nhớ bỏ tích tùy chọn wait
 
 Như vậy, khi bạn bấm bắt đầu game trong XXMI, XXMI sẽ khởi động trình tải mod, game và chương trình này
 # Dùng chương trình này để mở XXMI
@@ -220,6 +209,10 @@ Nếu bạn thấy có vấn đề ở các bước trên, hãy xem 【Khắc ph
 
 Nếu bạn hoàn thành thành công các bước trên, chúc mừng, bạn đã tải mod thành công.
 Sau đó trình tải mod sẽ đọc các mod trong 【thư mục đích mod】 và tải chúng vào game.
+---
+# Chọn hàng loạt
+Giữ phím Ctrl rồi bấm các thẻ mod để chọn nhiều mod cùng lúc (viền xanh biển). Mod vừa được chọn để áp dụng vừa được chọn hàng loạt sẽ có viền đỏ.
+Sau khi chọn hàng loạt, bấm nút mũi tên xuống ở đầu trái thanh dưới để mở bảng thao tác hàng loạt: đặt nhân vật hoặc đặt loại mod cho tất cả mod đã chọn cùng lúc.
 `;
 const configContentVi =
   `# Thông tin mod
@@ -229,6 +222,10 @@ Chương trình thêm các thông tin sau cho mỗi mod:
 2. Phím tắt
 3. Mô tả
 4. Ảnh xem trước
+5. Link mod (chỉ có với mod tải từ GameBanana — link gốc của mod, dùng để báo cho bạn khi có bản mới)
+# Loại mod
+Mỗi mod có một loại: Character (nhân vật), Skin (trang phục), Accessory (phụ kiện), Effect (hiệu ứng), Weapon (vũ khí) hoặc Other (khác). Bạn đổi loại mod trong cửa sổ chỉnh sửa thông tin mod.
+Với mỗi nhân vật, bạn chỉ có thể bật cùng lúc 1 mod loại Character, 1 mod loại Weapon và 1 mod loại Effect; các loại còn lại bật bao nhiêu cũng được.
 # Chỉnh sửa thông tin mod
 1. Sau khi bấm chuột trái vào thẻ mod trong 【danh sách mod】, bạn sẽ thấy nút 【Chỉnh sửa】 ở phía dưới thanh thông tin chi tiết bên phải. Bấm vào đó để mở cửa sổ chỉnh sửa thông tin mod.
 2. Bấm chuột phải vào thẻ mod trong 【danh sách mod】 sẽ mở trực tiếp cửa sổ chỉnh sửa thông tin mod.
@@ -269,7 +266,6 @@ const autoContentVi =
 
 Nếu bạn gặp các phiền toái trên, bạn có thể thử dùng chức năng tự động hóa của chương trình. Hiện tại nó tồn tại dưới dạng plugin, và bạn có thể tìm thấy nó trên trang 【Cài đặt】.
 ---
----
 # Cấu hình tự động khởi động
 1. Mở trang 【Cài đặt】.
 2. Tìm mục cấu hình của 【Plugin tự động khởi động】.
@@ -285,6 +281,8 @@ Nếu cấu hình đúng, chương trình sẽ tự động khởi động trìn
 
 1. Tên tiến trình là tên tiến trình của game của bạn, bạn có thể xem qua trình quản lý tác vụ. Với Zenless Zone Zero, tên tiến trình là "ZenlessZoneZero.exe".
 2. Mã phím ảo để làm mới là mã phím ảo của phím tắt mà trình tải mod của bạn dùng để làm mới mod. Bạn có thể tìm trên mạng "bảng mã phím ảo" để tìm mã phím ảo của phím tắt làm mới của trình tải mod của bạn. Thông thường, phím tắt làm mới là F10, và mã phím ảo tương ứng là 121.
+
+Lưu ý: khi tính năng làm mới sau khi áp dụng đang bật, mỗi lần bấm Áp dụng, màn hình sẽ chuyển qua game rồi quay lại app trong chớp mắt — đó là bình thường. Trình tải mod chỉ nhận phím làm mới (F10) khi cửa sổ game đang ở trước mặt, nên chương trình phải chuyển qua game để bấm phím rồi quay lại.
 `;
 const multipleGamesContentVi =
   `# Hỗ trợ nhiều game
@@ -309,17 +307,19 @@ const troubleContentVi =
   `# Khắc phục sự cố
 Khi bạn gặp vấn đề, bạn có thể thử các cách sau để giải quyết:
 1. Mở lại chương trình
-2. Xem trang 【Trợ giúp】
-3. Kiểm tra xem có phải là vấn đề của trình tải mod không, thử khởi động trình tải mod riêng và sao chép mod vào thư mục Mods của trình tải mod
+2. Kiểm tra xem có phải là vấn đề của trình tải mod không, thử khởi động trình tải mod riêng và sao chép mod vào thư mục Mods của trình tải mod
+
+# Mod bị hỏng sau khi game cập nhật
+Khi game cập nhật, một số mod trang phục có thể bị lỗi (hiển thị sai trong game). Mở Cài đặt → Mod Fixer: bấm quét để tìm mod có thể bị hỏng, rồi bấm sửa tự động để sửa chúng. Việc quét chỉ đọc mod của bạn, không thay đổi gì; mod gốc của bạn luôn được giữ lại làm bản sao lưu.
 
 Nếu bạn biết một chút về phát triển front-end, bạn có thể thử bấm Ctrl+Shift+I để mở công cụ dành cho nhà phát triển và kiểm tra thông báo lỗi.
-Nếu bạn không giải quyết được vấn đề, hãy liên hệ với tôi.
+Nếu bạn không giải quyết được vấn đề, hãy báo lỗi trên trang GitHub Issues của chương trình (nút bên dưới).
 `;
 ;
 
 const explainContentEn =
   `# Prerequisites
-Please make sure you have 3dmigoto or other mod loader installed and running successfully. If you haven't installed 3dmigoto yet, please install 3dmigoto first. If you don't understand what 3dmigoto is, please search it yourself.
+Please make sure you have 3dmigoto or other mod loader installed and running successfully. If you don't have a mod loader yet, open the new user guide (Settings → New User Guide): the program will find the mod loader on your PC for you, or download and install it.
 Please note that this program is only a mod manager, not a mod loader. It needs to rely on 3dmigoto or other mod loaders to load mods.
 
 First, you need to understand how this program manages mods:
@@ -346,13 +346,12 @@ The "mod source folder" is used to store all the mods.
 # Mod Target Folder
 This is the folder actually loaded by your mod loader:
 - For ZZMI, it is the ZZMI Mods folder;
-- For XXMI, it is the XXMI internal folder /zzz/Mods
+- For XXMI Launcher, it is the Mods folder inside the Launcher's ZZMI folder (for example: XXMI Launcher\\ZZMI\\Mods)
 This program implements mod loading by proxying the Mods folder, and dynamically adjusts the files inside the mod folder to implement mod loading, so please do not add any files in the mod target folder! Just add your mod to the mod source folder.
 # Mod Source Folder
 This is the folder where this program reads mods, and the folder where you should store mods. It should be set to an empty folder anywhere, you will then need to add your mod to this folder
 # Preset Folder
 This is the folder used by this program to store mod presets. The program will store a set of mod configurations here. After the configuration, you will quickly switch between different mod combinations through the preset function. It should be set to an empty folder anywhere
-# About this program
 # Operating principle
 This program implements mod loading by proxying the Mods folder, and dynamically adjusts the files inside the mod folder to implement mod loading.
   <img src="${img_description}" alt="description" style="width: 50%;height: auto;">
@@ -360,15 +359,16 @@ This program implements mod loading by proxying the Mods folder, and dynamically
 
 const importContentEn =
   `# Import Mods
-There are three ways to import mods:
+There are four ways to import mods:
 1. Add the mod folder to the mod source folder, and the program will read the mod folder from the source folder.
 2. Drag the unzipped mod folder into the program, and the program will automatically add the mod folder to the mod source folder.
-3. Drag a zip file into the program, and the program will automatically unzip and add the mod folder to the mod source folder. If the zip file has a password, the program will prompt you to enter the password, and then automatically unzip and add the mod folder to the mod source folder.
+3. Drag a zip or rar file into the program, and the program will automatically unzip and add the mod folder to the mod source folder. If the archive file has a password, the program will prompt you to enter the password, and then automatically unzip and add the mod folder to the mod source folder.
+4. Download mods from GameBanana right inside the program (the Banana page): find a mod and click download, and the program will download it and add it to the mod source folder. Mods downloaded from Banana remember their original link — when a new version is available, the program will tell you and you click to update (the program never updates automatically). You can view or change the original link in the 'Mod link' row of the mod information editing window.
 
 All methods essentially add the mod folder to the mod source folder, so you need to configure the path of the mod source folder first.
 # After Importing
 1. By directly adding mods to the mod source folder, you need to refresh the program to see the new mods displayed as cards in the mod list.
-2. By dragging the unzipped mod folder or zip file, the program will automatically refresh and open the mod editing page, where you can edit the mod information. For more information, please refer to [Mods Config].
+2. By dragging the unzipped mod folder or zip/rar file, the program will automatically refresh and open the mod editing page, where you can edit the mod information. For more information, please refer to [Mods Config].
 ---
 # Possible Issues
 # Adding mod folder to mod source folder, but not showing in mod list
@@ -376,9 +376,9 @@ All methods essentially add the mod folder to the mod source folder, so you need
 2. Check if there are mod folders in the mod source folder.
 3. Try reopening the program.
 If the above methods do not solve the problem, please refer to [Troubleshooting].
-# Warning after dragging zip file
-1. Check if the zip file is complete, the program does not support split zip files.
-2. Check if the zip file has a password, and if the password is entered correctly.
+# Warning after dragging an archive file
+1. Check if the archive file is complete, the program does not support split archive files.
+2. Check if the archive file has a password, and if the password is entered correctly.
 `;
 
 const configModLoaderContentEn =
@@ -388,15 +388,13 @@ This program is just a mod manager, you need to download a game loader to load m
 These are unwrapped mod loaders, which I highly recommend. Their advantages are: basic, least problematic, responsive, and no additional features.
 
 You can also find 3dmigoto mod loaders customized for various games, such as:
--
 [ZZMI - Zenless Zone Zero Model Importer GitHub](https://github.com/leotorrez/ZZ-Model-Importer)
 [SRMI - Honkai: Star Rail Model Importer GitHub](https://github.com/SilentNightSound/SR-Model-Importer)
 [GIMI - Genshin Impact Model Importer GitHub](https://github.com/SilentNightSound/GI-Model-Importer)
 [WWMI - Wuthering Waves Model Importer GitHub](https://github.com/SpectrumQT/WWMI)
 etc.
--
 
-To use this program with these mod loaders, you only need to set the mod source folder to the Mods folder of the mod loader.
+To use this program with these mod loaders, you only need to set the mod target folder to the Mods folder of the mod loader.
 If you want to use the [Auto Open Game and Mod Loader] feature, you need to set the path of the mod loader's exe file to the mod loader path.
 ---
 # XXMI
@@ -409,7 +407,6 @@ For a better experience, we can configure XXMI to start this program when launch
 2. Select the game
 3. Click settings (gear icon)
 4. In the advanced settings, enable run pre-launch, and set the pre-launch path to the path of this program, be sure to add double quotes and uncheck the wait option
-5. Be sure to uncheck the wait option
 
 This way, when you click start game in XXMI, XXMI will start the mod loader, the game, and this program
 # Use this program to launch XXMI
@@ -441,6 +438,10 @@ If you find any problems in the above steps, please refer to [Troubleshooting].
 
 If you successfully complete the above steps, congratulations, you have successfully loaded the mods.
 Then the mod loader will read the mods in the [mod target folder] and load them into the game.
+---
+# Batch Selection
+Hold Ctrl and click mod cards to select several mods at once (blue border). A mod that is both selected for applying and selected for batch will have a red border.
+After selecting mods for batch, click the chevron-down button at the left end of the bottom bar to open the batch operation panel: set the character or the mod type for all selected mods at once.
 `;
 
 const configContentEn =
@@ -451,6 +452,10 @@ The program adds the following information to each mod:
 2. Shortcut key
 3. Description
 4. Preview image
+5. Mod link (only for mods downloaded from GameBanana — the mod's original link, used to notify you of new versions)
+# Mod Type
+Each mod has a type: Character, Skin, Accessory, Effect, Weapon, or Other. You can change a mod's type in the mod information editing window.
+For each character, you can only enable 1 Character mod, 1 Weapon mod, and 1 Effect mod at the same time; the other types can be enabled in any number.
 # Edit Mod Information
 1. After left-clicking the mod card in the [mod list], you will see an [Edit] button at the bottom of the detailed information bar on the right. Click it to pop up the mod information editing window.
 2. Right-clicking the mod card in the [mod list] will directly pop up the mod information editing window.
@@ -508,6 +513,8 @@ If configured correctly, the program will automatically start the mod loader and
 
 1. The process name is the process name of your game, which you can view through the task manager. For Zenless Zone Zero, the process name is "ZenlessZoneZero.exe".
 2. The virtual key value for refresh is the virtual key value of the shortcut key used by your mod loader to refresh mods. You can search online for the "virtual key value table" to find the virtual key value of the refresh shortcut key of your mod loader. Generally, the refresh shortcut key is F10, and the corresponding virtual key value is 121.
+
+Note: when refresh after applying is turned on, every time you click Apply the screen will briefly switch to the game and back to the app — that is normal. The mod loader only receives the refresh key (F10) when the game window is in front, so the program has to switch to the game to press the key and then switch back.
 `;
 
 const multipleGamesContentEn =
@@ -533,11 +540,13 @@ const troubleContentEn =
   `# Troubleshooting
 When you encounter problems, you can try the following methods to solve them:
 1. Reopen the program
-2. Refer to the [Help] page
-3. Check if it is a problem with the mod loader, try starting the mod loader separately and copying the mod to the mod loader's Mods folder
+2. Check if it is a problem with the mod loader, try starting the mod loader separately and copying the mod to the mod loader's Mods folder
+
+# Mods Broken After a Game Update
+When the game updates, some skin mods may break (they look wrong in game). Open Settings → Mod Fixer: click scan to find mods that may be broken, then click auto-fix to fix them. Scanning only reads your mods and changes nothing; your original mods are always kept as backup.
 
 If you know some front-end development, you can try pressing Ctrl+Shift+I to open the developer tools and check for error messages.
-If you cannot solve the problem, please contact me.
+If you cannot solve the problem, please report it on the program's GitHub Issues page (button below).
 `;
 
 import { g_config_vue } from '../../electron/IManager';
