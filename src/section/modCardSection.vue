@@ -226,7 +226,7 @@
                  hiện dạng rút gọn (tổng + đang bật, vừa ~100px cả khi
                  kho ~500 mod), rê chuột vào vẫn thấy dòng đầy đủ.
                  Đóng bảng thì dòng đầy đủ trở lại. (1.5.29) -->
-            <span class="mod-stats" :class="{ 'panel-open': viewPanelOpen }" :title="statsFullLine">{{ statsLine }}</span>
+            <span class="mod-stats" :title="statsFullLine">{{ statsLine }}</span>
         </div>
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
@@ -1128,18 +1128,26 @@ EventSystem.on('toggledMod', (mod) => {
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+    /* Neo cho bảng lớp nổi (position absolute của .view-panel). */
+    position: relative;
 }
 
 /* Bảng mở ngang (1.5.26): 4 nút xem thẻ xếp thành 1 hàng ngang, nằm
-   GỌN TRONG hàng thanh dưới (cao 60px) — đóng thì co về rộng 0, mở thì
-   dài sang phải từ nút mở bảng, KHÔNG trồi lên chạm khung thẻ mod
-   (Đạt sửa 23/11). Đệm dọc chỉ 2px để bảng (~54px) vừa trong thanh
-   dưới. Nền đen tuyền + viền + bóng như bảng thao tác hàng loạt
-   (Đạt dặn 20/11: không dùng surface-container trong suốt, không dùng
+   GỌN TRONG hàng thanh dưới (cao 60px), KHÔNG trồi lên chạm khung thẻ
+   mod (Đạt sửa 23/11). Từ 1.5.30 test2 bảng là LỚP NỔI THẬT SỰ
+   (position absolute, Đạt chọn 24/11): mở ra không đẩy bố cục thanh
+   dưới nữa nên dòng số liệu đứng yên đúng giữa mọi lúc — trước đây
+   bảng nằm trong luồng (in-flow) nên mở ra làm khung giữa co lại,
+   số liệu nhảy ~265px sang phải ở màn 1280. Bảng neo vào nút mở
+   (left = mép phải nút + 8px), căn giữa dọc theo nút. z-index 10:
+   cao hơn dòng số liệu (5) nên màn hẹp bảng phủ lên số liệu lúc mở
+   (Đạt đã biết và chấp nhận khi chọn kiểu này); màn rộng bảng không
+   chạm tới số liệu. Đóng thì co về rộng 0 + đệm ngang/viền về 0 (chỉ
+   max-width: 0 vẫn để lại 28px đệm+viền — probe 23/11 đo ra).
+   Nền đen tuyền + viền + bóng như bảng thao tác hàng loạt (Đạt dặn
+   20/11: không dùng surface-container trong suốt, không dùng
    surface-container-low trùng màu nút). Nút trong bảng flex-shrink: 0
-   để lúc thu/phóng nút bị cắt dần chứ không bị bóp méo. Đóng thì đệm
-   ngang + viền cũng về 0 (chỉ max-width: 0 vẫn để lại 28px đệm+viền —
-   probe 23/11 đo ra), min-width: 0 để mục flex co hết được. */
+   để lúc thu/phóng nút bị cắt dần chứ không bị bóp méo. */
 .view-panel {
     display: flex;
     align-items: center;
@@ -1158,6 +1166,12 @@ EventSystem.on('toggledMod', (mod) => {
     opacity: 0;
     overflow: hidden;
     pointer-events: none;
+    /* Lớp nổi: ra khỏi luồng bố cục, neo vào nút mở bảng. */
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
     transition: max-width 0.25s ease, opacity 0.2s ease, padding 0.25s ease, border-width 0.25s ease;
 }
 
@@ -1188,16 +1202,14 @@ EventSystem.on('toggledMod', (mod) => {
 }
 
 /* Dòng số liệu neo tuyệt đối vào giữa thanh dưới (1.5.30 test2, Đạt
-   dặn 24/11: để ở giữa và giữ nguyên khi bấm nút tùy chọn hiển thị).
-   Trước đây số liệu căn giữa trong .bottom-center (flex:1) nên bảng mở
-   ra làm khung này co lại, số liệu nhảy ~265px sang phải ở màn 1280
-   (đo thật: tâm 694 -> 959). Neo vào giữa cả thanh thì bảng mở/đóng
-   không làm số liệu nhúc nhích. Khi bảng mở, left dùng max(50%,
-   961px): màn đủ rộng thì vẫn đúng giữa (màn 1920 chỉ lệch 1px);
-   màn hẹp thì số liệu dời phải vừa đủ để bảng (mép phải ~893px tính
-   từ mép trái thanh, đo thật) không che mất — 961 = 893 + nửa rộng
-   dòng rút gọn (~60px) + khe 8px. Màn hẹp không có chỗ nào vừa giữa
-   vừa thấy được khi bảng mở, nên dời phải là đánh đổi bắt buộc. */
+   dặn 24/11: để ở giữa và giữ nguyên, không bị ảnh hưởng bởi lớp nổi
+   của bảng tùy chọn). Bảng giờ là lớp nổi thật sự (position absolute,
+   ra khỏi luồng bố cục) nên mở/đóng bảng không làm bố cục thanh đổi —
+   số liệu đứng yên đúng giữa mọi lúc, mọi cỡ màn hình. Chữ vẫn đổi
+   ngắn/dài theo bảng mở hay đóng (dạng rút gọn khi bảng mở để không
+   chạm bảng ở màn rộng) nhưng tâm số liệu không đổi. z-index 5: thấp
+   hơn bảng (10) nên màn hẹp bảng phủ lên số liệu lúc mở (Đạt đã biết
+   và chấp nhận khi chọn kiểu lớp nổi). */
 .mod-stats {
     font-size: 14px;
     color: var(--s-color-on-surface-variant);
@@ -1209,13 +1221,6 @@ EventSystem.on('toggledMod', (mod) => {
     top: 50%;
     transform: translate(-50%, -50%);
     z-index: 5;
-    /* Trượt mượt theo bảng (0,25s như bảng): màn hẹp mở bảng thì số
-       liệu lướt sang phải cùng lúc bảng trượt ra, không nhảy cục. */
-    transition: left 0.25s ease;
-}
-
-.mod-stats.panel-open {
-    left: max(50%, 961px);
 }
 
 .bottom-right {
