@@ -26,3 +26,10 @@ build
 
 # doc
 docs/
+
+# Dev probe/screenshot scripts (local tooling, never committed)
+shot-*.js
+probe-*.js
+diag-*.js
+debug-select.js
+push-via-api*.py

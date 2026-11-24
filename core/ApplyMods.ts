@@ -194,14 +194,13 @@ function resolveApplySets(modIds: string[]): { notInSelectedMods: ModInfo[]; inB
         return mod ? mod : null;
     }).filter(mod => mod !== null) as ModInfo[];
 
-    console.log('selectedMods', selectedMods);
-
-    const notInSelectedMods = allMod.filter(mod => !selectedMods.includes(mod));
-    const inBoth = selectedMods.filter(mod => allMod.includes(mod));
-
-    // debug
-    console.log('notInSelectedMods', notInSelectedMods);
-    console.log('inBoth', inBoth);
+    // Tra qua Set thay vì .includes trong vòng lọc (Đạt 24/11): bản cũ
+    // là O(n×m) — 500 mod × 100 mod chọn = 50.000 lần so sánh mỗi lần
+    // Apply; bản này là O(n+m), kết quả giống hệt (so sánh theo tham chiếu).
+    const selectedSet = new Set(selectedMods);
+    const allSet = new Set(allMod);
+    const notInSelectedMods = allMod.filter(mod => !selectedSet.has(mod));
+    const inBoth = selectedMods.filter(mod => allSet.has(mod));
 
     return { notInSelectedMods, inBoth };
 }
@@ -262,7 +261,6 @@ async function applyMods(
 
 
     //debug
-    console.log('modIds', modIds);
 
     
 

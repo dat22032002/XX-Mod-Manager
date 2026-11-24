@@ -17,9 +17,21 @@ const LOAD_CHUNK_SIZE = 10;
 // Let the UI thread breathe between chunks — 16ms (1 frame) so the
 // browser actually PAINTS between chunks: with 0ms the load-progress
 // text only sits in the DOM and the eye never sees it (same lesson as
-// the Fixer progress, 1.5.25-test8). Cost: ~16ms per 10 mods.
+// the Fixer progress, 1.5.25-test8).
+//
+// Adaptive (Dat 24/11): pause only when enough time passed since the
+// last pause. A fresh-scan chunk takes 20-40ms of real work, so it
+// still pauses after every chunk (same as before). A cached chunk
+// takes ~2-3ms, so several chunks batch into one pause — the old fixed
+// pause wasted ~16ms per 10 cached mods (~800ms on a 500-mod library).
+// The progress text still paints: it updates before the pause, and
+// pauses land at least every ~16ms of work.
+let lastYieldAt = 0;
 async function yieldToUI() {
+    const now = Date.now();
+    if (now - lastYieldAt < 16) return;
     await new Promise(resolve => setTimeout(resolve, 16));
+    lastYieldAt = Date.now();
 }
 
 class ModLoader {
@@ -73,9 +85,10 @@ class ModLoader {
     }
 
     static async loadMods(forceRescan: boolean = false) {
-        // 检查一下调用堆栈
-        console.trace('ModLoader.loadMods: called from', new Error());
         let startTime = Date.now();
+        // Nhịp nghỉ linh hoạt: lần tải này bắt đầu với "chưa từng nghỉ"
+        // nên khối đầu luôn nghỉ (dòng tiến độ vẽ ngay từ đầu).
+        lastYieldAt = 0;
 
         this.modsRaw = [];
         this.mods = [];
