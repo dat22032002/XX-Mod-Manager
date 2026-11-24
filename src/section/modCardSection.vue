@@ -1199,24 +1199,28 @@ EventSystem.on('toggledMod', (mod) => {
     color: var(--s-color-dark-surface);
 }
 
-/* Nút Apply nhấp nháy nhẹ khi còn thay đổi chưa áp (Đạt dặn 22/11):
-   sáng lên + hào quang vàng rồi dịu xuống trong 2 giây, lặp lại. Bản
-   đầu chỉ sáng 1.22 Đạt chê không khác lúc thường mấy nên tăng lên 1.3
-   + thêm hào quang cho thấy rõ, vẫn giữ nhịp chậm 2 giây cho nhẹ. */
-@keyframes apply-pulse {
-    0%, 100% {
-        filter: brightness(1);
-        box-shadow: 0 0 0 rgba(242, 217, 0, 0);
+/* Nút Apply trôi màu cam-vàng khi còn thay đổi chưa áp (Đạt chọn
+   24/11: bản cam tĩnh trước, rồi thêm hiệu ứng trôi như vàng-xanh).
+   Nhịp y hệt hiệu ứng gốc của colorManager: trôi 2 giây + nghỉ nửa
+   giây mỗi chiều (chu kỳ 5 giây). Animation thắng được màu inline mà
+   colorManager ghi lúc chạy nên không cần !important; hết thay đổi
+   chưa áp thì class gỡ ra, hiệu ứng dừng, màu vàng-xanh trở lại. */
+@keyframes apply-orange-shift {
+    0%, 10% {
+        background-color: #FF9800;
     }
 
-    50% {
-        filter: brightness(1.3);
-        box-shadow: 0 0 18px rgba(242, 217, 0, 0.75);
+    50%, 60% {
+        background-color: #F2D900;
+    }
+
+    100% {
+        background-color: #FF9800;
     }
 }
 
 #apply-button.has-unapplied {
-    animation: apply-pulse 2s ease-in-out infinite;
+    animation: apply-orange-shift 5s ease-in-out infinite;
 }
 
 .apply-progress {
