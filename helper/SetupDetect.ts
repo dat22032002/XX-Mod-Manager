@@ -84,6 +84,14 @@ function findLauncherDir(launcherRoots) {
     return null;
 }
 
+// Đường dẫn file chạy của launcher (Resources\Bin\XXMI Launcher.exe) —
+// không có thì null.
+function findLauncherExe(launcherDir) {
+    if (!launcherDir) return null;
+    const exe = path.join(launcherDir, LAUNCHER_EXE_REL);
+    return isFile(exe) ? exe : null;
+}
+
 // Đọc file cấu hình launcher — trả { importerFolder, gameFolder } của
 // ZZMI, lỗi/ thiếu thì null từng mục (không văng lỗi ra ngoài).
 function readLauncherConfig(launcherDir) {
@@ -167,6 +175,60 @@ function ensureDir(dir) {
     try { fs.mkdirSync(dir, { recursive: true }); return isDir(dir); } catch (_e) { return false; }
 }
 
+// Chuyển từng thư mục mod con từ thư mục nguồn sang thư mục đích.
+// KHÁC moveAllFiles của IManager (chỉ chép được file, gặp thư mục thì
+// văng lỗi): hàm này chuyển được cả thư mục con (mod là thư mục).
+// Tên đã có sẵn ở đích thì BỎ QUA (không ghi đè, không xóa bản gốc).
+// Trả { moved: [tên], skipped: [tên], failed: [tên] }.
+function moveModFolders(srcDir, destDir) {
+    const out = { moved: [], skipped: [], failed: [] };
+    if (!isDir(srcDir) || !ensureDir(destDir)) return out;
+    let children = [];
+    try { children = fs.readdirSync(srcDir); } catch (_e) { return out; }
+    for (const name of children) {
+        const src = path.join(srcDir, name);
+        const dest = path.join(destDir, name);
+        if (!isDir(src)) continue;
+        if (fs.existsSync(dest)) { out.skipped.push(name); continue; }
+        try {
+            fs.cpSync(src, dest, { recursive: true });
+            fs.rmSync(src, { recursive: true, force: true });
+            out.moved.push(name);
+        } catch (_e) {
+            out.failed.push(name);
+            try { fs.rmSync(dest, { recursive: true, force: true }); } catch (_e2) { /* kệ */ }
+        }
+    }
+    return out;
+}
+
+// --- Tải XXMI Launcher (MSI) ---
+// Bản mới nhất đã kiểm chứng 24/11: v2.5.0, file MSI tải trực tiếp
+// (không bọc trong zip), ~99MB.
+const XXMI_API_LATEST = 'https://api.github.com/repos/SpectrumQT/XXMI-Launcher/releases/latest';
+const XXMI_MSI_PATTERN = /^XXMI-Launcher-Installer-Online-.*\.msi$/i;
+
+// Chuẩn hóa kết quả GitHub API (kiểu normalizeFixerRelease trong
+// ModFixer.ts) — trả { tag, asset: { name, size, downloadUrl } | null }.
+function normalizeXxmiRelease(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const tag = typeof raw.tag_name === 'string' ? raw.tag_name : '';
+    if (!tag) return null;
+    let asset = null;
+    const assets = Array.isArray(raw.assets) ? raw.assets : [];
+    for (const a of assets) {
+        if (a && typeof a.name === 'string' && XXMI_MSI_PATTERN.test(a.name)) {
+            asset = {
+                name: a.name,
+                size: typeof a.size === 'number' ? a.size : 0,
+                downloadUrl: typeof a.browser_download_url === 'string' ? a.browser_download_url : '',
+            };
+            break;
+        }
+    }
+    return { tag, asset };
+}
+
 // Thư mục mặc định khi người dùng chưa có kho mod / preset: đặt trong
 // Documents cho dễ tìm (không đặt trong thư mục game — tránh rắc rối
 // với chống gian lận của game; không đặt trong %AppData% — chỗ đó khuất).
@@ -178,19 +240,23 @@ function defaultPresetDir() {
     return path.join(os.homedir(), 'Documents', 'XXMM Presets');
 }
 
-module.exports = {
+export {
     GAME_EXE,
     LAUNCHER_CONFIG,
+    XXMI_API_LATEST,
     windowsGameRoots,
     windowsLauncherRoots,
     findGameExe,
     isLauncherDir,
     findLauncherDir,
+    findLauncherExe,
     readLauncherConfig,
     findZzmiMods,
     countModFolders,
     looksLikeModLibrary,
     ensureDir,
+    moveModFolders,
+    normalizeXxmiRelease,
     defaultLibraryDir,
     defaultPresetDir,
 };
