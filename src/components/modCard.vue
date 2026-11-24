@@ -12,7 +12,7 @@
         </div>
 
         <div slot="headline" id="mod-item-headline">
-            <span class="mod-item-name" :style="nameColorStyle" :data-name-tag="displayTag || ''">{{ props.modRef.name }}</span>
+            <span class="mod-item-name">{{ props.modRef.name }}</span>
             <!-- Dấu bản mới Banana: bấm để cập nhật thẳng từ thẻ (1.5.25).
                  Nằm ở hàng tiêu đề nên hiện được cả thẻ thường lẫn thẻ gọn. -->
             <button v-if="gbHasUpdateRef" class="gb-update-btn" :class="{ updating: gbUpdatingRef }"
@@ -28,8 +28,12 @@
         </div>
         <div slot="text" id="mod-item-text">
             <!-- Dung lượng thư mục mod (Đạt dặn 20/11): chữ nhỏ kiểu dòng
-                 đếm mod, ngay dưới tên mod, thẳng lề trái với tên. -->
-            <div class="mod-item-size">{{ sizeText }}</div>
+                 đếm mod, ngay dưới tên mod, thẳng lề trái với tên.
+                 Nhãn tag nhỏ (Đạt dặn 24/11): tag hiện chung dòng này
+                 ("2 KB · Skin"), 1 màu xám nhạt duy nhất — kế thừa đúng
+                 màu dòng dung lượng. Chung dòng vì thẻ Ngang đã chật
+                 sẵn, dòng riêng sẽ che mô tả (xem ghi chú ở displayTag). -->
+            <div class="mod-item-size">{{ sizeText }}<span v-if="tagLabelSuffix" class="mod-item-tag">{{ tagLabelSuffix }}</span></div>
             <s-scroll-view>
                 <!-- <p id="mod-hotkeys">Hotkeys: {{ displayHotKeys }}</p> -->
                 <p id="mod-item-description">{{ props.modRef.description }}</p>
@@ -49,10 +53,13 @@ const iManager = new IManager();
 import { EventSystem, EventType } from '../../helper/EventSystem';
 import { TranslatedText } from '../../helper/Language';
 import { ModData } from '../../core/ModHelper';
-import { TAG_NAME_COLORS } from '../../helper/ModTag';
+import { isValidTag } from '../../helper/ModTag';
+import { useI18n } from 'vue-i18n';
 import { formatModSize } from '../../helper/ModSizeScanner';
 import { DialogHelper, DialogID } from '../../helper/DialogHelper';
 import { selectedModIdSet, toggleModSelection, toggleModPin, batchSelectedModIdSet, toggleBatchSelection } from '../../helper/SelectedMods';
+
+const { t } = useI18n();
 
 const props = defineProps({
     modRef: {
@@ -169,29 +176,37 @@ const clicked = computed(() => selectedModIdSet.has(props.modRef.id));
 // Chọn hàng loạt (Ctrl+bấm): viền xanh biển, riêng với chọn vàng.
 const batchClicked = computed(() => batchSelectedModIdSet.has(props.modRef.id));
 
-// Màu tên mod theo tag (Đạt dặn 23/11, sửa 21:46: không đoán —
-// mỗi mod đã có sẵn tag, tên chỉ đổi màu theo đúng tag đó, tính
-// lúc vẽ thẻ nên đổi tag trong hộp sửa mod là màu đổi theo ngay).
-// Tag trống/lạ thì tên giữ màu mặc định. Màu chỉ để hiển thị —
-// tag thật của mod (lọc, luật bật/tắt) không đổi.
+// Nhãn tag nhỏ dưới tên mod (Đạt dặn 24/11, thay bản tên đổi màu
+// 6 màu 23/11 mà anh chê nhìn khó chịu): tên về trắng mặc định,
+// tag hiện chung dòng dung lượng ("2 KB · Skin"), 1 màu xám nhạt
+// duy nhất — kế thừa đúng màu dòng dung lượng, đồng bộ với chip
+// tag ở khung phải (dùng chung khóa i18n modTag.*).
+//
+// VÌ SAO CHUNG DÒNG CHỨ KHÔNG DÒNG RIÊNG: đo thật thẻ Ngang đã
+// chật sẵn — dòng đầu mô tả chỉ còn thừa 1.3px khi thẻ được chọn
+// (đáy dòng 262.1 so với đáy khung 263.4); thêm dòng nhãn 20px
+// sẽ che gần hết mô tả. Chung dòng thì không tốn chiều cao nào.
 //
 // LƯU Ý (lỗi Đạt báo 22:13): đổi tag HÀNG LOẠT sửa thẳng đối tượng
 // gốc (getModInfoById trả về đúng đối tượng trong kho, không qua
 // lớp phản ứng của Vue) nên Vue không tự biết tag đã đổi — computed
-// cứ giữ màu cũ dù thẻ đã vẽ lại (data-tag thì đổi vì nó đọc trực
-// tiếp lúc vẽ). Vì vậy màu tên còn phụ thuộc vào modInfoVersion:
+// cứ giữ nhãn cũ dù thẻ đã vẽ lại (data-tag thì đổi vì nó đọc trực
+// tiếp lúc vẽ). Vì vậy nhãn còn phụ thuộc vào modInfoVersion:
 // mỗi lần có sự kiện modInfoChanged cho đúng mod này thì tăng
-// version, ép màu tính lại. Hộp sửa mod vẫn đi đường cũ (sửa qua
+// version, ép nhãn tính lại. Hộp sửa mod vẫn đi đường cũ (sửa qua
 // lớp phản ứng) nên không ảnh hưởng.
 const modInfoVersion = ref(0);
 const displayTag = computed(() => {
     void modInfoVersion.value;
     const tag = props.modRef.tag;
-    return tag && tag in TAG_NAME_COLORS ? tag : null;
+    return isValidTag(tag) ? tag : null;
 });
-const nameColorStyle = computed(() => {
+// Hậu tố nhãn tag sau dung lượng (" · Skin"); dung lượng chưa quét
+// xong (rỗng) thì chỉ hiện tên tag, không có dấu chấm thừa.
+const tagLabelSuffix = computed(() => {
     const tag = displayTag.value;
-    return tag ? { color: TAG_NAME_COLORS[tag] } : null;
+    if (!tag) return '';
+    return (sizeText.value ? ' · ' : '') + t(`modTag.${tag}`);
 });
 const modItemRef = useTemplateRef('modItemRef');
 const emit = defineEmits(['click'])
@@ -335,8 +350,8 @@ onUnmounted(() => {
 });
 
 // Thông tin mod đổi: chỉ đọc lại ảnh khi đúng là mod của thẻ này.
-// Đồng thời tăng modInfoVersion để màu tên tính lại (đổi tag hàng
-// loạt sửa thẳng đối tượng gốc nên computed màu không tự biết).
+// Đồng thời tăng modInfoVersion để nhãn tag tính lại (đổi tag hàng
+// loạt sửa thẳng đối tượng gốc nên computed nhãn không tự biết).
 const onModInfoChanged = async (mod) => {
     if (mod && mod.id === props.modRef.id) {
         modInfoVersion.value++;

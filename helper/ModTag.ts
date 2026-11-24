@@ -45,21 +45,6 @@ export function tagFromPrefix(folderName: string): ModTag {
     return 'character';
 }
 
-// Màu tên mod trên thẻ theo tag (Đạt dặn 23/11): tên hiện bằng màu
-// của tag SẴN CÓ của mod — không đoán từ tên (Đạt sửa 23/11 21:46:
-// "chỉ cần dựa vào tag của mod là được"). Mỗi tag 1 màu, đọc được
-// trên nền tối của thẻ, phân biệt rõ nhau. Tránh xanh biển đậm
-// (trùng viền chọn hàng loạt #2196F3) và đỏ (trùng viền chọn cả 2
-// loại #F44336).
-export const TAG_NAME_COLORS: Record<ModTag, string> = {
-    character: '#FFD54F', // vàng hổ phách — loại chính, gần vàng của app
-    skin: '#F48FB1',      // hồng — đồ hở/da
-    weapon: '#FF8A65',    // cam — vũ khí
-    effect: '#CE93D8',    // tím — hiệu ứng
-    accessory: '#4DD0E1', // xanh lơ — phụ kiện
-    other: '#AED581',     // xanh lá nhạt — linh tinh (UI/NPC/world)
-};
-
 // Chuẩn hóa giá trị lọc theo loại đọc từ config cũ: 'outfit' (tên loại
 // cũ trước khi có tag) thành 'character'; giá trị lạ thì về 'all'.
 export function normalizeTypeFilter(value: unknown): string {
