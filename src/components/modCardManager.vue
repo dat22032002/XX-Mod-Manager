@@ -19,7 +19,15 @@
              cả / Đã chọn) nằm trong characterList.vue ở cột trái; chỗ này
              chỉ đọc lựa chọn đã lưu trong config để lọc/xếp danh sách
              (xem filteredMods). -->
-        <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 12px 12px;">
+        <!-- scrollbar-gutter: stable — giữ chỗ cho thanh lăn LUÔN, kể
+             cả khi nội dung vừa khung không cần lăn. Không có nó, bấm
+             thẻ hàng cuối (hiệu ứng bấm phóng to 1.05x) làm nội dung
+             tràn một chút → thanh lăn hiện ra → lưới hẹp 6px → CSS
+             auto-fill tính theo --card-width cũ → sập 1 cột, cả lưới
+             nhảy (Đạt thấy 24/11: ~9 mod thì nhảy, 12+ mod không sao
+             vì thanh lăn luôn hiện). Giữ chỗ cố định thì rộng lưới
+             không đổi nữa, vòng lặp đứt. -->
+        <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;scrollbar-gutter: stable;border-radius: 0 0 12px 12px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
             <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle">
                 <!-- Key = id + tên thư mục: phòng khi id vẫn trùng (lỗi
