@@ -81,6 +81,14 @@
                         </s-button>
                     </div>
                 </div>
+                <div class="OO-setting-bar fixer-block">
+                    <h3>{{ $t('fixer.backupTitle') }}</h3>
+                    <p>{{ $t('fixer.backupNote') }}</p>
+                    <p>{{ fixerBackupText }}</p>
+                    <s-button class="OO-button" :disabled="fixerState.backupCount === 0 || fixerState.flowStep !== 'idle'" @click="handleFixerCleanupBackups">
+                        {{ $t('fixer.cleanupButton') }}
+                    </s-button>
+                </div>
                 <div v-if="fixerState.scannedOnce" class="OO-setting-bar fixer-block fixer-scan-list">
                     <p v-if="fixerState.suspects.length === 0">{{ $t('fixer.noBrokenMods') }}</p>
                     <template v-else>
@@ -210,6 +218,7 @@ import { EventSystem, EventType } from '../../helper/EventSystem.ts';
 import { SnackType, t_snack, snack } from '../../helper/SnackHelper.ts';
 import { updateState, fetchAppVersion, checkForUpdates } from '../../helper/UpdateHelper';
 import { fixerState } from '../../helper/FixerHelper';
+import { formatModSize } from '../../helper/ModSizeScanner';
 
 const tabs = ref(['normal', 'advanced', 'fixer', 'plugin']);
 const translatedTabs = computed(() => {
@@ -280,6 +289,24 @@ const fixerUnchangedCount = computed(() => fixerState.results.filter((r) => r.st
 const fixerFailedCount = computed(() => fixerState.results.filter((r) => r.status === 'failed').length);
 
 const refreshFixerStatus = () => { fixerStatus.value = iManager.fixerStatus(); };
+
+// Số đếm bản sao lưu (đọc từ đĩa; fixerState giữ để chuyển section
+// đi về không mất). Đếm lại khi mở trang Cài đặt, khi vào tab Fixer
+// và khi 1 đợt sửa xong (lúc đó có thể có thêm bản sao lưu mới).
+const fixerBackupText = computed(() => fixerState.backupCount === 0
+    ? t('fixer.noBackups')
+    : t('fixer.backupInfo', { count: fixerState.backupCount, size: formatModSize(fixerState.backupBytes) }));
+const refreshFixerBackupInfo = () => {
+    const info = iManager.fixerBackupInfo();
+    fixerState.backupCount = info.count;
+    fixerState.backupBytes = info.bytes;
+};
+const handleFixerCleanupBackups = () => {
+    if (fixerState.backupCount === 0 || fixerState.flowStep !== 'idle') return;
+    iManager.showDialog('dialog-confirm-cleanup-fixer-backups');
+};
+watch(currentTab, (tab) => { if (tab === 'fixer') refreshFixerBackupInfo(); });
+watch(() => fixerState.flowStep, (step) => { if (step === 'done') refreshFixerBackupInfo(); });
 
 const handleFixerCheck = async () => {
     if (fixerState.checking || fixerState.downloading) return;
@@ -590,6 +617,9 @@ const showConflictWarning = {
 onMounted(async () => {
     //初始化tab
     currentTab.value = tabs.value[0];
+
+    // Đếm bản sao lưu của Fixer để hiện trong tab Fixer.
+    refreshFixerBackupInfo();
 
     // Lấy version đang chạy để hiện cạnh nút kiểm tra cập nhật.
     fetchAppVersion().then((v) => {

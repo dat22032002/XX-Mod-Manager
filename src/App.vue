@@ -62,6 +62,7 @@
     <dialogConfirmClose />
     <dialogConfirmDeleteMod />
     <dialogConfirmDeletePreset />
+    <dialogConfirmCleanupFixerBackups />
     <dialogConfirmConflict />
     <dialogUpdateAvailable />
     <dialogUpdateDownloaded />
@@ -85,6 +86,7 @@ import dialogConfirmReset from './dialogs/dialogConfirmReset.vue';
 import dialogConfirmClose from './dialogs/dialogConfirmClose.vue';
 import dialogConfirmDeleteMod from './dialogs/dialogConfirmDeleteMod.vue';
 import dialogConfirmDeletePreset from './dialogs/dialogConfirmDeletePreset.vue';
+import dialogConfirmCleanupFixerBackups from './dialogs/dialogConfirmCleanupFixerBackups.vue';
 import dialogConfirmConflict from './dialogs/dialogConfirmConflict.vue';
 import dialogUpdateAvailable from './dialogs/dialogUpdateAvailable.vue';
 import dialogUpdateDownloaded from './dialogs/dialogUpdateDownloaded.vue';

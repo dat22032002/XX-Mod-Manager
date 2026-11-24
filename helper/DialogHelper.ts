@@ -18,6 +18,7 @@ enum DialogID {
     dialogConfirmBatchCharacter = 'dialog-confirm-batch-character',
     dialogConfirmBatchTag = 'dialog-confirm-batch-tag',
     dialogConfirmDeletePreset = 'dialog-confirm-delete-preset',
+    dialogConfirmCleanupFixerBackups = 'dialog-confirm-cleanup-fixer-backups',
     dialogUpdateAvailable = 'dialog-update-available',
     dialogUpdateDownloaded = 'dialog-update-downloaded',
     dialogConfirmConflict = 'dialog-confirm-conflict',

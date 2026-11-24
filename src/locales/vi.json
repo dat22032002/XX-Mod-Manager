@@ -350,7 +350,14 @@
     "fixUnchanged": "{count} mod không đổi gì — đã giữ nguyên bản gốc",
     "fixFailed": "{count} mod không sửa được — đã giữ nguyên bản gốc",
     "fixError": "Có lỗi xảy ra, đã giữ nguyên bản gốc",
-    "backupNote": "Bản gốc được giữ dự phòng trong thư mục tools của Fixer, anh tự xóa khi không cần nữa."
+    "backupNote": "Bản gốc được giữ dự phòng trong thư mục tools của Fixer, anh tự xóa khi không cần nữa.",
+    "backupTitle": "Bản sao lưu",
+    "noBackups": "Chưa có bản sao lưu nào.",
+    "backupInfo": "{count} bản sao lưu · {size}",
+    "cleanupButton": "Dọn bản sao lưu",
+    "cleanupTitle": "Dọn bản sao lưu",
+    "cleanupConfirm": "Xóa hết {count} bản sao lưu ({size})? Xóa rồi không khôi phục được.",
+    "cleanupDone": "Đã xóa {count} bản sao lưu."
   },
   "setup": {
     "welcomeTitle": "Chào mừng đến với XX Mod Manager",

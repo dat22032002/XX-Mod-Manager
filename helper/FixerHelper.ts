@@ -58,4 +58,9 @@ export const fixerState = reactive({
     prepared: null as FixerPrepared | null,
     // Kết quả từng mod của lần sửa gần nhất.
     results: [] as FixerResult[],
+    // Bản sao lưu của Fixer (mục dọn dẹp trong tab Fixer): số thư mục
+    // con + tổng dung lượng. Giữ ở đây (không phải ref cục bộ) vì
+    // chuyển section là settingSection bị tháo ra, ref cục bộ mất.
+    backupCount: 0,
+    backupBytes: 0,
 });
