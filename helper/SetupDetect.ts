@@ -19,6 +19,14 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+// BẪY VITE (bắt được 24/11 qua probe trình setup): `process.env` viết
+// trực tiếp trong code sẽ bị Vite thay bằng object rỗng `{}` lúc đóng
+// gói (bundle có `var Sa={}`) nên đọc env luôn ra undefined — phải
+// require('process') lúc chạy, cùng cách IManager require 'path' qua
+// biến trung gian để Vite không phân tích tĩnh được.
+const processModuleName = 'process';
+const procEnv = require(processModuleName).env || {};
+
 const GAME_EXE = 'ZenlessZoneZero.exe';
 const LAUNCHER_CONFIG = 'XXMI Launcher Config.json';
 const LAUNCHER_EXE_REL = path.join('Resources', 'Bin', 'XXMI Launcher.exe');
@@ -26,8 +34,8 @@ const LAUNCHER_EXE_REL = path.join('Resources', 'Bin', 'XXMI Launcher.exe');
 // Thư mục hay gặp trên Windows — quét hết, thấy cái nào dùng cái nấy,
 // không thấy thì để người dùng chọn tay (không bao giờ đoán mò).
 function windowsGameRoots() {
-    const pf = process.env.ProgramFiles || 'C:\\Program Files';
-    const pf86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+    const pf = procEnv.ProgramFiles || 'C:\\Program Files';
+    const pf86 = procEnv['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
     const roots = [];
     for (const base of [pf, pf86]) {
         roots.push(path.join(base, 'HoYoPlay', 'games', 'ZenlessZoneZero Game'));
@@ -43,7 +51,7 @@ function windowsGameRoots() {
 }
 
 function windowsLauncherRoots() {
-    const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
+    const appData = procEnv.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
     const roots = [path.join(appData, 'XXMI Launcher')];
     for (const drive of ['C:', 'D:', 'E:', 'F:']) {
         roots.push(path.join(drive, 'Games', 'XXMI Launcher'));
