@@ -798,6 +798,34 @@ defineExpose({ clearSearchInput });
     color: var(--s-color-on-surface);
     cursor: pointer;
     user-select: none;
+    /* position: relative để neo lớp chấm bi ::before bên dưới. */
+    position: relative;
+}
+
+/* THỬ NGHIỆM chấm bi (Đạt 24/11): họa tiết lưới chấm bi của nút Apply
+   (.OO-button::before trong src/style.css — ô 10px, chấm 15%, 2 lớp
+   lệch nhau 5px) áp lên hàng nhân vật cột trái, chấm ĐEN như nút gốc,
+   độ mờ 0.1 — bằng đúng nút Apply (Đạt dặn 24/11: nhạt như nút).
+   Hàng đang chọn nền vàng nên chấm hiện rõ y hệt nút;
+   hàng thường nền tối nên chấm mờ (cùng lý do như trên thẻ mod —
+   Đạt đã bỏ chấm bi trên thẻ 24/11 vì không đẹp). ::before phủ hết
+   hàng, bo góc theo hàng (8px), không chặn bấm (pointer-events: none).
+   Hàng co/giãn theo hình mũi tên (transition width) thì lớp chấm bám
+   theo vì neo 4 mép. */
+.character-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.1;
+    pointer-events: none;
+    border-radius: 8px;
+    background-image: radial-gradient(black 15%, transparent 16%),
+        radial-gradient(black 15%, transparent 16%);
+    background-size: 10px 10px;
+    background-position: 0 0, 5px 5px;
 }
 
 .character-row.active {
