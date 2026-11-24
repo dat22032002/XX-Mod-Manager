@@ -64,25 +64,28 @@ const refreshInGame = async (iManager) => {
         // TC25: bọc toàn bộ trong try/finally — lỗi ở bước giữa (vd setFocus
         // văng) thì phím vẫn được nhả + focus trả về app, không kẹt phím F10
         // trong game. Thành công thì giữ nguyên hành vi cũ (focus ở lại game).
+        //
+        // THỬ NGHIỆM 1 lần nhảy (Đạt 24/11): bản cũ nhảy focus 3 lần
+        // (game → app → game) vì bấm + nhả phím đều lúc app đang trước
+        // mặt — Đạt thấy màn hình nhảy khó chịu. Bản này chỉ nhảy 1 lần:
+        // bấm xuống ở app → qua game → nhả ở game → ở lại game luôn.
+        // Trạng thái phím là chung cả máy nên nhả ở game vẫn phải thấy
+        // phím nhả; nếu game không tải lại mod thì về lại bản 3 lần nhảy.
+        // Chỉ đổi số lần nhảy, giữ nguyên thời gian chờ 75ms (1 biến 1 lần).
         let keyDown = false;
         let succeeded = false;
         try {
             // 1. Press the F10 Key down on the manager
             HMC.sendKeyboard(VisualKey, true);
             keyDown = true;
-            // 2. Set focus on ZZZ window
+            // 2. Set focus on ZZZ window (single switch)
             window.setFocus(true);
             // 3. Wait a reasonable amount of time for the key to register
             await sleep(75);
-            // 4. Set focus on the Manager window
-            manager.setFocus(true);
-            // 5. Wait again for the window
-            await sleep(50);
-            // 6. Release the F10 Key
+            // 4. Release the F10 Key while the game is focused, then stay
+            // on the game — no switch back to the manager.
             HMC.sendKeyboard(VisualKey, false);
             keyDown = false;
-            // 7. Set focus on ZZZ window again
-            window.setFocus(true);
             succeeded = true;
             return 1;
         } catch (error) {
