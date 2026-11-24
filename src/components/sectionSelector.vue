@@ -273,6 +273,12 @@ defineExpose({
 .section-item>p{
     transition: color 0.3s;
     font-weight: 900;
+    /* Không quấn chữ (1.5.29): chữ tiếng Việt có khoảng trắng ("Trợ
+       giúp", "Cài đặt") bị quấn 2 dòng trong mục chỉ rộng 54px (mục
+       134px trừ đệm 2×40px) rồi bị khung 40px cắt mất nửa trên/dưới.
+       nowrap thì mục tự rộng ra vừa chữ (min-width: auto), thanh tab
+       dài thêm chút nhưng vẫn vừa đầu trang. */
+    white-space: nowrap;
 }
 
 .section-item.active {

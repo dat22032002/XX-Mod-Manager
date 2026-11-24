@@ -119,7 +119,7 @@
 
             <!-- Nút Refresh dạng dài có chữ, giống nút Open Folder ở khung
                  chi tiết (Đạt dặn 20/11): s-button + icon ở đầu + chữ. -->
-            <s-button @click="handleRefreshButtonClicked" id="refresh-button" class="OO-button font-hongmeng">
+            <s-button @click="handleRefreshButtonClicked" id="refresh-button" class="OO-button font-hongmeng" :disabled="loadingMods">
                 <s-icon slot="start">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
                         <path
@@ -221,9 +221,12 @@
         <div class="bottom-center">
             <!-- Dòng thống kê HIỆN LUÔN, kể cả khi bảng nổi đang mở
                  (Đạt dặn 23/11: mở bảng mà số liệu biến mất là lỗi).
-                 Màn hình hẹp thì chữ có thể bị cắt dở — đánh đổi anh
-                 đã chấp nhận; màn hình rộng thì hiện đủ. -->
-            <span class="mod-stats">{{ $t('stats.line', { total: statsTotal, enabled: statsEnabled, characters: statsCharacters }) }}</span>
+                 Bảng mở thì thanh dưới chỉ còn ~112px ở màn 1280 nên
+                 dòng đầy đủ bị cắt dở ("46 mods · 0 en...") — lúc đó
+                 hiện dạng rút gọn (tổng + đang bật, vừa ~100px cả khi
+                 kho ~500 mod), rê chuột vào vẫn thấy dòng đầy đủ.
+                 Đóng bảng thì dòng đầy đủ trở lại. (1.5.29) -->
+            <span class="mod-stats" :title="statsFullLine">{{ statsLine }}</span>
         </div>
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
@@ -343,7 +346,10 @@ function handlePresetDeleteButtonClicked() {
 }
 
 function handleRefreshButtonClicked() {
-    // Làm mới danh sách mod mà không tải lại cả cửa sổ.
+    // Làm mới danh sách mod mà không tải lại cả cửa sổ. Đang tải thì
+    // không nhận thêm lần bấm (nút cũng đã mờ đi nhờ :disabled) — tránh
+    // 2 lần tải chồng nhau làm hỏng danh sách (1.5.29).
+    if (loadingMods.value) return;
     iManager.refreshModList();
 }
 
@@ -692,6 +698,14 @@ const statsEnabled = computed(() => {
     for (const id of selectedModIdSet) if (suspectSet.has(id)) n++;
     return n;
 });
+// Dòng thống kê đầy đủ + dạng rút gọn (1.5.29): bảng trượt mở thì
+// thanh dưới chỉ còn ~112px ở màn 1280, dòng đầy đủ (232px) bị cắt
+// dở — lúc đó hiện dạng rút gọn (tổng + đang bật, ~84px với 46 mod,
+// ~100px với kho ~500 mod). Số nhân vật trở lại khi đóng bảng.
+const statsFullLine = computed(() => t('stats.line', { total: statsTotal.value, enabled: statsEnabled.value, characters: statsCharacters.value }));
+const statsLine = computed(() => viewPanelOpen.value
+    ? t('stats.compact', { total: statsTotal.value, enabled: statsEnabled.value })
+    : statsFullLine.value);
 
 onMounted(() => {
     refreshStats();
@@ -807,7 +821,7 @@ const handleCharacterListChange = (character) => {
     modCardManagerRef.value?.selectCharacter(character);
 };
 
-// Gõ ô tìm kiếm cạnh tiêu đề Characters: lọc theo tên nhân vật
+// Gõ ô tìm kiếm ở đầu danh sách nhân vật: lọc theo tên nhân vật
 // (khớp đầu tên, đúng 1 nhân vật mới lọc — luật ở filteredMods).
 const handleCharacterSearch = (text) => {
     modCardManagerRef.value?.applySearch(text);
