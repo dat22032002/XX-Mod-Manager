@@ -64,6 +64,13 @@ const refreshInGame = async (iManager) => {
         // TC25: bọc toàn bộ trong try/finally — lỗi ở bước giữa (vd setFocus
         // văng) thì phím vẫn được nhả + focus trả về app, không kẹt phím F10
         // trong game. Thành công thì giữ nguyên hành vi cũ (focus ở lại game).
+        // NHANH HƠN (Đạt 24/11): rút 75+50ms xuống 40+30ms, tổng ~70ms
+        // thay vì ~125ms. 40ms vẫn đủ 2-3 khung hình để game thấy phím
+        // (game kiểm tra phím mỗi khung hình, ~8-16ms); 30ms vẫn đủ để
+        // cửa sổ app lên trước mặt hẳn trước khi nhả phím — KHÔNG được
+        // rút chỗ này về 0: nhả phím lúc game còn trước mặt thì phím kẹt
+        // (thử nghiệm 1 lần nhảy 24/11 đã chứng minh: game tải lại config
+        // lặp vô hạn). Cần Đạt test máy thật để chắc game vẫn tải lại mod.
         let keyDown = false;
         let succeeded = false;
         try {
@@ -73,11 +80,11 @@ const refreshInGame = async (iManager) => {
             // 2. Set focus on ZZZ window
             window.setFocus(true);
             // 3. Wait a reasonable amount of time for the key to register
-            await sleep(75);
+            await sleep(40);
             // 4. Set focus on the Manager window
             manager.setFocus(true);
             // 5. Wait again for the window
-            await sleep(50);
+            await sleep(30);
             // 6. Release the F10 Key
             HMC.sendKeyboard(VisualKey, false);
             keyDown = false;
