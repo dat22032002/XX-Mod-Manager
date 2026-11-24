@@ -1199,15 +1199,28 @@ EventSystem.on('toggledMod', (mod) => {
     color: var(--s-color-dark-surface);
 }
 
-/* Nút Apply đổi màu cam khi còn thay đổi chưa áp (Đạt chọn 24/11,
-   thay cho nhấp nháy cũ — sáng 1.3 + hào quang vàng, chu kỳ 2 giây,
-   Đạt chê nhấp nháy không đẹp). Cần !important vì colorManager ghi
-   background-color trực tiếp lên style của nút lúc chạy (inline style
-   thắng mọi rule thường); hết thay đổi chưa áp thì class gỡ ra, màu
-   vàng động trở lại. */
+/* Nút Apply trôi màu cam-vàng khi còn thay đổi chưa áp (Đạt chọn
+   24/11: bản cam tĩnh trước, rồi thêm hiệu ứng trôi như vàng-xanh).
+   Nhịp y hệt hiệu ứng gốc của colorManager: trôi 2 giây + nghỉ nửa
+   giây mỗi chiều (chu kỳ 5 giây). Animation thắng được màu inline mà
+   colorManager ghi lúc chạy nên không cần !important; hết thay đổi
+   chưa áp thì class gỡ ra, hiệu ứng dừng, màu vàng-xanh trở lại. */
+@keyframes apply-orange-shift {
+    0%, 10% {
+        background-color: #FF9800;
+    }
+
+    50%, 60% {
+        background-color: #F2D900;
+    }
+
+    100% {
+        background-color: #FF9800;
+    }
+}
+
 #apply-button.has-unapplied {
-    animation: none;
-    background-color: #FF9800 !important;
+    animation: apply-orange-shift 5s ease-in-out infinite;
 }
 
 .apply-progress {
