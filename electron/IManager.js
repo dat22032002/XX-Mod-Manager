@@ -534,10 +534,11 @@ class IManager {
         const loadRawMods = ModLoader.modsRaw;
         // 如果 loadRawMods 中的mod 的 newMod 为 true，则将其设置为 false，并触发addMod事件
         // newMods 是 ModData 而不是 ModInfo 的数组
-        this.newMods = loadModData.filter((modData) => {
-            const rawMod = loadRawMods.find((raw) => raw.id === modData.id);
-            return rawMod && rawMod.newMod;
-        });
+        // Bảng tra id mod mới lập 1 lần (Đạt 24/11): bản cũ tìm tuyến
+        // tính trong vòng lọc (O(n²)) — 500 mod = 250.000 lần so sánh
+        // mỗi lần tải; bản này O(n), kết quả giống hệt (id là duy nhất).
+        const newModIds = new Set(loadRawMods.filter((raw) => raw.newMod).map((raw) => raw.id));
+        this.newMods = loadModData.filter((modData) => newModIds.has(modData.id));
 
         // loadModData 是一个 ModData 的数组，直接赋值给 data.modList
         this.data.modList = loadModData;
