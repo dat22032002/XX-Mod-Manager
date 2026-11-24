@@ -22,9 +22,14 @@
         <s-scroll-view ref="scrollViewRef" style="overflow-x:hidden;overflow-y: auto;border-radius: 0 0 12px 12px;">
             <div class="refresh-placeholder" ref="refreshPlaceholderRef"></div>
             <div id="mod-container" :compact="compactMode" :data-layout="cardLayout" ref="modContainerRef" :style="containerStyle">
-                <modCard v-for="mod in windowMods" :key="mod.id" :modRef="mod" :lazyLoad=true
+                <!-- Key = id + tên thư mục: phòng khi id vẫn trùng (lỗi
+                     glitch lưới 22/11 + 24/11 do nhân đôi thư mục mod).
+                     Ký tự '|' không thể có trong tên thư mục Windows nên
+                     cặp key không thể nhầm lẫn. DOM id của thẻ + map bôi
+                     đen dùng cùng key này (xem modCard.vue + marquee). -->
+                <modCard v-for="mod in windowMods" :key="mod.id + '|' + mod.name" :modRef="mod" :lazyLoad=true
                     :compactMode="compactMode" :cardWidth="effectiveCardWidth" :cardLayout="cardLayout" :fullImage="fullImage"
-                    :ref="setModCardRef(mod.id)" />
+                    :ref="setModCardRef(mod.id + '|' + mod.name)" />
                 <!-- Lưới lọc ra 0 mod thì hiện chữ + nút xóa bộ lọc thay
                      vì để trống trơn (Đạt dặn 21/11). Chỉ hiện sau khi
                      đã tải xong danh sách (modsLoaded) để lúc mở app
@@ -901,7 +906,7 @@ function handleMarqueeMouseUp() {
     // TIẾP THEO của người dùng bị nuốt mất (bắt được lúc kiểm tra nút
     // hoàn tác 21/11: bôi đen xong bấm thẻ Grace không ăn).
     setTimeout(() => { marqueeSuppressClick = false; }, 0);
-    const byId = new Map((mods.value || []).map(m => [m.id, m]));
+    const byId = new Map((mods.value || []).map(m => [m.id + '|' + m.name, m]));
     const hitMods = [];
     for (const el of cards) {
         const mod = byId.get(el.id);
