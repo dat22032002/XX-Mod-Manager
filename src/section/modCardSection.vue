@@ -221,9 +221,12 @@
         <div class="bottom-center">
             <!-- Dòng thống kê HIỆN LUÔN, kể cả khi bảng nổi đang mở
                  (Đạt dặn 23/11: mở bảng mà số liệu biến mất là lỗi).
-                 Màn hình hẹp thì chữ có thể bị cắt dở — đánh đổi anh
-                 đã chấp nhận; màn hình rộng thì hiện đủ. -->
-            <span class="mod-stats">{{ $t('stats.line', { total: statsTotal, enabled: statsEnabled, characters: statsCharacters }) }}</span>
+                 Bảng mở thì thanh dưới chỉ còn ~112px ở màn 1280 nên
+                 dòng đầy đủ bị cắt dở ("46 mods · 0 en...") — lúc đó
+                 hiện dạng rút gọn (tổng + đang bật, vừa ~100px cả khi
+                 kho ~500 mod), rê chuột vào vẫn thấy dòng đầy đủ.
+                 Đóng bảng thì dòng đầy đủ trở lại. (1.5.29) -->
+            <span class="mod-stats" :title="statsFullLine">{{ statsLine }}</span>
         </div>
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
@@ -695,6 +698,14 @@ const statsEnabled = computed(() => {
     for (const id of selectedModIdSet) if (suspectSet.has(id)) n++;
     return n;
 });
+// Dòng thống kê đầy đủ + dạng rút gọn (1.5.29): bảng trượt mở thì
+// thanh dưới chỉ còn ~112px ở màn 1280, dòng đầy đủ (232px) bị cắt
+// dở — lúc đó hiện dạng rút gọn (tổng + đang bật, ~84px với 46 mod,
+// ~100px với kho ~500 mod). Số nhân vật trở lại khi đóng bảng.
+const statsFullLine = computed(() => t('stats.line', { total: statsTotal.value, enabled: statsEnabled.value, characters: statsCharacters.value }));
+const statsLine = computed(() => viewPanelOpen.value
+    ? t('stats.compact', { total: statsTotal.value, enabled: statsEnabled.value })
+    : statsFullLine.value);
 
 onMounted(() => {
     refreshStats();

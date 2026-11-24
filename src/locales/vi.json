@@ -130,7 +130,8 @@
     "progress": "Đang tải mod {done}/{total}..."
   },
   "stats": {
-    "line": "{total} mod · {enabled} đang bật · {characters} nhân vật"
+    "line": "{total} mod · {enabled} đang bật · {characters} nhân vật",
+    "compact": "{total} mod · {enabled} bật"
   },
   "filter": {
     "button": "Bộ lọc",
