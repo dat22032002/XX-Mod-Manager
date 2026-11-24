@@ -226,7 +226,7 @@
                  hiện dạng rút gọn (tổng + đang bật, vừa ~100px cả khi
                  kho ~500 mod), rê chuột vào vẫn thấy dòng đầy đủ.
                  Đóng bảng thì dòng đầy đủ trở lại. (1.5.29) -->
-            <span class="mod-stats" :title="statsFullLine">{{ statsLine }}</span>
+            <span class="mod-stats" :title="statsLine">{{ statsLine }}</span>
         </div>
         <div class="bottom-right">
             <!-- <s-button @click="handleApplyButtonClicked" /> -->
@@ -698,14 +698,12 @@ const statsEnabled = computed(() => {
     for (const id of selectedModIdSet) if (suspectSet.has(id)) n++;
     return n;
 });
-// Dòng thống kê đầy đủ + dạng rút gọn (1.5.29): bảng trượt mở thì
-// thanh dưới chỉ còn ~112px ở màn 1280, dòng đầy đủ (232px) bị cắt
-// dở — lúc đó hiện dạng rút gọn (tổng + đang bật, ~84px với 46 mod,
-// ~100px với kho ~500 mod). Số nhân vật trở lại khi đóng bảng.
-const statsFullLine = computed(() => t('stats.line', { total: statsTotal.value, enabled: statsEnabled.value, characters: statsCharacters.value }));
-const statsLine = computed(() => viewPanelOpen.value
-    ? t('stats.compact', { total: statsTotal.value, enabled: statsEnabled.value })
-    : statsFullLine.value);
+// Dòng thống kê: luôn hiện dạng đầy đủ (1.5.30 test2, Đạt dặn 24/11:
+// cứ để nguyên chữ, không đổi ngắn/dài khi mở bảng). Dạng rút gọn
+// (1.5.29) đã bỏ: hồi đó bảng trượt nằm trong luồng nên mở ra làm
+// khung giữa co còn ~112px, dòng đầy đủ bị cắt dở; giờ bảng là lớp
+// nổi không đẩy bố cục nữa nên không cần rút gọn.
+const statsLine = computed(() => t('stats.line', { total: statsTotal.value, enabled: statsEnabled.value, characters: statsCharacters.value }));
 
 onMounted(() => {
     refreshStats();
@@ -1205,9 +1203,9 @@ EventSystem.on('toggledMod', (mod) => {
    dặn 24/11: để ở giữa và giữ nguyên, không bị ảnh hưởng bởi lớp nổi
    của bảng tùy chọn). Bảng giờ là lớp nổi thật sự (position absolute,
    ra khỏi luồng bố cục) nên mở/đóng bảng không làm bố cục thanh đổi —
-   số liệu đứng yên đúng giữa mọi lúc, mọi cỡ màn hình. Chữ vẫn đổi
-   ngắn/dài theo bảng mở hay đóng (dạng rút gọn khi bảng mở để không
-   chạm bảng ở màn rộng) nhưng tâm số liệu không đổi. z-index 5: thấp
+   số liệu đứng yên đúng giữa mọi lúc, mọi cỡ màn hình. Chữ luôn là
+   dạng đầy đủ, không đổi khi mở/đóng bảng (Đạt dặn 24/11: cứ để
+   nguyên chữ). z-index 5: thấp
    hơn bảng (10) nên màn hẹp bảng phủ lên số liệu lúc mở (Đạt đã biết
    và chấp nhận khi chọn kiểu lớp nổi). */
 .mod-stats {

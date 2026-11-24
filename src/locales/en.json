@@ -135,8 +135,7 @@
     "progress": "Loading mod {done} of {total}..."
   },
   "stats": {
-    "line": "{total} mods · {enabled} enabled · {characters} characters",
-    "compact": "{total} mods · {enabled} on"
+    "line": "{total} mods · {enabled} enabled · {characters} characters"
   },
   "filter": {
     "button": "Filter",
