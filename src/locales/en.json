@@ -135,7 +135,6 @@
   },
   "filter": {
     "button": "Filter",
-    "characters": "Characters",
     "preset": "Preset",
     "typeGroup": "Type",
     "sortGroup": "Sort",

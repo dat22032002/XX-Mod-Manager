@@ -821,7 +821,7 @@ const handleCharacterListChange = (character) => {
     modCardManagerRef.value?.selectCharacter(character);
 };
 
-// Gõ ô tìm kiếm cạnh tiêu đề Characters: lọc theo tên nhân vật
+// Gõ ô tìm kiếm ở đầu danh sách nhân vật: lọc theo tên nhân vật
 // (khớp đầu tên, đúng 1 nhân vật mới lọc — luật ở filteredMods).
 const handleCharacterSearch = (text) => {
     modCardManagerRef.value?.applySearch(text);
