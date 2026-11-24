@@ -119,7 +119,7 @@
 
             <!-- Nút Refresh dạng dài có chữ, giống nút Open Folder ở khung
                  chi tiết (Đạt dặn 20/11): s-button + icon ở đầu + chữ. -->
-            <s-button @click="handleRefreshButtonClicked" id="refresh-button" class="OO-button font-hongmeng">
+            <s-button @click="handleRefreshButtonClicked" id="refresh-button" class="OO-button font-hongmeng" :disabled="loadingMods">
                 <s-icon slot="start">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
                         <path
@@ -343,7 +343,10 @@ function handlePresetDeleteButtonClicked() {
 }
 
 function handleRefreshButtonClicked() {
-    // Làm mới danh sách mod mà không tải lại cả cửa sổ.
+    // Làm mới danh sách mod mà không tải lại cả cửa sổ. Đang tải thì
+    // không nhận thêm lần bấm (nút cũng đã mờ đi nhờ :disabled) — tránh
+    // 2 lần tải chồng nhau làm hỏng danh sách (1.5.29).
+    if (loadingMods.value) return;
     iManager.refreshModList();
 }
 

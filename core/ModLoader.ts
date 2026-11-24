@@ -66,6 +66,14 @@ class ModLoader {
     // wins for a duplicated id, same as the old .find() did.
     private static modsById: Map<string, ModInfo> = new Map();
     private static afterLoadCallbacks: ((mods: ModData[]) => void)[] = [];
+    // Chốt chống tải chồng (1.5.29): lần tải đang chạy thì lần gọi sau
+    // nhận chung cùng 1 promise, không chạy thêm lần tải thứ hai. Trước
+    // đây 2 lần tải chồng nhau sẽ cùng ghi vào modsRaw/mods — lần sau
+    // xóa mảng trong lúc lần trước đang đẩy mod vào → danh sách thiếu
+    // hoặc nhân đôi mod. Ngoại lệ nhỏ: quét lại ép buộc (forceRescan)
+    // gọi lúc đang tải thì cũng nhận kết quả của lần tải đang chạy —
+    // bấm Làm Mới thêm lần nữa sau khi tải xong là quét lại thật.
+    private static loadInFlight: Promise<ModData[]> | null = null;
 
     static onAfterLoad(callback: (mods: ModData[]) => void) {
         if (typeof callback !== 'function') {
@@ -84,7 +92,16 @@ class ModLoader {
         });
     }
 
-    static async loadMods(forceRescan: boolean = false) {
+    static loadMods(forceRescan: boolean = false): Promise<ModData[]> {
+        if (!this.loadInFlight) {
+            this.loadInFlight = this.doLoadMods(forceRescan).finally(() => {
+                this.loadInFlight = null;
+            });
+        }
+        return this.loadInFlight;
+    }
+
+    private static async doLoadMods(forceRescan: boolean = false) {
         let startTime = Date.now();
         // Nhịp nghỉ linh hoạt: lần tải này bắt đầu với "chưa từng nghỉ"
         // nên khối đầu luôn nghỉ (dòng tiến độ vẽ ngay từ đầu).
